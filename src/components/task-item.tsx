@@ -50,7 +50,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         setTimeout(() => {
           setCelebrating(true);
           playBigCompletionSound();
-        }, 700);
+        }, 200);
     }
   }
 
@@ -70,7 +70,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         setCelebrating(true);
         onToggle(task.id);
         setIsAnimating(false);
-      }, 700);
+      }, 200);
     } else {
       onToggle(task.id);
     }
