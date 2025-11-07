@@ -33,13 +33,13 @@ export const useTasks = () => {
     }
   }, [tasks, isInitialLoad]);
 
-  const addTask = useCallback((taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'subtasks' | 'createdAt'>) => {
+  const addTask = useCallback((taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
     const newTask: Task = {
       ...taskData,
       id: crypto.randomUUID(),
       isCompleted: false,
       completedAt: null,
-      subtasks: [],
+      subtasks: taskData.subtasks || [],
       createdAt: new Date().toISOString(),
     };
     setTasks(prev => [newTask, ...prev]);
@@ -76,7 +76,14 @@ export const useTasks = () => {
     };
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
-        return { ...task, subtasks: [...task.subtasks, newSubtask] };
+        // When adding a subtask, if the parent was complete, un-complete it
+        const wasCompleted = task.isCompleted;
+        return { 
+          ...task,
+          subtasks: [...task.subtasks, newSubtask],
+          isCompleted: wasCompleted ? false : task.isCompleted,
+          completedAt: wasCompleted ? null : task.completedAt
+        };
       }
       return task;
     }));
@@ -87,23 +94,20 @@ export const useTasks = () => {
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
         const subtask = task.subtasks.find(st => st.id === subtaskId);
-        if (subtask?.isCompleted) { // If it's already completed, we just toggle it
-          changeType = 'none';
-          const newSubtasks = task.subtasks.map(sub => sub.id === subtaskId ? { ...sub, isCompleted: !sub.isCompleted } : sub);
-           return { ...task,
-            subtasks: newSubtasks,
-            isCompleted: false,
-            completedAt: null,
-          }
+        if (!subtask) return task;
+
+        const subtaskNowCompleted = !subtask.isCompleted;
+
+        if (subtaskNowCompleted) {
+          changeType = 'subtask';
         }
 
-        changeType = 'subtask';
-        const newSubtasks = task.subtasks.map(sub => sub.id === subtaskId ? { ...sub, isCompleted: !sub.isCompleted } : sub);
+        const newSubtasks = task.subtasks.map(sub => sub.id === subtaskId ? { ...sub, isCompleted: subtaskNowCompleted } : sub);
         const allSubtasksCompleted = newSubtasks.every(sub => sub.isCompleted);
         
         if (allSubtasksCompleted && !task.isCompleted) {
-          changeType = 'main';
           // If all subtasks are now complete, complete the parent task
+          changeType = 'main';
           return {
             ...task,
             subtasks: newSubtasks,
@@ -112,7 +116,7 @@ export const useTasks = () => {
           };
         } else if (!allSubtasksCompleted && task.isCompleted) {
           // If a subtask is unchecked, un-complete the parent task
-          return {
+           return {
              ...task,
             subtasks: newSubtasks,
             isCompleted: false,
@@ -155,7 +159,7 @@ export const useTasks = () => {
       for (let i = 1; i < uniqueDates.length; i++) {
         if (differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]) === 1) {
           current++;
-        } else {
+        } else if (differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]) > 1) {
           longest = Math.max(longest, current);
           current = 1;
         }
@@ -172,12 +176,12 @@ export const useTasks = () => {
       for (let i = uniqueDates.length - 2; i >= 0; i--) {
         if (differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]) === 1) {
           currentStreak++;
-        } else {
+        } else if (differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]) > 1) {
           break;
         }
       }
     }
-    if(lastCompletion && !isToday(lastCompletion)){
+    if(lastCompletion && !isToday(lastCompletion) && !isYesterday(lastCompletion)){
       currentStreak = 0;
     }
 
@@ -187,11 +191,23 @@ export const useTasks = () => {
 
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
+        // Incompleted tasks come first
         if (a.isCompleted && !b.isCompleted) return 1;
         if (!a.isCompleted && b.isCompleted) return -1;
-        if (a.dueDate && b.dueDate) return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
+      
+        // If both are incomplete, sort by due date (earliest first), then creation
+        if (!a.isCompleted && !b.isCompleted) {
+          if (a.dueDate && b.dueDate) return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
+          if (a.dueDate) return -1;
+          if (b.dueDate) return 1;
+          return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
+        }
+
+        // If both are complete, sort by completion date (most recent first)
+        if (a.completedAt && b.completedAt) {
+            return parseISO(b.completedAt).getTime() - parseISO(a.completedAt).getTime();
+        }
+
         return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
     });
   }, [tasks]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Confetti from 'react-confetti';
 import Header from '@/components/header';
 import StatsPanel from '@/components/stats-panel';
@@ -8,6 +8,7 @@ import TaskList from '@/components/task-list';
 import { useTasks } from '@/hooks/use-tasks';
 import { Skeleton } from './ui/skeleton';
 import OverallProgress from './overall-progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function TaskQuestApp() {
   const {
@@ -43,10 +44,17 @@ export default function TaskQuestApp() {
     }
   }, [isCelebrating]);
 
+  const { activeTasks, completedTasks } = useMemo(() => {
+    const active = tasks.filter(task => !task.isCompleted);
+    const completed = tasks.filter(task => task.isCompleted);
+    return { activeTasks: active, completedTasks: completed };
+  }, [tasks]);
+
   const MainContent = () => {
     if (isInitialLoad) {
       return (
         <div className="space-y-4">
+          <Skeleton className="h-10 w-48 mb-4" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -54,14 +62,34 @@ export default function TaskQuestApp() {
       )
     }
     return (
-      <TaskList
-        tasks={tasks}
-        onToggleTask={toggleTaskCompletion}
-        onDeleteTask={deleteTask}
-        onAddSubtask={addSubtask}
-        onToggleSubtask={toggleSubtaskCompletion}
-        setCelebrating={setCelebrating}
-      />
+        <Tabs defaultValue="active" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="active">Active Quests</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+            </TabsList>
+            <TabsContent value="active" className="mt-4">
+                <TaskList
+                    tasks={activeTasks}
+                    listType='active'
+                    onToggleTask={toggleTaskCompletion}
+                    onDeleteTask={deleteTask}
+                    onAddSubtask={addSubtask}
+                    onToggleSubtask={toggleSubtaskCompletion}
+                    setCelebrating={setCelebrating}
+                />
+            </TabsContent>
+            <TabsContent value="completed" className="mt-4">
+                <TaskList
+                    tasks={completedTasks}
+                    listType='completed'
+                    onToggleTask={toggleTaskCompletion}
+                    onDeleteTask={deleteTask}
+                    onAddSubtask={addSubtask}
+                    onToggleSubtask={toggleSubtaskCompletion}
+                    setCelebrating={setCelebrating}
+                />
+            </TabsContent>
+        </Tabs>
     );
   }
 

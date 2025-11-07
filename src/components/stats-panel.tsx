@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface StatsPanelProps {
   stats: {
@@ -16,8 +17,8 @@ interface StatsPanelProps {
   isInitialLoad: boolean;
 }
 
-const StatCard = ({ icon, title, value, unit, description, isInitialLoad }: { icon: React.ReactNode, title: string, value: string | number, unit?: string, description?: string, isInitialLoad: boolean }) => (
-  <Card>
+const StatCard = ({ icon, title, value, unit, description, isInitialLoad, className }: { icon: React.ReactNode, title: string, value: string | number, unit?: string, description?: string, isInitialLoad: boolean, className?: string }) => (
+  <Card className={className}>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
       {icon}
@@ -33,7 +34,25 @@ const StatCard = ({ icon, title, value, unit, description, isInitialLoad }: { ic
   </Card>
 );
 
+const getStreakStyles = (streak: number) => {
+    if (streak >= 30) {
+      return { container: "bg-red-500/10 border-red-500/30", icon: "text-red-500 animate-pulse-strong", text: "text-red-500" };
+    }
+    if (streak >= 14) {
+      return { container: "bg-orange-500/10 border-orange-500/30", icon: "text-orange-500 animate-pulse-medium", text: "text-orange-500" };
+    }
+    if (streak >= 7) {
+      return { container: "bg-amber-500/10 border-amber-500/30", icon: "text-amber-500 animate-pulse", text: "text-amber-500" };
+    }
+    if (streak > 0) {
+        return { container: "bg-lime-500/10 border-lime-500/30", icon: "text-lime-500", text: "text-lime-500" };
+    }
+    return { container: "", icon: "text-muted-foreground", text: "" };
+};
+
 export default function StatsPanel({ stats, streaks, isInitialLoad }: StatsPanelProps) {
+  const streakStyles = getStreakStyles(streaks.current);
+
   return (
     <div className="space-y-4">
       <h2 className="font-headline text-lg font-semibold text-foreground">Your Progress</h2>
@@ -42,9 +61,10 @@ export default function StatsPanel({ stats, streaks, isInitialLoad }: StatsPanel
           title="Current Streak"
           value={streaks.current}
           unit=" days"
-          icon={<Flame className="h-4 w-4 text-muted-foreground" />}
-          description={streaks.current > 0 ? "Keep it up!" : "Complete a task today!"}
+          icon={<Flame className={cn("h-4 w-4", streakStyles.icon)} />}
+          description={streaks.current > 0 ? "Keep the fire alive!" : "Complete a task today!"}
           isInitialLoad={isInitialLoad}
+          className={cn("transition-all", streakStyles.container)}
         />
         <StatCard
           title="Longest Streak"

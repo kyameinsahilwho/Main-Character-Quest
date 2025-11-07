@@ -7,6 +7,7 @@ import TaskItem from '@/components/task-item';
 
 interface TaskListProps {
   tasks: Task[];
+  listType: 'active' | 'completed';
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddSubtask: (taskId: string, text: string) => void;
@@ -16,6 +17,7 @@ interface TaskListProps {
 
 export default function TaskList({
   tasks,
+  listType,
   onToggleTask,
   onDeleteTask,
   onAddSubtask,
@@ -26,6 +28,11 @@ export default function TaskList({
   const emptyStateImage = PlaceHolderImages.find(img => img.id === 'empty-tasks');
 
   if (tasks.length === 0) {
+    const title = listType === 'active' ? 'All Quests Conquered!' : 'No Completed Quests Yet';
+    const message = listType === 'active' 
+      ? 'Your task list is empty. Add a new quest to begin your next adventure.'
+      : 'Complete a quest from your active list to see it here.';
+
     return (
       <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground p-8">
         {emptyStateImage && (
@@ -38,8 +45,8 @@ export default function TaskList({
              data-ai-hint={emptyStateImage.imageHint}
            />
         )}
-        <h2 className="text-2xl font-bold mb-2 font-headline text-foreground">All Quests Conquered!</h2>
-        <p>Your task list is empty. Add a new quest to begin your next adventure.</p>
+        <h2 className="text-2xl font-bold mb-2 font-headline text-foreground">{title}</h2>
+        <p>{message}</p>
       </div>
     );
   }
