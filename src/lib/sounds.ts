@@ -34,8 +34,8 @@ export const playBigCompletionSound = () => {
         initializeSound().then(() => {
             const now = Tone.now();
             synth?.triggerAttackRelease("C4", "8n", now);
-            synth?.triggerAttackRelease("G4", "8n", now + 0.1);
-            synth?.triggerAttackRelease("C5", "8n", now + 0.2);
+            synth?.triggerAttackRelease("G4", "8n", now + 0.05);
+            synth?.triggerAttackRelease("C5", "8n", now + 0.1);
         }).catch(e => console.error("Could not play sound", e));
     }
 };
