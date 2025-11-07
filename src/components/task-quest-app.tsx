@@ -90,26 +90,26 @@ export default function TaskQuestApp() {
     }
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className='flex justify-between items-center mb-4'>
-                <TabsList className="grid w-fit grid-cols-3">
+            <div className='flex flex-col md:flex-row justify-between items-center mb-4 gap-4'>
+                <TabsList className="grid w-full md:w-fit grid-cols-3">
                     <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
                     <TabsTrigger value="automated">Automated</TabsTrigger>
                 </TabsList>
-                 <div className="flex items-center gap-2">
+                 <div className="flex w-full md:w-auto items-center gap-2">
                     {activeTab === 'active' && (
                          <AutomatedTasksPopover
                             tasks={automatedTasks}
                             onAddTasks={addAutomatedTasksToToday}
                         >
-                            <Button variant="outline">
+                            <Button variant="outline" className="w-full md:w-auto">
                                 <ListPlus className="mr-2 h-4 w-4" />
                                 Add from Automated
                             </Button>
                         </AutomatedTasksPopover>
                     )}
                     <AddTaskDialog onAddTask={handleAddTask}>
-                        <Button>
+                        <Button className="w-full md:w-auto">
                             <Plus className="mr-2 h-4 w-4" />
                             New Quest
                         </Button>

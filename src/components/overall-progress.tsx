@@ -11,7 +11,7 @@ interface OverallProgressProps {
 
 export default function OverallProgress({ completionPercentage, isInitialLoad }: OverallProgressProps) {
   return (
-    <div className="sticky right-0 top-0 h-screen w-12 bg-card/50 border-l border-border flex flex-col items-center justify-center p-2">
+    <div className="hidden lg:flex w-12 bg-card/50 border-l border-border flex-col items-center justify-center p-2">
       <div className="flex flex-col items-center justify-center h-full w-full">
         {isInitialLoad ? <Skeleton className="h-full w-full" /> : (
             <>
