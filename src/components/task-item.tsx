@@ -59,19 +59,24 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
     }
   }
 
+  const handleToggleSubtask = (e: React.MouseEvent, subtaskId: string) => {
+    e.stopPropagation();
+    handleSubtaskToggle(subtaskId);
+  };
+
   return (
-    <Card className={cn("transition-all", task.isCompleted ? 'bg-card/60 border-dashed' : 'bg-card')}>
+    <Card className={cn("transition-all duration-300", task.isCompleted ? 'bg-card/60 border-dashed opacity-70' : 'bg-card')}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
       <div className="flex items-start p-4">
         <Checkbox
           id={`task-${task.id}`}
           checked={task.isCompleted}
           onCheckedChange={handleToggle}
-          className="mr-4 mt-1 h-5 w-5 rounded-full"
+          className="mr-4 mt-1 h-6 w-6 rounded-md"
           aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
         />
         <div className="flex-1">
-          <CardTitle className={cn("text-lg", task.isCompleted && 'line-through text-muted-foreground')}>
+          <CardTitle className={cn("text-lg font-bold", task.isCompleted && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
           
@@ -80,7 +85,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
                 <div className="flex items-center text-xs text-muted-foreground mb-1">
                     <span>{completedSubtasks} of {task.subtasks.length} completed</span>
                 </div>
-                <Progress value={progress} className="h-1" />
+                <Progress value={progress} className="h-2" />
             </div>
           )}
 
@@ -99,16 +104,15 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
         <div className="p-4 pt-4">
           <div className="space-y-3">
             {task.subtasks.map(subtask => (
-              <div key={subtask.id} className="flex items-center">
+              <div key={subtask.id} className="flex items-center" onClick={(e) => { e.preventDefault(); handleSubtaskToggle(subtask.id) }}>
                 <Checkbox
                   id={`subtask-${subtask.id}`}
                   checked={subtask.isCompleted}
-                  onCheckedChange={() => handleSubtaskToggle(subtask.id)}
                   className="mr-3 h-4 w-4"
                 />
                 <label
                   htmlFor={`subtask-${subtask.id}`}
-                  className={cn("text-sm", subtask.isCompleted && "line-through text-muted-foreground")}
+                  className={cn("text-sm cursor-pointer", subtask.isCompleted && "line-through text-muted-foreground")}
                 >
                   {subtask.text}
                 </label>
