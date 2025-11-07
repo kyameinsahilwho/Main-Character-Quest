@@ -89,7 +89,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         "transition-all duration-300 overflow-hidden", 
         task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', 
         task.isAutomated && 'border-dashed border-primary/50',
-        isAnimating && 'bg-gradient-to-r animate-green-flash'
+        isAnimating && 'animate-green-flash'
     )}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
       <div className="flex items-start p-4 cursor-pointer" onClick={handleWrapperClick}>

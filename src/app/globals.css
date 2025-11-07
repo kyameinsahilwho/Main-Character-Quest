@@ -94,6 +94,9 @@
     text-shadow: 2px 2px 0px hsl(var(--border));
   }
   .animate-green-flash {
+    background-image: linear-gradient(to right, hsla(140, 80%, 70%, 0.4) 50%, transparent 50%);
+    background-size: 200% 100%;
+    background-position: 100%;
     animation: green-flash 0.7s ease-out forwards;
   }
 
@@ -110,11 +113,11 @@
     }
   }
   @keyframes green-flash {
-    0%, 100% {
-      --tw-gradient-stops: hsla(140, 80%, 70%, 0), hsla(140, 80%, 70%, 0) 100%;
+    from {
+      background-position: 100%;
     }
-    50% {
-      --tw-gradient-stops: hsla(140, 80%, 70%, 0), hsla(140, 80%, 70%, 0.4) 50%, hsla(140, 80%, 70%, 0) 100%;
+    to {
+      background-position: 0%;
     }
   }
 }
