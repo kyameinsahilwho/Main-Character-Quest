@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import { isToday, isTomorrow, isThisWeek, parseISO } from 'date-fns';
+import { isToday, isTomorrow, isThisWeek, parseISO, isBefore, startOfToday } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Task } from '@/lib/types';
 import TaskItem from '@/components/task-item';
@@ -21,20 +21,24 @@ interface TaskListProps {
 const getTaskSection = (task: Task): string => {
   if (task.isCompleted && task.completedAt) {
     const completedDate = parseISO(task.completedAt);
-    if(isToday(completedDate)) return 'Completed Today';
+    if (isToday(completedDate)) return 'Completed Today';
     return 'Completed Earlier';
   }
   if (!task.dueDate) return 'No Due Date';
+
   const date = parseISO(task.dueDate);
+  const today = startOfToday();
+
+  if (isBefore(date, today) && !isToday(date)) return 'Past';
   if (isToday(date)) return 'Today';
   if (isTomorrow(date)) return 'Tomorrow';
   if (isThisWeek(date, { weekStartsOn: 1 })) return 'This Week';
   return 'Later';
 };
 
-const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+const Section = ({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
   <div className="mb-8">
-    <h2 className="text-xl font-bold font-headline mb-4">{title}</h2>
+    <h2 className={cn("text-xl font-bold font-headline mb-4", isPast && "text-red-500")}>{title}</h2>
     <div className="space-y-4">{children}</div>
   </div>
 );
@@ -111,7 +115,7 @@ export default function TaskList({
     return acc;
   }, {} as Record<string, Task[]>);
 
-  const activeSectionOrder = ['Today', 'Tomorrow', 'This Week', 'Later', 'No Due Date'];
+  const activeSectionOrder = ['Past', 'Today', 'Tomorrow', 'This Week', 'Later', 'No Due Date'];
   const completedSectionOrder = ['Completed Today', 'Completed Earlier'];
   const sectionOrder = listType === 'active' ? activeSectionOrder : completedSectionOrder;
 
@@ -120,7 +124,7 @@ export default function TaskList({
     <div>
       {sectionOrder.map(sectionName =>
         groupedTasks[sectionName] ? (
-          <Section key={sectionName} title={sectionName}>
+          <Section key={sectionName} title={sectionName} isPast={sectionName === 'Past'}>
             {groupedTasks[sectionName].map(task => (
               <TaskItem
                 key={task.id}
