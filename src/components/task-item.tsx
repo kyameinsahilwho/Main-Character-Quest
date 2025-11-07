@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar, ChevronDown, Plus, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ interface TaskItemProps {
 export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubtask, setCelebrating }: TaskItemProps) {
   const [subtaskText, setSubtaskText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +46,11 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         playCompletionSound();
     } else if (result === 'main') {
         playCompletionSound();
+        setIsAnimating(true);
         setTimeout(() => {
-            setCelebrating(true);
-            playBigCompletionSound();
-        }, 300);
+          setCelebrating(true);
+          playBigCompletionSound();
+        }, 500);
     }
   }
 
@@ -60,18 +62,38 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
   const handleMainCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Stop propagation to prevent collapsible from toggling
     if(task.isAutomated) return;
-    onToggle(task.id);
-     if (!task.isCompleted) {
-      setCelebrating(true);
+    
+    if (!task.isCompleted) {
+      setIsAnimating(true);
       playBigCompletionSound();
+      setCelebrating(true);
+      setTimeout(() => {
+        onToggle(task.id);
+        setIsAnimating(false);
+      }, 500); // Duration of the animation
+    } else {
+      onToggle(task.id);
+    }
+  }
+
+  const handleWrapperClick = (e: React.MouseEvent) => {
+    // Only toggle expansion if not clicking on the checkbox area
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-checkbox-area]')) {
+      setIsExpanded(!isExpanded);
     }
   }
 
   return (
-    <Card className={cn("transition-all duration-300", task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', task.isAutomated && 'border-dashed border-primary/50')}>
+    <Card className={cn(
+        "transition-all duration-300 overflow-hidden", 
+        task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', 
+        task.isAutomated && 'border-dashed border-primary/50',
+        isAnimating && 'animate-green-flash'
+    )}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <div className="flex items-start p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-        <div className='flex items-center h-full mt-1 mr-4' onClick={handleMainCheckboxClick}>
+      <div className="flex items-start p-4 cursor-pointer" onClick={handleWrapperClick}>
+        <div data-checkbox-area className='flex items-center h-full mt-1 mr-4' onClick={handleMainCheckboxClick}>
             <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
