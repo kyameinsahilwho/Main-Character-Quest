@@ -1,15 +1,8 @@
 "use client";
 
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import type { Task } from '@/lib/types';
-import { AddTaskDialog } from './add-task-dialog';
 
-interface HeaderProps {
-  onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'subtasks' | 'createdAt'>) => void;
-}
-
-export default function Header({ onAddTask }: HeaderProps) {
+export default function Header() {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4 md:px-6">
       <div className="flex items-center gap-2">
@@ -35,12 +28,6 @@ export default function Header({ onAddTask }: HeaderProps) {
           Task Quest
         </h1>
       </div>
-      <AddTaskDialog onAddTask={onAddTask}>
-        <Button size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          New Quest
-        </Button>
-      </AddTaskDialog>
     </header>
   );
 }

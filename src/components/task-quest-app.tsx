@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Confetti from 'react-confetti';
+import { Plus } from 'lucide-react';
 import Header from '@/components/header';
 import StatsPanel from '@/components/stats-panel';
 import TaskList from '@/components/task-list';
@@ -11,6 +12,8 @@ import OverallProgress from './overall-progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Task } from '@/lib/types';
 import { EditTaskDialog } from './edit-task-dialog';
+import { AddTaskDialog } from './add-task-dialog';
+import { Button } from './ui/button';
 
 export default function TaskQuestApp() {
   const {
@@ -78,10 +81,18 @@ export default function TaskQuestApp() {
     }
     return (
         <Tabs defaultValue="active" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="active">Active Quests</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
-            </TabsList>
+            <div className='flex justify-between items-center mb-4'>
+                <TabsList className="grid w-fit grid-cols-2">
+                    <TabsTrigger value="active">Active Quests</TabsTrigger>
+                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                </TabsList>
+                 <AddTaskDialog onAddTask={addTask}>
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Quest
+                    </Button>
+                </AddTaskDialog>
+            </div>
             <TabsContent value="active" className="mt-4">
                 <TaskList
                     tasks={activeTasks}
@@ -113,7 +124,7 @@ export default function TaskQuestApp() {
   return (
     <div className="flex h-screen w-full flex-col bg-background font-body">
       {isCelebrating && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />}
-      <Header onAddTask={addTask} />
+      <Header />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <MainContent />
