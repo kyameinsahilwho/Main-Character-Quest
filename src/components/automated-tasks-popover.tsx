@@ -1,9 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronsUpDown, ListPlus } from "lucide-react"
+import { ListPlus } from "lucide-react"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -11,8 +10,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Checkbox } from "./ui/checkbox"
-import { Task } from "@/lib/types"
+import type { Task } from "@/lib/types"
 import { ScrollArea } from "./ui/scroll-area"
+import { Separator } from "./ui/separator"
 
 interface AutomatedTasksPopoverProps {
   children: React.ReactNode;
@@ -32,11 +32,22 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
     )
   }
 
+  const handleToggleSelectAll = () => {
+    if (selectedTaskIds.length === tasks.length) {
+      setSelectedTaskIds([])
+    } else {
+      setSelectedTaskIds(tasks.map(task => task.id))
+    }
+  }
+
   const handleAddTasks = () => {
     onAddTasks(selectedTaskIds)
     setSelectedTaskIds([])
     setOpen(false)
   }
+
+  const allSelected = selectedTaskIds.length === tasks.length && tasks.length > 0;
+  const someSelected = selectedTaskIds.length > 0 && !allSelected;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,8 +62,30 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
             </p>
         </div>
 
+        <Separator />
+
+        {tasks.length > 0 && (
+            <div
+                className="flex items-center space-x-2 p-3 rounded-md hover:bg-accent transition-colors cursor-pointer mx-4 mt-2"
+                onClick={handleToggleSelectAll}
+            >
+                <Checkbox
+                    id="select-all-automated"
+                    checked={allSelected}
+                    data-state={someSelected ? "indeterminate" : (allSelected ? "checked" : "unchecked")}
+                    onCheckedChange={handleToggleSelectAll}
+                />
+                <label
+                    htmlFor="select-all-automated"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                    Select All
+                </label>
+            </div>
+        )}
+
         <ScrollArea className="h-64">
-            <div className="p-4 pt-0 space-y-2">
+            <div className="p-4 pt-2 space-y-2">
             {tasks.length > 0 ? (
                 tasks.map(task => (
                 <div
