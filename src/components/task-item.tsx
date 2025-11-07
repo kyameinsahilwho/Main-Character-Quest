@@ -38,7 +38,8 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
   const completedSubtasks = task.subtasks.filter(st => st.isCompleted).length;
   const progress = task.subtasks.length > 0 ? (completedSubtasks / task.subtasks.length) * 100 : 0;
 
-  const handleToggle = () => {
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onToggle(task.id);
     if (!task.isCompleted) {
       setCelebrating(true);
@@ -67,16 +68,17 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
   return (
     <Card className={cn("transition-all duration-300", task.isCompleted ? 'bg-card/60 border-dashed opacity-70' : 'bg-card')}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <div className="flex items-start p-4">
+      <div className="flex items-start p-4" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           id={`task-${task.id}`}
           checked={task.isCompleted}
-          onCheckedChange={handleToggle}
+          onCheckedChange={() => onToggle(task.id)}
+          onClick={handleToggle}
           className="mr-4 mt-1 h-6 w-6 rounded-md"
           aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
         />
-        <div className="flex-1">
-          <CardTitle className={cn("text-lg font-bold", task.isCompleted && 'line-through text-muted-foreground')}>
+        <div className="flex-1" onClick={() => setIsExpanded(!isExpanded)}>
+          <CardTitle className={cn("text-lg font-bold cursor-pointer", task.isCompleted && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
           
@@ -109,6 +111,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
                   id={`subtask-${subtask.id}`}
                   checked={subtask.isCompleted}
                   className="mr-3 h-4 w-4"
+                  onClick={(e) => handleToggleSubtask(e, subtask.id)}
                 />
                 <label
                   htmlFor={`subtask-${subtask.id}`}

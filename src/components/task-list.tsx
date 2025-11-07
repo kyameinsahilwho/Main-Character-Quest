@@ -5,6 +5,7 @@ import { isToday, isTomorrow, isThisWeek, parseISO } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Task } from '@/lib/types';
 import TaskItem from '@/components/task-item';
+import { cn } from '@/lib/utils';
 
 interface TaskListProps {
   tasks: Task[];
@@ -62,7 +63,7 @@ export default function TaskList({
             data-ai-hint={emptyStateImage.imageHint}
           />
         )}
-        <h2 className="text-2xl font-bold mb-2 font-headline text-foreground text-shadow">{title}</h2>
+        <h2 className={cn("text-2xl font-bold mb-2 font-headline text-foreground", listType === 'active' && 'text-shadow')}>{title}</h2>
         <p>{message}</p>
       </div>
     );
