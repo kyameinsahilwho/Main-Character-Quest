@@ -96,20 +96,20 @@ export default function TaskQuestApp() {
                     <TabsTrigger value="completed">Completed</TabsTrigger>
                     <TabsTrigger value="automated">Automated</TabsTrigger>
                 </TabsList>
-                 <div className="flex w-full md:w-auto items-center gap-2">
+                 <div className="flex w-full md:w-auto items-center gap-2 flex-col md:flex-row">
                     {activeTab === 'active' && (
                          <AutomatedTasksPopover
                             tasks={automatedTasks}
                             onAddTasks={addAutomatedTasksToToday}
                         >
-                            <Button variant="outline" className="w-full md:w-auto">
+                            <Button variant="outline" className="w-full">
                                 <ListPlus className="mr-2 h-4 w-4" />
                                 Add from Automated
                             </Button>
                         </AutomatedTasksPopover>
                     )}
                     <AddTaskDialog onAddTask={handleAddTask}>
-                        <Button className="w-full md:w-auto">
+                        <Button className="w-full">
                             <Plus className="mr-2 h-4 w-4" />
                             New Quest
                         </Button>
