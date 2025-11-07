@@ -12,6 +12,7 @@ export interface Task {
   completedAt: string | null;
   subtasks: Subtask[];
   createdAt: string;
+  isAutomated?: boolean;
 }
 
 export interface Streaks {

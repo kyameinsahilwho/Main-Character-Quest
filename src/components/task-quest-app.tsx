@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Confetti from 'react-confetti';
-import { Plus } from 'lucide-react';
+import { Plus, ListPlus } from 'lucide-react';
 import Header from '@/components/header';
 import StatsPanel from '@/components/stats-panel';
 import TaskList from '@/components/task-list';
@@ -14,6 +14,7 @@ import { Task } from '@/lib/types';
 import { EditTaskDialog } from './edit-task-dialog';
 import { AddTaskDialog } from './add-task-dialog';
 import { Button } from './ui/button';
+import { AutomatedTasksPopover } from './automated-tasks-popover';
 
 export default function TaskQuestApp() {
   const {
@@ -27,11 +28,13 @@ export default function TaskQuestApp() {
     toggleSubtaskCompletion,
     updateTask,
     isInitialLoad,
+    addAutomatedTasksToToday,
   } = useTasks();
 
   const [isCelebrating, setCelebrating] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number, height: number}>({width: 0, height: 0});
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,10 +54,11 @@ export default function TaskQuestApp() {
     }
   }, [isCelebrating]);
 
-  const { activeTasks, completedTasks } = useMemo(() => {
-    const active = tasks.filter(task => !task.isCompleted);
-    const completed = tasks.filter(task => task.isCompleted);
-    return { activeTasks: active, completedTasks: completed };
+  const { activeTasks, completedTasks, automatedTasks } = useMemo(() => {
+    const active = tasks.filter(task => !task.isCompleted && !task.isAutomated);
+    const completed = tasks.filter(task => task.isCompleted && !task.isAutomated);
+    const automated = tasks.filter(task => task.isAutomated);
+    return { activeTasks: active, completedTasks: completed, automatedTasks: automated };
   }, [tasks]);
 
   const handleEditTask = (task: Task) => {
@@ -68,11 +72,16 @@ export default function TaskQuestApp() {
     }
   }
 
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
+    const isAutomated = activeTab === 'automated';
+    addTask({ ...taskData, isAutomated });
+  }
+
   const MainContent = () => {
     if (isInitialLoad) {
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold font-headline mb-4 text-shadow"><Skeleton className="h-8 w-32" /></h2>
+          <h2 className="text-xl font-bold font-headline mb-4"><Skeleton className="h-8 w-32" /></h2>
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -80,18 +89,32 @@ export default function TaskQuestApp() {
       )
     }
     return (
-        <Tabs defaultValue="active" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className='flex justify-between items-center mb-4'>
-                <TabsList className="grid w-fit grid-cols-2">
-                    <TabsTrigger value="active">Active Quests</TabsTrigger>
+                <TabsList className="grid w-fit grid-cols-3">
+                    <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
+                    <TabsTrigger value="automated">Automated</TabsTrigger>
                 </TabsList>
-                 <AddTaskDialog onAddTask={addTask}>
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        New Quest
-                    </Button>
-                </AddTaskDialog>
+                 <div className="flex items-center gap-2">
+                    {activeTab === 'active' && (
+                         <AutomatedTasksPopover
+                            tasks={automatedTasks}
+                            onAddTasks={addAutomatedTasksToToday}
+                        >
+                            <Button variant="outline">
+                                <ListPlus className="mr-2 h-4 w-4" />
+                                Add from Automated
+                            </Button>
+                        </AutomatedTasksPopover>
+                    )}
+                    <AddTaskDialog onAddTask={handleAddTask}>
+                        <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Quest
+                        </Button>
+                    </AddTaskDialog>
+                </div>
             </div>
             <TabsContent value="active" className="mt-4">
                 <TaskList
@@ -109,6 +132,18 @@ export default function TaskQuestApp() {
                 <TaskList
                     tasks={completedTasks}
                     listType='completed'
+                    onToggleTask={toggleTaskCompletion}
+                    onDeleteTask={deleteTask}
+                    onEditTask={handleEditTask}
+                    onAddSubtask={addSubtask}
+                    onToggleSubtask={toggleSubtaskCompletion}
+                    setCelebrating={setCelebrating}
+                />
+            </TabsContent>
+             <TabsContent value="automated" className="mt-4">
+                <TaskList
+                    tasks={automatedTasks}
+                    listType='automated'
                     onToggleTask={toggleTaskCompletion}
                     onDeleteTask={deleteTask}
                     onEditTask={handleEditTask}

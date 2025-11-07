@@ -38,15 +38,6 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
 
   const completedSubtasks = task.subtasks.filter(st => st.isCompleted).length;
   const progress = task.subtasks.length > 0 ? (completedSubtasks / task.subtasks.length) * 100 : 0;
-
-  const handleToggle = (e: React.MouseEvent) => {
-    // e.stopPropagation(); // This was preventing the collapsible from staying open
-    onToggle(task.id);
-    if (!task.isCompleted) {
-      setCelebrating(true);
-      playBigCompletionSound();
-    }
-  };
   
   const handleSubtaskToggle = (subtaskId: string) => {
     const result = onToggleSubtask(task.id, subtaskId);
@@ -66,7 +57,9 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
     handleSubtaskToggle(subtaskId);
   };
   
-  const handleMainCheckboxClick = () => {
+  const handleMainCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop propagation to prevent collapsible from toggling
+    if(task.isAutomated) return;
     onToggle(task.id);
      if (!task.isCompleted) {
       setCelebrating(true);
@@ -75,20 +68,20 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
   }
 
   return (
-    <Card className={cn("transition-all duration-300", task.isCompleted ? 'bg-card/60 border-dashed opacity-70' : 'bg-card')}>
+    <Card className={cn("transition-all duration-300", task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', task.isAutomated && 'border-dashed border-primary/50')}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <div className="flex items-start p-4">
-        <div className='flex items-center h-full mt-1 mr-4'>
+      <div className="flex items-start p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className='flex items-center h-full mt-1 mr-4' onClick={handleMainCheckboxClick}>
             <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
-            onCheckedChange={handleMainCheckboxClick}
-            className="h-6 w-6 rounded-md"
+            className={cn("h-6 w-6 rounded-md", task.isAutomated && "cursor-not-allowed")}
             aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
+            disabled={task.isAutomated}
             />
         </div>
-        <div className="flex-1 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-          <CardTitle className={cn("text-lg font-bold", task.isCompleted && 'line-through text-muted-foreground')}>
+        <div className="flex-1">
+          <CardTitle className={cn("text-lg font-bold", task.isCompleted && !task.isAutomated && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
           
@@ -122,6 +115,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
                   checked={subtask.isCompleted}
                   className="mr-3 h-4 w-4"
                   onClick={(e) => handleToggleSubtask(e, subtask.id)}
+                  disabled={task.isAutomated}
                 />
                 <label
                   htmlFor={`subtask-${subtask.id}`}
@@ -148,11 +142,14 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
       </CollapsibleContent>
       <CardFooter className="flex justify-between p-4">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
-                {task.dueDate && (
+                {task.dueDate && !task.isAutomated && (
                     <>
                         <Calendar className="h-4 w-4" />
                         <span>Due {format(new Date(task.dueDate), 'MMM d')}</span>
                     </>
+                )}
+                {task.isAutomated && (
+                    <span className='font-semibold text-primary/80'>Automated Template</span>
                 )}
             </div>
             <div className='flex items-center gap-1'>

@@ -45,7 +45,23 @@ export const useTasks = () => {
     setTasks(prev => [newTask, ...prev]);
   }, []);
 
-  const updateTask = useCallback((taskId: string, updatedData: Partial<Task>) => {
+  const addAutomatedTasksToToday = useCallback((taskIds: string[]) => {
+    setTasks(prev => {
+        const tasksToAdd = prev.filter(task => taskIds.includes(task.id));
+        const newTasks = tasksToAdd.map(task => ({
+            ...task,
+            id: crypto.randomUUID(),
+            dueDate: new Date().toISOString(),
+            isAutomated: false, // Make it a regular task for today
+            isCompleted: false,
+            completedAt: null,
+            subtasks: task.subtasks.map(st => ({...st, isCompleted: false, id: crypto.randomUUID()}))
+        }));
+        return [...prev, ...newTasks];
+    });
+  }, []);
+
+  const updateTask = useCallback((taskId: string, updatedData: Partial<Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>>) => {
     setTasks(prev => prev.map(task => task.id === taskId ? { ...task, ...updatedData } : task));
   }, []);
   
@@ -131,8 +147,8 @@ export const useTasks = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.isCompleted).length;
+    const totalTasks = tasks.filter(t => !t.isAutomated).length;
+    const completedTasks = tasks.filter(task => task.isCompleted && !task.isAutomated).length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     return {
       totalTasks,
@@ -143,7 +159,7 @@ export const useTasks = () => {
 
   const streaks = useMemo<Streaks>(() => {
     const completedDates = tasks
-      .filter(task => task.completedAt)
+      .filter(task => task.completedAt && !task.isAutomated)
       .map(task => startOfDay(parseISO(task.completedAt!)))
       .sort((a, b) => a.getTime() - b.getTime());
 
@@ -191,6 +207,13 @@ export const useTasks = () => {
 
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
+        if (a.isAutomated && !b.isAutomated) return 1;
+        if (!a.isAutomated && b.isAutomated) return -1;
+
+        if (a.isAutomated && b.isAutomated) {
+          return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
+        }
+
         // Incompleted tasks come first
         if (a.isCompleted && !b.isCompleted) return 1;
         if (!a.isCompleted && b.isCompleted) return -1;
@@ -223,5 +246,6 @@ export const useTasks = () => {
     addSubtask,
     toggleSubtaskCompletion,
     isInitialLoad,
+    addAutomatedTasksToToday,
   };
 };

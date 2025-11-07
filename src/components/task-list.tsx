@@ -6,11 +6,10 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Task } from '@/lib/types';
 import TaskItem from '@/components/task-item';
 import { cn } from '@/lib/utils';
-import { Skeleton } from './ui/skeleton';
 
 interface TaskListProps {
   tasks: Task[];
-  listType: 'active' | 'completed';
+  listType: 'active' | 'completed' | 'automated';
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onEditTask: (task: Task) => void;
@@ -53,11 +52,17 @@ export default function TaskList({
   const emptyStateImage = PlaceHolderImages.find(img => img.id === 'empty-tasks');
 
   if (tasks.length === 0) {
-    const title = listType === 'active' ? 'All Quests Conquered!' : 'No Completed Quests Yet';
+    const title = listType === 'active' 
+        ? 'All Quests Conquered!' 
+        : listType === 'completed'
+        ? 'No Completed Quests Yet'
+        : 'No Automated Quests';
     const message =
       listType === 'active'
         ? 'Your task list is empty. Add a new quest to begin your next adventure.'
-        : 'Complete a quest from your active list to see it here.';
+        : listType === 'completed'
+        ? 'Complete a quest from your active list to see it here.'
+        : 'Add some automated quests to create reusable task templates.';
 
     return (
       <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground p-8">
@@ -76,6 +81,26 @@ export default function TaskList({
       </div>
     );
   }
+
+  if (listType === 'automated') {
+    return (
+        <div className="space-y-4">
+        {tasks.map(task => (
+            <TaskItem
+            key={task.id}
+            task={task}
+            onToggle={onToggleTask}
+            onDelete={onDeleteTask}
+            onEdit={onEditTask}
+            onAddSubtask={onAddSubtask}
+            onToggleSubtask={onToggleSubtask}
+            setCelebrating={setCelebrating}
+            />
+        ))}
+        </div>
+    );
+  }
+
 
   const groupedTasks = tasks.reduce((acc, task) => {
     const section = getTaskSection(task);
