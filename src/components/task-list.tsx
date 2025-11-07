@@ -38,7 +38,7 @@ const getTaskSection = (task: Task): string => {
 
 const Section = ({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
   <div className="mb-8">
-    <h2 className={cn("text-xl font-bold font-headline mb-4", isPast && "text-red-500")}>{title}</h2>
+    <h2 className={cn("text-xl font-bold font-headline mb-4", isPast ? "text-destructive" : "text-foreground")}>{title}</h2>
     <div className="space-y-4">{children}</div>
   </div>
 );
@@ -63,7 +63,7 @@ export default function TaskList({
         : 'No Automated Quests';
     const message =
       listType === 'active'
-        ? 'Your task list is empty. Add a new quest to begin your next adventure.'
+        ? 'Your quest log is empty. Add a new quest to begin your next adventure.'
         : listType === 'completed'
         ? 'Complete a quest from your active list to see it here.'
         : 'Add some automated quests to create reusable task templates.';
