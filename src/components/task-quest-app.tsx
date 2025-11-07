@@ -9,6 +9,8 @@ import { useTasks } from '@/hooks/use-tasks';
 import { Skeleton } from './ui/skeleton';
 import OverallProgress from './overall-progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Task } from '@/lib/types';
+import { EditTaskDialog } from './edit-task-dialog';
 
 export default function TaskQuestApp() {
   const {
@@ -20,11 +22,13 @@ export default function TaskQuestApp() {
     toggleTaskCompletion,
     addSubtask,
     toggleSubtaskCompletion,
+    updateTask,
     isInitialLoad,
   } = useTasks();
 
   const [isCelebrating, setCelebrating] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number, height: number}>({width: 0, height: 0});
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -50,11 +54,22 @@ export default function TaskQuestApp() {
     return { activeTasks: active, completedTasks: completed };
   }, [tasks]);
 
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+  }
+
+  const handleUpdateTask = (updatedTaskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
+    if (taskToEdit) {
+      updateTask(taskToEdit.id, updatedTaskData);
+      setTaskToEdit(null);
+    }
+  }
+
   const MainContent = () => {
     if (isInitialLoad) {
       return (
         <div className="space-y-4">
-          <Skeleton className="h-10 w-48 mb-4" />
+          <h2 className="text-xl font-bold font-headline mb-4 text-shadow"><Skeleton className="h-8 w-32" /></h2>
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -73,6 +88,7 @@ export default function TaskQuestApp() {
                     listType='active'
                     onToggleTask={toggleTaskCompletion}
                     onDeleteTask={deleteTask}
+                    onEditTask={handleEditTask}
                     onAddSubtask={addSubtask}
                     onToggleSubtask={toggleSubtaskCompletion}
                     setCelebrating={setCelebrating}
@@ -84,6 +100,7 @@ export default function TaskQuestApp() {
                     listType='completed'
                     onToggleTask={toggleTaskCompletion}
                     onDeleteTask={deleteTask}
+                    onEditTask={handleEditTask}
                     onAddSubtask={addSubtask}
                     onToggleSubtask={toggleSubtaskCompletion}
                     setCelebrating={setCelebrating}
@@ -106,6 +123,14 @@ export default function TaskQuestApp() {
         </aside>
         <OverallProgress completionPercentage={stats.completionPercentage} isInitialLoad={isInitialLoad} />
       </main>
+      {taskToEdit && (
+        <EditTaskDialog
+            isOpen={!!taskToEdit}
+            onClose={() => setTaskToEdit(null)}
+            onEditTask={handleUpdateTask}
+            task={taskToEdit}
+        />
+      )}
     </div>
   );
 }

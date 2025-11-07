@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { Calendar, ChevronDown, Plus, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,12 +18,13 @@ interface TaskItemProps {
   task: Task;
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
   setCelebrating: (celebating: boolean) => void;
 }
 
-export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onToggleSubtask, setCelebrating }: TaskItemProps) {
+export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubtask, setCelebrating }: TaskItemProps) {
   const [subtaskText, setSubtaskText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -39,7 +40,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
   const progress = task.subtasks.length > 0 ? (completedSubtasks / task.subtasks.length) * 100 : 0;
 
   const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    // e.stopPropagation(); // This was preventing the collapsible from staying open
     onToggle(task.id);
     if (!task.isCompleted) {
       setCelebrating(true);
@@ -64,21 +65,30 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
     e.stopPropagation();
     handleSubtaskToggle(subtaskId);
   };
+  
+  const handleMainCheckboxClick = () => {
+    onToggle(task.id);
+     if (!task.isCompleted) {
+      setCelebrating(true);
+      playBigCompletionSound();
+    }
+  }
 
   return (
     <Card className={cn("transition-all duration-300", task.isCompleted ? 'bg-card/60 border-dashed opacity-70' : 'bg-card')}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <div className="flex items-start p-4" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          id={`task-${task.id}`}
-          checked={task.isCompleted}
-          onCheckedChange={() => onToggle(task.id)}
-          onClick={handleToggle}
-          className="mr-4 mt-1 h-6 w-6 rounded-md"
-          aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
-        />
-        <div className="flex-1" onClick={() => setIsExpanded(!isExpanded)}>
-          <CardTitle className={cn("text-lg font-bold cursor-pointer", task.isCompleted && 'line-through text-muted-foreground')}>
+      <div className="flex items-start p-4">
+        <div className='flex items-center h-full mt-1 mr-4'>
+            <Checkbox
+            id={`task-${task.id}`}
+            checked={task.isCompleted}
+            onCheckedChange={handleMainCheckboxClick}
+            className="h-6 w-6 rounded-md"
+            aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
+            />
+        </div>
+        <div className="flex-1 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+          <CardTitle className={cn("text-lg font-bold", task.isCompleted && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
           
@@ -145,10 +155,16 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
                     </>
                 )}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(task.id)}>
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete task</span>
-            </Button>
+            <div className='flex items-center gap-1'>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onEdit(task)}>
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit task</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(task.id)}>
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete task</span>
+                </Button>
+            </div>
         </CardFooter>
         </Collapsible>
     </Card>

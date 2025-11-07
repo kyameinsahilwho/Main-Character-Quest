@@ -6,18 +6,25 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Task } from '@/lib/types';
 import TaskItem from '@/components/task-item';
 import { cn } from '@/lib/utils';
+import { Skeleton } from './ui/skeleton';
 
 interface TaskListProps {
   tasks: Task[];
   listType: 'active' | 'completed';
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onEditTask: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
   setCelebrating: (celebrating: boolean) => void;
 }
 
 const getTaskSection = (task: Task): string => {
+  if (task.isCompleted && task.completedAt) {
+    const completedDate = parseISO(task.completedAt);
+    if(isToday(completedDate)) return 'Completed Today';
+    return 'Completed Earlier';
+  }
   if (!task.dueDate) return 'No Due Date';
   const date = parseISO(task.dueDate);
   if (isToday(date)) return 'Today';
@@ -38,6 +45,7 @@ export default function TaskList({
   listType,
   onToggleTask,
   onDeleteTask,
+  onEditTask,
   onAddSubtask,
   onToggleSubtask,
   setCelebrating,
@@ -78,7 +86,10 @@ export default function TaskList({
     return acc;
   }, {} as Record<string, Task[]>);
 
-  const sectionOrder = ['Today', 'Tomorrow', 'This Week', 'Later', 'No Due Date'];
+  const activeSectionOrder = ['Today', 'Tomorrow', 'This Week', 'Later', 'No Due Date'];
+  const completedSectionOrder = ['Completed Today', 'Completed Earlier'];
+  const sectionOrder = listType === 'active' ? activeSectionOrder : completedSectionOrder;
+
 
   return (
     <div>
@@ -91,6 +102,7 @@ export default function TaskList({
                 task={task}
                 onToggle={onToggleTask}
                 onDelete={onDeleteTask}
+                onEdit={onEditTask}
                 onAddSubtask={onAddSubtask}
                 onToggleSubtask={onToggleSubtask}
                 setCelebrating={setCelebrating}
