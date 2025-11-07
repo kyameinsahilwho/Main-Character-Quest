@@ -38,7 +38,6 @@ import type { Task, Subtask } from "@/lib/types"
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   dueDate: z.date().optional(),
-  subtasks: z.array(z.object({ text: z.string().min(1) }))
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -58,7 +57,6 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
     defaultValues: {
       title: "",
       dueDate: undefined,
-      subtasks: [],
     },
   })
 

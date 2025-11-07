@@ -94,7 +94,7 @@
     text-shadow: 2px 2px 0px hsl(var(--border));
   }
   .animate-green-flash {
-    animation: green-flash 0.5s ease-out forwards;
+    animation: green-flash 0.7s ease-out forwards;
   }
 
   @keyframes pulse-strong {
@@ -110,14 +110,11 @@
     }
   }
   @keyframes green-flash {
-    0% {
-      background: linear-gradient(90deg, hsla(140, 80%, 70%, 0) 0%, hsla(140, 80%, 70%, 0) 0%);
+    0%, 100% {
+      --tw-gradient-stops: hsla(140, 80%, 70%, 0), hsla(140, 80%, 70%, 0) 100%;
     }
     50% {
-      background: linear-gradient(90deg, hsla(140, 80%, 70%, 0.4) 50%, hsla(140, 80%, 70%, 0) 100%);
-    }
-    100% {
-      background: linear-gradient(90deg, hsla(140, 80%, 70%, 0) 100%, hsla(140, 80%, 70%, 0) 100%);
+      --tw-gradient-stops: hsla(140, 80%, 70%, 0), hsla(140, 80%, 70%, 0.4) 50%, hsla(140, 80%, 70%, 0) 100%;
     }
   }
 }

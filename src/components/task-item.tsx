@@ -50,7 +50,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         setTimeout(() => {
           setCelebrating(true);
           playBigCompletionSound();
-        }, 500);
+        }, 700);
     }
   }
 
@@ -65,21 +65,21 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
     
     if (!task.isCompleted) {
       setIsAnimating(true);
-      playBigCompletionSound();
-      setCelebrating(true);
       setTimeout(() => {
+        playBigCompletionSound();
+        setCelebrating(true);
         onToggle(task.id);
         setIsAnimating(false);
-      }, 500); // Duration of the animation
+      }, 700);
     } else {
       onToggle(task.id);
     }
   }
 
   const handleWrapperClick = (e: React.MouseEvent) => {
-    // Only toggle expansion if not clicking on the checkbox area
+    // Only toggle expansion if not clicking on the checkbox area or other interactive elements
     const target = e.target as HTMLElement;
-    if (!target.closest('[data-checkbox-area]')) {
+    if (!target.closest('[data-interactive-area]')) {
       setIsExpanded(!isExpanded);
     }
   }
@@ -89,11 +89,11 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         "transition-all duration-300 overflow-hidden", 
         task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', 
         task.isAutomated && 'border-dashed border-primary/50',
-        isAnimating && 'animate-green-flash'
+        isAnimating && 'bg-gradient-to-r animate-green-flash'
     )}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
       <div className="flex items-start p-4 cursor-pointer" onClick={handleWrapperClick}>
-        <div data-checkbox-area className='flex items-center h-full mt-1 mr-4' onClick={handleMainCheckboxClick}>
+        <div data-interactive-area className='flex items-center h-full mt-1 mr-4' onClick={handleMainCheckboxClick}>
             <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
@@ -117,7 +117,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
           )}
 
         </div>
-        <div className="flex items-center ml-4">
+        <div data-interactive-area className="flex items-center ml-4">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-9 p-0">
                 <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
@@ -162,7 +162,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
         </div>
         <Separator className="my-0"/>
       </CollapsibleContent>
-      <CardFooter className="flex justify-between p-4">
+      <CardFooter data-interactive-area className="flex justify-between p-4">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
                 {task.dueDate && !task.isAutomated && (
                     <>
