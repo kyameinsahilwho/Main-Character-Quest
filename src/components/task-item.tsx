@@ -126,7 +126,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtas
           </CollapsibleTrigger>
         </div>
       </div>
-      <CollapsibleContent>
+      <CollapsibleContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
         <Separator className="my-0"/>
         <div className="p-4 pt-4">
           <div className="space-y-3">
