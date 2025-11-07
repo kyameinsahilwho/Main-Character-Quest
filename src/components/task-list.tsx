@@ -28,7 +28,7 @@ const getTaskSection = (task: Task): string => {
 
 const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
   <div className="mb-8">
-    <h2 className="text-xl font-bold font-headline mb-4 text-shadow">{title}</h2>
+    <h2 className="text-xl font-bold font-headline mb-4">{title}</h2>
     <div className="space-y-4">{children}</div>
   </div>
 );
@@ -63,7 +63,7 @@ export default function TaskList({
             data-ai-hint={emptyStateImage.imageHint}
           />
         )}
-        <h2 className={cn("text-2xl font-bold mb-2 font-headline text-foreground", listType === 'active' && 'text-shadow')}>{title}</h2>
+        <h2 className={cn("text-2xl font-bold mb-2 font-headline text-foreground")}>{title}</h2>
         <p>{message}</p>
       </div>
     );
