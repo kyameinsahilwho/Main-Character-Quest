@@ -97,7 +97,7 @@
     background-image: linear-gradient(to right, hsla(140, 80%, 70%, 0.4) 50%, transparent 50%);
     background-size: 200% 100%;
     background-position: 100%;
-    animation: green-flash 0.7s ease-out forwards;
+    animation: green-flash 0.4s ease-out forwards;
   }
 
   @keyframes pulse-strong {
