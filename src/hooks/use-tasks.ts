@@ -82,13 +82,27 @@ export const useTasks = () => {
     }));
   }, []);
 
-  const toggleSubtaskCompletion = useCallback((taskId: string, subtaskId: string) => {
+  const toggleSubtaskCompletion = useCallback((taskId: string, subtaskId: string): 'subtask' | 'main' | 'none' => {
+    let changeType: 'subtask' | 'main' | 'none' = 'none';
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
+        const subtask = task.subtasks.find(st => st.id === subtaskId);
+        if (subtask?.isCompleted) { // If it's already completed, we just toggle it
+          changeType = 'none';
+          const newSubtasks = task.subtasks.map(sub => sub.id === subtaskId ? { ...sub, isCompleted: !sub.isCompleted } : sub);
+           return { ...task,
+            subtasks: newSubtasks,
+            isCompleted: false,
+            completedAt: null,
+          }
+        }
+
+        changeType = 'subtask';
         const newSubtasks = task.subtasks.map(sub => sub.id === subtaskId ? { ...sub, isCompleted: !sub.isCompleted } : sub);
         const allSubtasksCompleted = newSubtasks.every(sub => sub.isCompleted);
         
         if (allSubtasksCompleted && !task.isCompleted) {
+          changeType = 'main';
           // If all subtasks are now complete, complete the parent task
           return {
             ...task,
@@ -109,6 +123,7 @@ export const useTasks = () => {
       }
       return task;
     }));
+    return changeType;
   }, []);
 
   const stats = useMemo(() => {

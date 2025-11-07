@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
@@ -19,10 +19,11 @@ interface TaskItemProps {
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onAddSubtask: (taskId: string, text: string) => void;
-  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
+  setCelebrating: (celebating: boolean) => void;
 }
 
-export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onToggleSubtask }: TaskItemProps) {
+export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onToggleSubtask, setCelebrating }: TaskItemProps) {
   const [subtaskText, setSubtaskText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -40,14 +41,21 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
   const handleToggle = () => {
     onToggle(task.id);
     if (!task.isCompleted) {
+      setCelebrating(true);
       playBigCompletionSound();
     }
   };
   
   const handleSubtaskToggle = (subtaskId: string) => {
-    onToggleSubtask(task.id, subtaskId);
-    if (!task.subtasks.find(st => st.id === subtaskId)?.isCompleted) {
+    const result = onToggleSubtask(task.id, subtaskId);
+    if (result === 'subtask') {
         playCompletionSound();
+    } else if (result === 'main') {
+        playCompletionSound();
+        setTimeout(() => {
+            setCelebrating(true);
+            playBigCompletionSound();
+        }, 300);
     }
   }
 
@@ -66,12 +74,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
           <CardTitle className={cn("text-lg", task.isCompleted && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
-          {task.description && (
-            <CardDescription className={cn("mt-1", task.isCompleted && 'line-through text-muted-foreground/80')}>
-                {task.description}
-            </CardDescription>
-          )}
-
+          
           {task.subtasks.length > 0 && (
              <div className="mt-3">
                 <div className="flex items-center text-xs text-muted-foreground mb-1">
@@ -93,7 +96,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
       </div>
       <CollapsibleContent>
         <Separator className="my-0"/>
-        <CardContent className="pt-4">
+        <div className="p-4 pt-4">
           <div className="space-y-3">
             {task.subtasks.map(subtask => (
               <div key={subtask.id} className="flex items-center">
@@ -123,7 +126,7 @@ export default function TaskItem({ task, onToggle, onDelete, onAddSubtask, onTog
               <Plus className="h-4 w-4" />
             </Button>
           </form>
-        </CardContent>
+        </div>
         <Separator className="my-0"/>
       </CollapsibleContent>
       <CardFooter className="flex justify-between p-4">

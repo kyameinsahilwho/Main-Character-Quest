@@ -32,13 +32,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { Task } from "@/lib/types"
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
-  description: z.string().optional(),
   dueDate: z.date().optional(),
 })
 
@@ -55,7 +53,6 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      description: "",
       dueDate: undefined,
     },
   })
@@ -63,7 +60,6 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
   function onSubmit(values: FormValues) {
     onAddTask({
       title: values.title,
-      description: values.description || "",
       dueDate: values.dueDate ? values.dueDate.toISOString() : null,
     })
     form.reset()
@@ -90,22 +86,6 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
                   <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Conquer the Dragon's Lair" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add details about your quest..."
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -10,7 +10,8 @@ interface TaskListProps {
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddSubtask: (taskId: string, text: string) => void;
-  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
+  setCelebrating: (celebrating: boolean) => void;
 }
 
 export default function TaskList({
@@ -19,6 +20,7 @@ export default function TaskList({
   onDeleteTask,
   onAddSubtask,
   onToggleSubtask,
+  setCelebrating,
 }: TaskListProps) {
 
   const emptyStateImage = PlaceHolderImages.find(img => img.id === 'empty-tasks');
@@ -52,6 +54,7 @@ export default function TaskList({
           onDelete={onDeleteTask}
           onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
+          setCelebrating={setCelebrating}
         />
       ))}
     </div>
