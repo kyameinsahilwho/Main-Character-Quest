@@ -17,6 +17,7 @@ import { Button } from './ui/button';
 import { AutomatedTasksPopover } from './automated-tasks-popover';
 import { CalendarSection } from './calendar-section';
 
+
 export default function TaskQuestApp() {
   const {
     tasks,
@@ -166,6 +167,7 @@ export default function TaskQuestApp() {
       <Header />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <CalendarView tasks={tasks} />
           <MainContent />
         </div>
         <aside className="hidden w-80 border-l border-border bg-card/50 p-6 lg:block">
