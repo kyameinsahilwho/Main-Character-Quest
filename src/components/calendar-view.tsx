@@ -27,12 +27,12 @@ export default function CalendarView({ tasks }: CalendarViewProps) {
   };
 
   return (
-    <div className="flex justify-center p-4">
+    <div className="flex justify-center p-4 border border-border">
       <Calendar
         mode="single"
         modifiers={modifiers}
         modifiersStyles={modifiersStyles}
-        className="rounded-md border"
+        className="border-0"
       />
     </div>
   );

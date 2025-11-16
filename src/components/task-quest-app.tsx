@@ -15,7 +15,7 @@ import { EditTaskDialog } from './edit-task-dialog';
 import { AddTaskDialog } from './add-task-dialog';
 import { Button } from './ui/button';
 import { AutomatedTasksPopover } from './automated-tasks-popover';
-import CalendarView from './calendar-view';
+import CalendarModal from './calendar-modal';
 
 export default function TaskQuestApp() {
   const {
@@ -163,7 +163,9 @@ export default function TaskQuestApp() {
       <Header />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <CalendarView tasks={tasks} />
+          <div className="flex justify-end mb-4">
+            <CalendarModal tasks={tasks} />
+          </div>
           <MainContent />
         </div>
         <aside className="hidden w-80 border-l border-border bg-card/50 p-6 lg:block">
