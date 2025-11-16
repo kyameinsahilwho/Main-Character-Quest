@@ -15,6 +15,7 @@ import { EditTaskDialog } from './edit-task-dialog';
 import { AddTaskDialog } from './add-task-dialog';
 import { Button } from './ui/button';
 import { AutomatedTasksPopover } from './automated-tasks-popover';
+import CalendarView from '@/components/calendar-view';
 import { CalendarSection } from './calendar-section';
 
 
