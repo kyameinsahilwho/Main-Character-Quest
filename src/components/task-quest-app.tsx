@@ -15,7 +15,8 @@ import { EditTaskDialog } from './edit-task-dialog';
 import { AddTaskDialog } from './add-task-dialog';
 import { Button } from './ui/button';
 import { AutomatedTasksPopover } from './automated-tasks-popover';
-import CalendarView from './calendar-view';
+import { CalendarSection } from './calendar-section';
+
 
 export default function TaskQuestApp() {
   const {
@@ -90,8 +91,10 @@ export default function TaskQuestApp() {
       )
     }
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className='flex flex-col md:flex-row justify-between items-center mb-4 gap-4'>
+        <div className="w-full">
+            <CalendarSection tasks={tasks} />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className='flex flex-col md:flex-row justify-between items-center mb-4 gap-4'>
                 <TabsList className="grid w-full md:w-fit grid-cols-3">
                     <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -154,6 +157,7 @@ export default function TaskQuestApp() {
                 />
             </TabsContent>
         </Tabs>
+        </div>
     );
   }
 
