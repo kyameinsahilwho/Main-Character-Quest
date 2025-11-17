@@ -100,6 +100,20 @@
     animation: green-flash 0.2s ease-out forwards;
   }
 
+  /* Performance optimizations */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-layout {
+    contain: layout;
+  }
+
   @keyframes pulse-strong {
     50% {
       opacity: 0.6;

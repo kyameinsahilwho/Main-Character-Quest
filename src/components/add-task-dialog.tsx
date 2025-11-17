@@ -56,7 +56,7 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      dueDate: undefined,
+      dueDate: new Date(),
     },
   })
 

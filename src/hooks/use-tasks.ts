@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Task, Subtask, Streaks } from '@/lib/types';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO } from 'date-fns';
 
 const TASKS_STORAGE_KEY = 'taskQuestTasks';
+const SAVE_DEBOUNCE_MS = 500; // Debounce localStorage saves
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     try {
@@ -25,11 +27,23 @@ export const useTasks = () => {
 
   useEffect(() => {
     if (!isInitialLoad) {
-      try {
-        localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
-      } catch (error) {
-        console.error("Failed to save tasks to localStorage", error);
+      // Debounce localStorage saves to reduce write operations
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
+      saveTimeoutRef.current = setTimeout(() => {
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+        } catch (error) {
+          console.error("Failed to save tasks to localStorage", error);
+        }
+      }, SAVE_DEBOUNCE_MS);
+
+      return () => {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+      };
     }
   }, [tasks, isInitialLoad]);
 
@@ -165,42 +179,42 @@ export const useTasks = () => {
 
     if (completedDates.length === 0) return { current: 0, longest: 0 };
     
-    const uniqueDates = [...new Set(completedDates.map(d => d.toISOString()))].map(ds => parseISO(ds));
+    // Use a Set for unique dates (more efficient than array operations)
+    const uniqueDates = Array.from(
+      new Set(completedDates.map(d => d.getTime()))
+    ).map(time => new Date(time));
 
-    let longest = 0;
-    let current = 0;
-    if(uniqueDates.length > 0) {
-      longest = 1;
-      current = 1;
-      for (let i = 1; i < uniqueDates.length; i++) {
-        if (differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]) === 1) {
-          current++;
-        } else if (differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]) > 1) {
-          longest = Math.max(longest, current);
-          current = 1;
-        }
-      }
-      longest = Math.max(longest, current);
-    }
+    if (uniqueDates.length === 0) return { current: 0, longest: 0 };
+
+    let longest = 1;
+    let current = 1;
     
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const daysDiff = differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]);
+      if (daysDiff === 1) {
+        current++;
+      } else if (daysDiff > 1) {
+        longest = Math.max(longest, current);
+        current = 1;
+      }
+    }
+    longest = Math.max(longest, current);
+    
+    // Calculate current streak
     let currentStreak = 0;
-    const today = startOfDay(new Date());
     const lastCompletion = uniqueDates[uniqueDates.length - 1];
 
-    if (lastCompletion && (isToday(lastCompletion) || isYesterday(lastCompletion))) {
+    if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
       currentStreak = 1;
       for (let i = uniqueDates.length - 2; i >= 0; i--) {
-        if (differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]) === 1) {
+        const daysDiff = differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]);
+        if (daysDiff === 1) {
           currentStreak++;
-        } else if (differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]) > 1) {
+        } else if (daysDiff > 1) {
           break;
         }
       }
     }
-    if(lastCompletion && !isToday(lastCompletion) && !isYesterday(lastCompletion)){
-      currentStreak = 0;
-    }
-
 
     return { current: currentStreak, longest };
   }, [tasks]);

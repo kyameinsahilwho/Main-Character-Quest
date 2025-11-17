@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from 'react';
 import Image from 'next/image';
 import { isToday, isTomorrow, isThisWeek, parseISO, isBefore, startOfToday } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -36,14 +37,15 @@ const getTaskSection = (task: Task): string => {
   return 'Later';
 };
 
-const Section = ({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
+const Section = memo(({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
   <div className="mb-8">
     <h2 className={cn("text-xl font-bold font-headline mb-4", isPast ? "text-destructive" : "text-foreground")}>{title}</h2>
-    <div className="space-y-4">{children}</div>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{children}</div>
   </div>
-);
+));
+Section.displayName = 'Section';
 
-export default function TaskList({
+function TaskList({
   tasks,
   listType,
   onToggleTask,
@@ -88,7 +90,7 @@ export default function TaskList({
 
   if (listType === 'automated') {
     return (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {tasks.map(task => (
             <TaskItem
             key={task.id}
@@ -106,14 +108,16 @@ export default function TaskList({
   }
 
 
-  const groupedTasks = tasks.reduce((acc, task) => {
-    const section = getTaskSection(task);
-    if (!acc[section]) {
-      acc[section] = [];
-    }
-    acc[section].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
+  const groupedTasks = useMemo(() => {
+    return tasks.reduce((acc, task) => {
+      const section = getTaskSection(task);
+      if (!acc[section]) {
+        acc[section] = [];
+      }
+      acc[section].push(task);
+      return acc;
+    }, {} as Record<string, Task[]>);
+  }, [tasks]);
 
   const activeSectionOrder = ['Past', 'Today', 'Tomorrow', 'This Week', 'Later', 'No Due Date'];
   const completedSectionOrder = ['Completed Today', 'Completed Earlier'];
@@ -143,3 +147,5 @@ export default function TaskList({
     </div>
   );
 }
+
+export default memo(TaskList);
