@@ -1,11 +1,23 @@
 "use client";
 
 import { memo } from 'react';
-import { Flame, Trophy, TrendingUp } from 'lucide-react';
+import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import Link from 'next/link';
+import { User } from '@supabase/supabase-js';
 
 interface HeaderProps {
   stats?: {
@@ -15,6 +27,9 @@ interface HeaderProps {
   };
   streaks?: Streaks;
   isInitialLoad?: boolean;
+  user?: User | null;
+  onSignOut?: () => void;
+  isSyncing?: boolean;
 }
 
 const getStreakStyles = (streak: number) => {
@@ -33,8 +48,13 @@ const getStreakStyles = (streak: number) => {
   return { icon: "text-muted-foreground", bg: "bg-muted/30" };
 };
 
-function Header({ stats, streaks, isInitialLoad }: HeaderProps) {
+function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: HeaderProps) {
   const streakStyles = streaks ? getStreakStyles(streaks.current) : getStreakStyles(0);
+
+  const getUserInitials = (email?: string) => {
+    if (!email) return 'U';
+    return email.charAt(0).toUpperCase();
+  };
 
   return (
     <header className="flex h-auto shrink-0 flex-col border-b-2 border-border px-4 md:px-6 py-4 gap-4 bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-sm shadow-sm">
@@ -44,19 +64,63 @@ function Header({ stats, streaks, isInitialLoad }: HeaderProps) {
           <h1 className="text-2xl font-bold font-headline text-foreground">
             Main Character Quest
           </h1>
+          {isSyncing && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Syncing...</span>
+            </div>
+          )}
         </div>
 
-        {/* Stats on larger screens */}
-        {stats && streaks && !isInitialLoad && (
-          <div className="hidden lg:flex items-center gap-4">
-            {/* Current Streak */}
-            <div className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border-2 border-border shadow-md", streakStyles.bg)}>
-              <Flame className={cn("h-6 w-6", streakStyles.icon)} />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground font-medium leading-none">Streak</span>
-                <span className="text-2xl font-bold font-headline leading-none mt-1">{streaks.current}</span>
+        <div className="flex items-center gap-4">
+          {/* Auth Button/Menu */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10 border-2 border-primary">
+                    <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                      {getUserInitials(user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Signed in</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onSignOut} className="text-red-600 focus:text-red-600 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/login">
+              <Button variant="default" size="sm" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Button>
+            </Link>
+          )}
+
+          {/* Stats on larger screens */}
+          {stats && streaks && !isInitialLoad && (
+            <div className="hidden lg:flex items-center gap-4">
+              {/* Current Streak */}
+              <div className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border-2 border-border shadow-md", streakStyles.bg)}>
+                <Flame className={cn("h-6 w-6", streakStyles.icon)} />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground font-medium leading-none">Streak</span>
+                  <span className="text-2xl font-bold font-headline leading-none mt-1">{streaks.current}</span>
+                </div>
               </div>
-            </div>
 
             {/* Longest Streak */}
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted/40 border-2 border-border shadow-md">
@@ -88,6 +152,7 @@ function Header({ stats, streaks, isInitialLoad }: HeaderProps) {
             <Skeleton className="h-14 w-40" />
           </div>
         )}
+        </div>
       </div>
 
       {/* Stats bar on mobile/tablet */}

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { Plus, ListPlus } from 'lucide-react';
+import { Plus, ListPlus, LogOut, User as UserIcon } from 'lucide-react';
 import Header from '@/components/header';
 import TaskList from '@/components/task-list';
 import { useTasks } from '@/hooks/use-tasks';
+import { useSupabaseSync } from '@/hooks/use-supabase-sync';
 import { Skeleton } from './ui/skeleton';
 import OverallProgress from './overall-progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,12 +16,23 @@ import { Button } from './ui/button';
 import { AutomatedTasksPopover } from './automated-tasks-popover';
 import { CalendarDialog } from './calendar-dialog';
 import { CalendarIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Alert, AlertDescription } from './ui/alert';
 
 // Lazy load Confetti for better initial load performance
 const Confetti = lazy(() => import('react-confetti'));
 
 
 export default function TaskQuestApp() {
+  const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut } = useSupabaseSync();
+  
   const {
     tasks,
     stats,
@@ -33,12 +45,32 @@ export default function TaskQuestApp() {
     updateTask,
     isInitialLoad,
     addAutomatedTasksToToday,
-  } = useTasks();
+    reloadFromSupabase,
+  } = useTasks(user);
 
   const [isCelebrating, setCelebrating] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number, height: number}>({width: 0, height: 0});
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState("active");
+  const [syncComplete, setSyncComplete] = useState(false);
+
+  // Sync local storage to Supabase when user first logs in
+  useEffect(() => {
+    if (user && !authLoading && !syncComplete) {
+      const syncStatus = localStorage.getItem('task-quest-sync-status');
+      
+      // Only sync if haven't synced before
+      if (syncStatus !== 'synced') {
+        syncLocalToSupabase(user.id).then(() => {
+          setSyncComplete(true);
+          // Reload from Supabase after sync to get the synced data
+          reloadFromSupabase();
+        });
+      } else {
+        setSyncComplete(true);
+      }
+    }
+  }, [user, authLoading, syncLocalToSupabase, syncComplete, reloadFromSupabase]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -84,7 +116,7 @@ export default function TaskQuestApp() {
   }, [activeTab, addTask]);
 
   const MainContent = () => {
-    if (isInitialLoad) {
+    if (isInitialLoad || authLoading) {
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-bold font-headline mb-4"><Skeleton className="h-8 w-32" /></h2>
@@ -96,9 +128,18 @@ export default function TaskQuestApp() {
     }
     return (
         <div className="w-full">
+            {isSyncing && (
+              <Alert className="mb-4">
+                <AlertDescription>
+                  🔄 Syncing your data to the cloud...
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
-                <TabsList className="grid w-full md:w-fit grid-cols-3">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                  <TabsList className="grid w-full md:w-fit grid-cols-3">
                     <TabsTrigger value="active" className="transition-all duration-200">
                       <span className="relative flex items-center gap-1.5">
                         <span className="hidden sm:inline">Active</span>
@@ -134,7 +175,10 @@ export default function TaskQuestApp() {
                         )}
                       </span>
                     </TabsTrigger>
-                </TabsList>
+                  </TabsList>
+                  
+                 
+                </div>
                  <div className="flex w-full md:w-auto items-center gap-2 flex-col md:flex-row">
                     <CalendarDialog tasks={tasks}>
                         <Button variant="outline" className="w-full group hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-foreground">
@@ -235,7 +279,14 @@ export default function TaskQuestApp() {
           <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />
         </Suspense>
       )}
-      <Header stats={stats} streaks={streaks} isInitialLoad={isInitialLoad} />
+      <Header 
+        stats={stats} 
+        streaks={streaks} 
+        isInitialLoad={isInitialLoad}
+        user={user}
+        onSignOut={signOut}
+        isSyncing={isSyncing}
+      />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <MainContent />

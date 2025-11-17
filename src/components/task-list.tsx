@@ -15,7 +15,7 @@ interface TaskListProps {
   onDeleteTask: (taskId: string) => void;
   onEditTask: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
-  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
+  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none' | Promise<'subtask' | 'main' | 'none'>;
   setCelebrating: (celebrating: boolean) => void;
 }
 

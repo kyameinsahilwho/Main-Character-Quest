@@ -20,7 +20,7 @@ interface TaskItemProps {
   onDelete: (taskId: string) => void;
   onEdit: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
-  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none';
+  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none' | Promise<'subtask' | 'main' | 'none'>;
   setCelebrating: (celebating: boolean) => void;
 }
 
@@ -46,8 +46,8 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
     }
   }, [subtaskText, onAddSubtask, task.id]);
   
-  const handleSubtaskToggle = useCallback((subtaskId: string) => {
-    const result = onToggleSubtask(task.id, subtaskId);
+  const handleSubtaskToggle = useCallback(async (subtaskId: string) => {
+    const result = await Promise.resolve(onToggleSubtask(task.id, subtaskId));
     if (result === 'subtask') {
         playCompletionSound();
     } else if (result === 'main') {
