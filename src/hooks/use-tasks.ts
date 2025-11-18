@@ -493,6 +493,34 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     return { current: currentStreak, longest };
   }, [tasks]);
 
+  // Sync streaks to Supabase whenever they change
+  useEffect(() => {
+    if (!isInitialLoad && user && streaks) {
+      const syncStreaks = async () => {
+        try {
+          const { error } = await supabase
+            .from('user_settings')
+            .upsert({
+              user_id: user.id,
+              current_streak: streaks.current,
+              longest_streak: streaks.longest,
+              tasks_completed: stats.completedTasks,
+              total_xp: 0, // Can be implemented later
+              level: 1, // Can be implemented later
+            }, {
+              onConflict: 'user_id'
+            });
+
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error syncing streaks to Supabase:', error);
+        }
+      };
+
+      syncStreaks();
+    }
+  }, [streaks, user, isInitialLoad, supabase, stats.completedTasks]);
+
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
         if (a.isAutomated && !b.isAutomated) return 1;

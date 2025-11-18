@@ -74,6 +74,77 @@ export function useSupabaseSync() {
 
       console.log(`Syncing ${localTasks.length} local tasks to Supabase...`);
 
+      // Calculate streaks from local tasks
+      const completedTasks = localTasks.filter(t => t.isCompleted && !t.isAutomated);
+      const completedDates = completedTasks
+        .filter(task => task.completedAt)
+        .map(task => {
+          const date = new Date(task.completedAt!);
+          date.setHours(0, 0, 0, 0);
+          return date;
+        })
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      const uniqueDates = Array.from(
+        new Set(completedDates.map(d => d.getTime()))
+      ).map(time => new Date(time));
+
+      let currentStreak = 0;
+      let longestStreak = 0;
+
+      if (uniqueDates.length > 0) {
+        let streak = 1;
+        longestStreak = 1;
+        
+        for (let i = 1; i < uniqueDates.length; i++) {
+          const daysDiff = Math.floor((uniqueDates[i].getTime() - uniqueDates[i-1].getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff === 1) {
+            streak++;
+          } else if (daysDiff > 1) {
+            longestStreak = Math.max(longestStreak, streak);
+            streak = 1;
+          }
+        }
+        longestStreak = Math.max(longestStreak, streak);
+
+        // Calculate current streak
+        const lastCompletion = uniqueDates[uniqueDates.length - 1];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (lastCompletion.getTime() === today.getTime() || lastCompletion.getTime() === yesterday.getTime()) {
+          currentStreak = 1;
+          for (let i = uniqueDates.length - 2; i >= 0; i--) {
+            const daysDiff = Math.floor((uniqueDates[i+1].getTime() - uniqueDates[i].getTime()) / (1000 * 60 * 60 * 24));
+            if (daysDiff === 1) {
+              currentStreak++;
+            } else if (daysDiff > 1) {
+              break;
+            }
+          }
+        }
+      }
+
+      // Sync user settings with streaks
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          current_streak: currentStreak,
+          longest_streak: longestStreak,
+          tasks_completed: completedTasks.length,
+          total_xp: 0,
+          level: 1,
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (settingsError) {
+        console.error('Error syncing user settings:', settingsError);
+      }
+
       // Sync tasks and subtasks
       for (const task of localTasks) {
         // Insert task
