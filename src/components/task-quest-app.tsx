@@ -140,7 +140,7 @@ export default function TaskQuestApp() {
                 <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
                 <div className="flex items-center gap-4 w-full md:w-auto">
                   <TabsList className="grid w-full md:w-fit grid-cols-3">
-                    <TabsTrigger value="active" className="transition-all duration-200">
+                    <TabsTrigger value="active" className="transition-all duration-200 flex items-center justify-center">
                       <span className="relative flex items-center gap-1.5">
                         <span className="hidden sm:inline">Active</span>
                         <span className="sm:hidden">Active</span>
@@ -157,7 +157,7 @@ export default function TaskQuestApp() {
                         )}
                       </span>
                     </TabsTrigger>
-                    <TabsTrigger value="completed" className="transition-all duration-200">
+                    <TabsTrigger value="completed" className="transition-all duration-200 flex items-center justify-center">
                       <span className="flex items-center gap-1">
                         <span className="hidden sm:inline">Completed</span>
                         <span className="sm:hidden">Done</span>
@@ -166,7 +166,7 @@ export default function TaskQuestApp() {
                         )}
                       </span>
                     </TabsTrigger>
-                    <TabsTrigger value="automated" className="transition-all duration-200">
+                    <TabsTrigger value="automated" className="transition-all duration-200 flex items-center justify-center">
                       <span className="flex items-center gap-1">
                         <span className="hidden sm:inline">Automated</span>
                         <span className="sm:hidden">Auto</span>

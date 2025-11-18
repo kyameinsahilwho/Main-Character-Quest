@@ -114,30 +114,42 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
           {stats && streaks && !isInitialLoad && (
             <div className="hidden lg:flex items-center gap-4">
               {/* Current Streak */}
-              <div className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border-2 border-border shadow-md", streakStyles.bg)}>
-                <Flame className={cn("h-6 w-6", streakStyles.icon)} />
-                <div className="flex flex-col">
+              <div className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border-2 border-border shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] relative overflow-hidden", streakStyles.bg)}>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <Flame className={cn("h-6 w-6 drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]", streakStyles.icon)} />
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-sm pointer-events-none" />
+                </div>
+                <div className="flex flex-col relative">
                   <span className="text-xs text-muted-foreground font-medium leading-none">Streak</span>
-                  <span className="text-2xl font-bold font-headline leading-none mt-1">{streaks.current}</span>
+                  <span className="text-2xl font-bold font-headline leading-none mt-1 drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{streaks.current}</span>
                 </div>
               </div>
 
             {/* Longest Streak */}
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted/40 border-2 border-border shadow-md">
-              <Trophy className="h-6 w-6 text-muted-foreground" />
-              <div className="flex flex-col">
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-br from-muted/60 via-muted/40 to-muted/60 border-2 border-border shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+              <div className="relative">
+                <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-500 drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-sm pointer-events-none" />
+              </div>
+              <div className="flex flex-col relative">
                 <span className="text-xs text-muted-foreground font-medium leading-none">Best</span>
-                <span className="text-2xl font-bold font-headline leading-none mt-1">{streaks.longest}</span>
+                <span className="text-2xl font-bold font-headline leading-none mt-1 drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{streaks.longest}</span>
               </div>
             </div>
 
             {/* Completion Rate */}
-            <div className="flex items-center gap-3 px-4 py-2.5 min-w-[200px] rounded-xl bg-muted/40 border-2 border-border shadow-md">
-              <TrendingUp className="h-6 w-6 text-muted-foreground" />
-              <div className="flex-1">
+            <div className="flex items-center gap-3 px-4 py-2.5 min-w-[200px] rounded-xl bg-gradient-to-br from-muted/60 via-muted/40 to-muted/60 border-2 border-border shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+              <div className="relative">
+                <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-500 drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-sm pointer-events-none" />
+              </div>
+              <div className="flex-1 relative">
                 <div className="flex items-baseline justify-between mb-1">
                   <span className="text-xs text-muted-foreground font-medium">Completion</span>
-                  <span className="text-2xl font-bold font-headline">{stats.completionPercentage}%</span>
+                  <span className="text-2xl font-bold font-headline drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{stats.completionPercentage}%</span>
                 </div>
                 <Progress value={stats.completionPercentage} className="h-2" />
               </div>
@@ -158,28 +170,40 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
       {/* Stats bar on mobile/tablet */}
       {stats && streaks && !isInitialLoad && (
         <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1">
-          <div className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all whitespace-nowrap border border-border", streakStyles.bg)}>
-            <Flame className={cn("h-5 w-5", streakStyles.icon)} />
-            <div className="flex flex-col">
+          <div className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all whitespace-nowrap border border-border shadow-[3px_3px_0px_0px_rgba(255,255,255,0.3)] active:shadow-[1px_1px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-[2px] active:translate-y-[2px] relative overflow-hidden", streakStyles.bg)}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <Flame className={cn("h-5 w-5 drop-shadow-[0_2px_3px_rgba(255,255,255,0.6)]", streakStyles.icon)} />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-[2px] pointer-events-none" />
+            </div>
+            <div className="flex flex-col relative">
               <span className="text-xs text-muted-foreground font-medium leading-none">Streak</span>
-              <span className="text-xl font-bold font-headline leading-none mt-1">{streaks.current}</span>
+              <span className="text-xl font-bold font-headline leading-none mt-1 drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{streaks.current}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/40 whitespace-nowrap border border-border">
-            <Trophy className="h-5 w-5 text-muted-foreground" />
-            <div className="flex flex-col">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gradient-to-br from-muted/60 via-muted/40 to-muted/60 whitespace-nowrap border border-border shadow-[3px_3px_0px_0px_rgba(255,255,255,0.3)] active:shadow-[1px_1px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-[2px] active:translate-y-[2px] transition-all relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-500 drop-shadow-[0_2px_3px_rgba(255,255,255,0.6)]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-[2px] pointer-events-none" />
+            </div>
+            <div className="flex flex-col relative">
               <span className="text-xs text-muted-foreground font-medium leading-none">Best</span>
-              <span className="text-xl font-bold font-headline leading-none mt-1">{streaks.longest}</span>
+              <span className="text-xl font-bold font-headline leading-none mt-1 drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{streaks.longest}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-[160px] rounded-lg bg-muted/40 border border-border">
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1">
+          <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-[160px] rounded-lg bg-gradient-to-br from-muted/60 via-muted/40 to-muted/60 border border-border shadow-[3px_3px_0px_0px_rgba(255,255,255,0.3)] active:shadow-[1px_1px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-[2px] active:translate-y-[2px] transition-all relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-500 drop-shadow-[0_2px_3px_rgba(255,255,255,0.6)]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent blur-[2px] pointer-events-none" />
+            </div>
+            <div className="flex-1 relative">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-xs text-muted-foreground font-medium">Completion</span>
-                <span className="text-xl font-bold font-headline">{stats.completionPercentage}%</span>
+                <span className="text-xl font-bold font-headline drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]">{stats.completionPercentage}%</span>
               </div>
               <Progress value={stats.completionPercentage} className="h-1.5" />
             </div>

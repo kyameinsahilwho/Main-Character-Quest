@@ -51,6 +51,27 @@ interface EditTaskDialogProps {
 export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDialogProps) {
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  // Detect keyboard open/close on mobile
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      // If height decreases significantly, keyboard is likely open
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const windowHeight = window.innerHeight;
+      setIsKeyboardOpen(viewportHeight < windowHeight * 0.75);
+    };
+
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -98,8 +119,21 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={(newOpen) => {
+      // Prevent closing when keyboard is open
+      if (!newOpen && isKeyboardOpen) {
+        return;
+      }
+      onClose();
+    }}>
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Always prevent closing on outside interaction
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="font-headline">Edit Quest</DialogTitle>
           <DialogDescription>

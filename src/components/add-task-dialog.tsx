@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { Task, Subtask } from "@/lib/types"
+import { playAddTaskSound } from "@/lib/sounds"
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -51,6 +52,28 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<{ text: string }[]>([]);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Detect keyboard open/close on mobile
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      // If height decreases significantly, keyboard is likely open
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const windowHeight = window.innerHeight;
+      setIsKeyboardOpen(viewportHeight < windowHeight * 0.75);
+    };
+
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -79,20 +102,39 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
         isCompleted: false
     }))
 
-    onAddTask({
-      title: values.title,
-      dueDate: values.dueDate ? values.dueDate.toISOString() : null,
-      subtasks: finalSubtasks
-    })
-    form.reset()
-    setSubtasks([])
-    setOpen(false)
+    setIsAdding(true);
+    playAddTaskSound();
+    
+    setTimeout(() => {
+      onAddTask({
+        title: values.title,
+        dueDate: values.dueDate ? values.dueDate.toISOString() : null,
+        subtasks: finalSubtasks
+      })
+      form.reset()
+      setSubtasks([])
+      setIsAdding(false);
+      setOpen(false)
+    }, 200);
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      // Prevent closing when keyboard is open
+      if (!newOpen && isKeyboardOpen) {
+        return;
+      }
+      setOpen(newOpen);
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Always prevent closing on outside interaction
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="font-headline">Add a New Quest</DialogTitle>
           <DialogDescription>
@@ -190,9 +232,16 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
             </div>
 
             <DialogFooter>
-              <Button type="submit">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Quest
+              <Button 
+                type="submit" 
+                disabled={isAdding}
+                className={cn(
+                  "transition-all duration-200",
+                  isAdding && "scale-95 opacity-70"
+                )}
+              >
+                <Plus className={cn("mr-2 h-4 w-4", isAdding && "animate-spin")} />
+                {isAdding ? "Adding..." : "Add Quest"}
               </Button>
             </DialogFooter>
           </form>

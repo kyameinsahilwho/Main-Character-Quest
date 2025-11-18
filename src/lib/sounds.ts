@@ -33,9 +33,23 @@ export const playBigCompletionSound = () => {
     if (typeof window !== 'undefined') {
         initializeSound().then(() => {
             const now = Tone.now();
-            synth?.triggerAttackRelease("C4", "8n", now);
-            synth?.triggerAttackRelease("G4", "8n", now + 0.05);
-            synth?.triggerAttackRelease("C5", "8n", now + 0.1);
+            // Ascending triumphant melody
+            synth?.triggerAttackRelease("C4", "16n", now);
+            synth?.triggerAttackRelease("E4", "16n", now + 0.1);
+            synth?.triggerAttackRelease("G4", "16n", now + 0.2);
+            synth?.triggerAttackRelease("C5", "8n", now + 0.3);
+            synth?.triggerAttackRelease("E5", "8n", now + 0.45);
+            synth?.triggerAttackRelease("G5", "4n", now + 0.6);
+        }).catch(e => console.error("Could not play sound", e));
+    }
+};
+
+export const playAddTaskSound = () => {
+    if (typeof window !== 'undefined') {
+        initializeSound().then(() => {
+            const now = Tone.now();
+            synth?.triggerAttackRelease("E4", "16n", now);
+            synth?.triggerAttackRelease("A4", "16n", now + 0.08);
         }).catch(e => console.error("Could not play sound", e));
     }
 };
