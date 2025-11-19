@@ -28,6 +28,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
   const [subtaskText, setSubtaskText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
 
   // Memoize computed values
   const { completedSubtasks, progress, formattedDueDate } = useMemo(() => {
@@ -92,8 +93,10 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
 
   const handleCollapsibleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    // Don't toggle if input is focused (keyboard is likely open)
+    if (inputFocused) return;
     setIsExpanded(prev => !prev);
-  }, []);
+  }, [inputFocused]);
 
   const handleEdit = useCallback(() => {
     onEdit(task);
@@ -110,7 +113,15 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         task.isAutomated && 'border-dashed border-primary/50',
         isAnimating && 'animate-green-flash'
     )}>
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="flex flex-col h-full">
+        <Collapsible 
+          open={isExpanded} 
+          onOpenChange={(open) => {
+            // Don't close if input is focused
+            if (!open && inputFocused) return;
+            setIsExpanded(open);
+          }}
+          className="flex flex-col h-full"
+        >
       <div className="flex items-center p-3 cursor-pointer" onClick={handleWrapperClick}>
         <div data-interactive-area className='flex items-center mr-3' onClick={handleMainCheckboxClick}>
             <Checkbox
@@ -182,6 +193,8 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
             <Input
               value={subtaskText}
               onChange={e => setSubtaskText(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 300)}
               placeholder="Add a sub-quest..."
               className="h-8 text-sm"
             />

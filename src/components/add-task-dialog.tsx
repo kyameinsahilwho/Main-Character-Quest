@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -52,28 +52,57 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<{ text: string }[]>([]);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
 
-  // Detect keyboard open/close on mobile
+  const initialViewportHeight = useRef<number>(0);
+  const dialogJustOpened = useRef(false);
+
+  // Mobile keyboard detection
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    const handleResize = () => {
-      // If height decreases significantly, keyboard is likely open
-      const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      const windowHeight = window.innerHeight;
-      setIsKeyboardOpen(viewportHeight < windowHeight * 0.75);
+
+    if (!open) {
+      // Reset when dialog closes
+      setIsMobileKeyboardOpen(false);
+      dialogJustOpened.current = false;
+      return;
+    }
+
+    const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+    if (!isMobile) return;
+
+    // Mark that dialog just opened
+    dialogJustOpened.current = true;
+    setTimeout(() => {
+      dialogJustOpened.current = false;
+    }, 1000);
+
+    // Store initial height when dialog opens - use a slight delay to ensure we get the right value
+    setTimeout(() => {
+      if (window.visualViewport) {
+        initialViewportHeight.current = window.visualViewport.height;
+      } else {
+        initialViewportHeight.current = window.innerHeight;
+      }
+    }, 100);
+
+    const handleViewportResize = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const heightDiff = initialViewportHeight.current - currentHeight;
+      
+      // If viewport shrunk by more than 150px, keyboard is likely open
+      const keyboardOpen = heightDiff > 150;
+      setIsMobileKeyboardOpen(keyboardOpen);
     };
 
-    window.visualViewport?.addEventListener('resize', handleResize);
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport?.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleViewportResize);
+      };
+    }
+  }, [open]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -83,10 +112,22 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
     },
   })
 
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
+  const justAddedSubtask = useRef(false);
+
   const handleAddSubtask = () => {
     if (subtaskInput.trim()) {
+      justAddedSubtask.current = true;
+      setTimeout(() => {
+        justAddedSubtask.current = false;
+      }, 500);
+
       setSubtasks([...subtasks, { text: subtaskInput.trim() }]);
       setSubtaskInput("");
+      // Keep focus to prevent keyboard from closing
+      setTimeout(() => {
+        subtaskInputRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -97,14 +138,14 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
 
   function onSubmit(values: FormValues) {
     const finalSubtasks = subtasks.map(st => ({
-        id: crypto.randomUUID(),
-        text: st.text,
-        isCompleted: false
+      id: crypto.randomUUID(),
+      text: st.text,
+      isCompleted: false
     }))
 
     setIsAdding(true);
     playAddTaskSound();
-    
+
     setTimeout(() => {
       onAddTask({
         title: values.title,
@@ -120,18 +161,35 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
-      // Prevent closing when keyboard is open
-      if (!newOpen && isKeyboardOpen) {
-        return;
+      // Prevent closing when mobile keyboard is open or dialog just opened
+      if (!newOpen) {
+        if (isMobileKeyboardOpen || dialogJustOpened.current) {
+          return;
+        }
       }
       setOpen(newOpen);
-    }}>
+    }} modal={true}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent 
-        className="sm:max-w-[425px]"
+      <DialogContent
+        className="sm:max-w-[425px] touch-auto"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
-          // Always prevent closing on outside interaction
+          // Prevent closing when clicking outside
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Check if input is focused before allowing ESC to close
+          const activeElement = document.activeElement;
+          if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            e.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          // Prevent any pointer events outside from closing
+          e.preventDefault();
+        }}
+        onFocusOutside={(e) => {
+          // Prevent focus events from closing dialog
           e.preventDefault();
         }}
       >
@@ -215,6 +273,7 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <Input
+                  ref={subtaskInputRef}
                   value={subtaskInput}
                   onChange={(e) => setSubtaskInput(e.target.value)}
                   placeholder="Add a sub-quest..."
@@ -232,8 +291,8 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
             </div>
 
             <DialogFooter>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isAdding}
                 className={cn(
                   "transition-all duration-200",

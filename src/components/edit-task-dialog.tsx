@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -51,27 +51,40 @@ interface EditTaskDialogProps {
 export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDialogProps) {
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
 
-  // Detect keyboard open/close on mobile
+  const initialViewportHeight = useRef<number>(0);
+
+  // Mobile keyboard detection
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const handleResize = () => {
-      // If height decreases significantly, keyboard is likely open
-      const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      const windowHeight = window.innerHeight;
-      setIsKeyboardOpen(viewportHeight < windowHeight * 0.75);
+    if (typeof window === 'undefined' || !isOpen) return;
+
+    const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+    if (!isMobile) return;
+
+    // Store initial height when dialog opens
+    if (window.visualViewport) {
+      initialViewportHeight.current = window.visualViewport.height;
+    } else {
+      initialViewportHeight.current = window.innerHeight;
+    }
+
+    const handleViewportResize = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const heightDiff = initialViewportHeight.current - currentHeight;
+      
+      // If viewport shrunk by more than 150px, keyboard is likely open
+      const keyboardOpen = heightDiff > 150;
+      setIsMobileKeyboardOpen(keyboardOpen);
     };
 
-    window.visualViewport?.addEventListener('resize', handleResize);
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport?.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleViewportResize);
+      };
+    }
+  }, [isOpen]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -92,15 +105,27 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
   }, [task, form]);
 
 
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
+  const justAddedSubtask = useRef(false);
+
   const handleAddSubtask = () => {
     if (subtaskInput.trim()) {
-        const newSubtask: Subtask = {
-            id: crypto.randomUUID(),
-            text: subtaskInput.trim(),
-            isCompleted: false,
-        };
+      justAddedSubtask.current = true;
+      setTimeout(() => {
+        justAddedSubtask.current = false;
+      }, 500);
+
+      const newSubtask: Subtask = {
+        id: crypto.randomUUID(),
+        text: subtaskInput.trim(),
+        isCompleted: false,
+      };
       setSubtasks([...subtasks, newSubtask]);
       setSubtaskInput("");
+      // Keep focus to prevent keyboard from closing
+      setTimeout(() => {
+        subtaskInputRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -120,17 +145,34 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
 
   return (
     <Dialog open={isOpen} onOpenChange={(newOpen) => {
-      // Prevent closing when keyboard is open
-      if (!newOpen && isKeyboardOpen) {
+      // Prevent closing when mobile keyboard is open
+      if (!newOpen && isMobileKeyboardOpen) {
         return;
       }
-      onClose();
-    }}>
-      <DialogContent 
-        className="sm:max-w-[425px]"
+      if (!newOpen) {
+        onClose();
+      }
+    }} modal={true}>
+      <DialogContent
+        className="sm:max-w-[425px] touch-auto"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
-          // Always prevent closing on outside interaction
+          // Prevent closing when clicking outside
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Check if input is focused before allowing ESC to close
+          const activeElement = document.activeElement;
+          if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            e.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          // Prevent any pointer events outside from closing
+          e.preventDefault();
+        }}
+        onFocusOutside={(e) => {
+          // Prevent focus events from closing dialog
           e.preventDefault();
         }}
       >
@@ -214,6 +256,7 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <Input
+                  ref={subtaskInputRef}
                   value={subtaskInput}
                   onChange={(e) => setSubtaskInput(e.target.value)}
                   placeholder="Add a sub-quest..."

@@ -32,7 +32,7 @@ const Confetti = lazy(() => import('react-confetti'));
 
 export default function TaskQuestApp() {
   const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut } = useSupabaseSync();
-  
+
   const {
     tasks,
     stats,
@@ -49,7 +49,7 @@ export default function TaskQuestApp() {
   } = useTasks(user);
 
   const [isCelebrating, setCelebrating] = useState(false);
-  const [windowSize, setWindowSize] = useState<{width: number, height: number}>({width: 0, height: 0});
+  const [windowSize, setWindowSize] = useState<{ width: number, height: number }>({ width: 0, height: 0 });
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState("active");
   const [syncComplete, setSyncComplete] = useState(false);
@@ -58,7 +58,7 @@ export default function TaskQuestApp() {
   useEffect(() => {
     if (user && !authLoading && !syncComplete) {
       const syncStatus = localStorage.getItem('task-quest-sync-status');
-      
+
       // Only sync if haven't synced before
       if (syncStatus !== 'synced') {
         syncLocalToSupabase(user.id).then(() => {
@@ -74,8 +74,8 @@ export default function TaskQuestApp() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setWindowSize({width: window.innerWidth, height: window.innerHeight});
-      const handleResize = () => setWindowSize({width: window.innerWidth, height: window.innerHeight});
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
@@ -127,120 +127,120 @@ export default function TaskQuestApp() {
       )
     }
     return (
-        <div className="w-full">
-            {isSyncing && (
-              <Alert className="mb-4">
-                <AlertDescription>
-                  🔄 Syncing your data to the cloud...
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <TabsList className="grid w-full md:w-fit grid-cols-3">
-                    <TabsTrigger value="active" className="transition-all duration-200 flex items-center justify-center">
-                      <span className="relative flex items-center gap-1.5">
-                        <span className="hidden sm:inline">Active</span>
-                        <span className="sm:hidden">Active</span>
-                        {activeTasks.length > 0 && (
-                          <>
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                            </span>
-                            <span className="text-xs font-bold">
-                              {activeTasks.length}
-                            </span>
-                          </>
-                        )}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="completed" className="transition-all duration-200 flex items-center justify-center">
-                      <span className="flex items-center gap-1">
-                        <span className="hidden sm:inline">Completed</span>
-                        <span className="sm:hidden">Done</span>
-                        {completedTasks.length > 0 && (
-                          <span className="text-xs opacity-70">({completedTasks.length})</span>
-                        )}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="automated" className="transition-all duration-200 flex items-center justify-center">
-                      <span className="flex items-center gap-1">
-                        <span className="hidden sm:inline">Automated</span>
-                        <span className="sm:hidden">Auto</span>
-                        {automatedTasks.length > 0 && (
-                          <span className="text-xs opacity-70">({automatedTasks.length})</span>
-                        )}
-                      </span>
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                 
-                </div>
-                 <div className="flex w-full md:w-auto items-center gap-2 flex-col md:flex-row">
-                    <CalendarDialog tasks={tasks}>
-                        <Button variant="outline" className="w-full group hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-foreground">
-                            <CalendarIcon className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform duration-200" />
-                            Quest Calendar
-                        </Button>
-                    </CalendarDialog>
-                    {activeTab === 'active' && (
-                         <AutomatedTasksPopover
-                            tasks={automatedTasks}
-                            onAddTasks={addAutomatedTasksToToday}
-                        >
-                            <Button variant="outline" className="w-full animate-fade-in group hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-foreground">
-                                <ListPlus className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
-                                Add from Automated
-                            </Button>
-                        </AutomatedTasksPopover>
+      <div className="w-full">
+        {isSyncing && (
+          <Alert className="mb-4">
+            <AlertDescription>
+              🔄 Syncing your data to the cloud...
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <TabsList className="grid w-full md:w-fit grid-cols-3">
+                <TabsTrigger value="active" className="transition-all duration-200 flex items-center justify-center">
+                  <span className="relative flex items-center gap-1.5">
+                    <span className="hidden sm:inline">Active</span>
+                    <span className="sm:hidden">Active</span>
+                    {activeTasks.length > 0 && (
+                      <>
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                        <span className="text-xs font-bold">
+                          {activeTasks.length}
+                        </span>
+                      </>
                     )}
-                    <AddTaskDialog onAddTask={handleAddTask}>
-                        <Button className="w-full group hover:scale-105 transition-all duration-200 shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:shadow-[4px_4px_0px_0px_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px]">
-                            <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-200" />
-                            New Quest
-                        </Button>
-                    </AddTaskDialog>
-                </div>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="transition-all duration-200 flex items-center justify-center">
+                  <span className="flex items-center gap-1">
+                    <span className="hidden sm:inline">Completed</span>
+                    <span className="sm:hidden">Done</span>
+                    {completedTasks.length > 0 && (
+                      <span className="text-xs opacity-70">({completedTasks.length})</span>
+                    )}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="automated" className="transition-all duration-200 flex items-center justify-center">
+                  <span className="flex items-center gap-1">
+                    <span className="hidden sm:inline">Automated</span>
+                    <span className="sm:hidden">Auto</span>
+                    {automatedTasks.length > 0 && (
+                      <span className="text-xs opacity-70">({automatedTasks.length})</span>
+                    )}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+
+
             </div>
-            <TabsContent value="active" className="mt-4 animate-fade-in-up">
-                <TaskList
-                    tasks={activeTasks}
-                    listType='active'
-                    onToggleTask={toggleTaskCompletion}
-                    onDeleteTask={deleteTask}
-                    onEditTask={handleEditTask}
-                    onAddSubtask={addSubtask}
-                    onToggleSubtask={toggleSubtaskCompletion}
-                    setCelebrating={setCelebrating}
-                />
-            </TabsContent>
-            <TabsContent value="completed" className="mt-4 animate-fade-in-up">
-                <TaskList
-                    tasks={completedTasks}
-                    listType='completed'
-                    onToggleTask={toggleTaskCompletion}
-                    onDeleteTask={deleteTask}
-                    onEditTask={handleEditTask}
-                    onAddSubtask={addSubtask}
-                    onToggleSubtask={toggleSubtaskCompletion}
-                    setCelebrating={setCelebrating}
-                />
-            </TabsContent>
-             <TabsContent value="automated" className="mt-4 animate-fade-in-up">
-                <TaskList
-                    tasks={automatedTasks}
-                    listType='automated'
-                    onToggleTask={toggleTaskCompletion}
-                    onDeleteTask={deleteTask}
-                    onEditTask={handleEditTask}
-                    onAddSubtask={addSubtask}
-                    onToggleSubtask={toggleSubtaskCompletion}
-                    setCelebrating={setCelebrating}
-                />
-            </TabsContent>
+            <div className="flex w-full md:w-auto items-center gap-2 flex-col md:flex-row">
+              <CalendarDialog tasks={tasks}>
+                <Button variant="outline" className="w-full group hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-foreground">
+                  <CalendarIcon className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform duration-200" />
+                  Quest Calendar
+                </Button>
+              </CalendarDialog>
+              {activeTab === 'active' && (
+                <AutomatedTasksPopover
+                  tasks={automatedTasks}
+                  onAddTasks={addAutomatedTasksToToday}
+                >
+                  <Button variant="outline" className="w-full group hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-foreground">
+                    <ListPlus className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+                    Add from Automated
+                  </Button>
+                </AutomatedTasksPopover>
+              )}
+              <AddTaskDialog onAddTask={handleAddTask}>
+                <Button className="w-full group hover:scale-105 transition-all duration-200 shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:shadow-[4px_4px_0px_0px_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px]">
+                  <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-200" />
+                  New Quest
+                </Button>
+              </AddTaskDialog>
+            </div>
+          </div>
+          <TabsContent value="active" className="mt-4 animate-fade-in-up">
+            <TaskList
+              tasks={activeTasks}
+              listType='active'
+              onToggleTask={toggleTaskCompletion}
+              onDeleteTask={deleteTask}
+              onEditTask={handleEditTask}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtaskCompletion}
+              setCelebrating={setCelebrating}
+            />
+          </TabsContent>
+          <TabsContent value="completed" className="mt-4 animate-fade-in-up">
+            <TaskList
+              tasks={completedTasks}
+              listType='completed'
+              onToggleTask={toggleTaskCompletion}
+              onDeleteTask={deleteTask}
+              onEditTask={handleEditTask}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtaskCompletion}
+              setCelebrating={setCelebrating}
+            />
+          </TabsContent>
+          <TabsContent value="automated" className="mt-4 animate-fade-in-up">
+            <TaskList
+              tasks={automatedTasks}
+              listType='automated'
+              onToggleTask={toggleTaskCompletion}
+              onDeleteTask={deleteTask}
+              onEditTask={handleEditTask}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtaskCompletion}
+              setCelebrating={setCelebrating}
+            />
+          </TabsContent>
         </Tabs>
         <style jsx>{`
           @keyframes fade-in {
@@ -268,7 +268,7 @@ export default function TaskQuestApp() {
             animation: fade-in-up 0.3s ease-out;
           }
         `}</style>
-        </div>
+      </div>
     );
   }
 
@@ -279,9 +279,9 @@ export default function TaskQuestApp() {
           <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />
         </Suspense>
       )}
-      <Header 
-        stats={stats} 
-        streaks={streaks} 
+      <Header
+        stats={stats}
+        streaks={streaks}
         isInitialLoad={isInitialLoad}
         user={user}
         onSignOut={signOut}
@@ -295,10 +295,10 @@ export default function TaskQuestApp() {
       </main>
       {taskToEdit && (
         <EditTaskDialog
-            isOpen={!!taskToEdit}
-            onClose={() => setTaskToEdit(null)}
-            onEditTask={handleUpdateTask}
-            task={taskToEdit}
+          isOpen={!!taskToEdit}
+          onClose={() => setTaskToEdit(null)}
+          onEditTask={handleUpdateTask}
+          task={taskToEdit}
         />
       )}
     </div>
