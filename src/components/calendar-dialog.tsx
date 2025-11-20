@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar } from '@/components/ui/calendar';
 import { Task } from "@/lib/types";
-import { parseISO, startOfDay, isSameDay } from 'date-fns';
+import { parseISO, startOfDay, isSameDay, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { CheckCircle2 } from 'lucide-react';
 
 interface CalendarDialogProps {
   children: React.ReactNode;
@@ -20,6 +21,8 @@ interface CalendarDialogProps {
 }
 
 export function CalendarDialog({ children, tasks }: CalendarDialogProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // Extract dates when tasks were completed
   const completedDates = useMemo(() => {
     return tasks
@@ -32,20 +35,37 @@ export function CalendarDialog({ children, tasks }: CalendarDialogProps) {
     return completedDates.some(completedDate => isSameDay(completedDate, date));
   };
 
+  const handleDayClick = (date: Date) => {
+    if (hasCompletedTasks(date)) {
+      setSelectedDate(date);
+    } else {
+      setSelectedDate(null);
+    }
+  };
+
+  const getCompletedTasksForDate = (date: Date) => {
+    return tasks.filter(task => 
+      task.completedAt && 
+      !task.isAutomated && 
+      isSameDay(startOfDay(parseISO(task.completedAt)), date)
+    );
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-headline">Quest Calendar</DialogTitle>
           <DialogDescription>
             View your completed quests and track your progress.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center space-y-4">
           <Calendar
             mode="single"
-            selected={undefined}
+            selected={selectedDate || undefined}
+            onDayClick={handleDayClick}
             className="rounded-md border-0"
             classNames={{
               months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -86,6 +106,31 @@ export function CalendarDialog({ children, tasks }: CalendarDialogProps) {
             }}
             disabled={false}
           />
+          
+          {selectedDate && (
+            <div className="w-full space-y-3 pt-4 border-t animate-in fade-in slide-in-from-top-2 duration-200">
+              <h3 className="font-headline text-sm font-semibold text-muted-foreground">
+                Completed on {format(selectedDate, "MMMM do")}
+              </h3>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                {getCompletedTasksForDate(selectedDate).length > 0 ? (
+                  getCompletedTasksForDate(selectedDate).map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="font-medium leading-none text-sm">{task.title}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">No quests completed on this day.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

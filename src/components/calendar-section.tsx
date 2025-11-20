@@ -1,17 +1,28 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Task } from '@/lib/types';
-import { parseISO, startOfDay, isSameDay } from 'date-fns';
+import { parseISO, startOfDay, isSameDay, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { CheckCircle2, Trophy } from 'lucide-react';
 
 interface CalendarSectionProps {
   tasks: Task[];
 }
 
 export function CalendarSection({ tasks }: CalendarSectionProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // Extract dates when tasks were completed
   const completedDates = useMemo(() => {
     return tasks
@@ -24,16 +35,33 @@ export function CalendarSection({ tasks }: CalendarSectionProps) {
     return completedDates.some(completedDate => isSameDay(completedDate, date));
   };
 
+  const handleDayClick = (date: Date) => {
+    if (hasCompletedTasks(date)) {
+      setSelectedDate(date);
+      setIsDialogOpen(true);
+    }
+  };
+
+  const getCompletedTasksForDate = (date: Date) => {
+    return tasks.filter(task => 
+      task.completedAt && 
+      !task.isAutomated && 
+      isSameDay(startOfDay(parseISO(task.completedAt)), date)
+    );
+  };
+
   return (
-    <Card className="mb-6 overflow-hidden">
-      <div className="p-4">
-        <h2 className="text-lg font-bold font-headline mb-4 text-foreground">Quest Calendar</h2>
-        <div className="flex justify-center">
-          <Calendar
-            mode="single"
-            selected={undefined}
-            className="rounded-md border-0"
-            classNames={{
+    <>
+      <Card className="mb-6 overflow-hidden">
+        <div className="p-4">
+          <h2 className="text-lg font-bold font-headline mb-4 text-foreground">Quest Calendar</h2>
+          <div className="flex justify-center">
+            <Calendar
+              mode="single"
+              selected={undefined}
+              onDayClick={handleDayClick}
+              className="rounded-md border-0"
+              classNames={{
               months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
               month: "space-y-4",
               caption: "flex justify-center pt-1 relative items-center",
@@ -75,5 +103,39 @@ export function CalendarSection({ tasks }: CalendarSectionProps) {
         </div>
       </div>
     </Card>
+
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 font-headline text-xl">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Completed Quests
+          </DialogTitle>
+          <DialogDescription>
+            {selectedDate && format(selectedDate, "MMMM do, yyyy")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {selectedDate && getCompletedTasksForDate(selectedDate).length > 0 ? (
+            <div className="space-y-2">
+              {getCompletedTasksForDate(selectedDate).map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                >
+                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-medium leading-none">{task.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No quests completed on this day.</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
