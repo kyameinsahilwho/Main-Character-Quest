@@ -39,7 +39,7 @@ const getTaskSection = (task: Task): string => {
 
 const Section = memo(({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
   <div className="mb-6">
-    <div className="sticky top-0 z-10 bg-background py-3 px-4 md:px-6 lg:px-8 mb-2 border-b-2 border-foreground/5 shadow-sm">
+    <div className="py-2 px-4 md:px-6 lg:px-8 mb-2">
       <h2 className={cn("text-xl font-bold font-headline flex items-center gap-3", isPast ? "text-destructive" : "text-foreground")}>
         {title}
         <div className="h-0.5 flex-1 bg-foreground/10 rounded-full" />

@@ -146,13 +146,11 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                   }}
                 >
                   <div className="relative z-10">
-                    <Star className="h-4 w-4 text-blue-800 dark:text-blue-900 stroke-[3px]" />
+                    <Star className="h-4 w-4 text-blue-800 dark:text-blue-900 stroke-[3px] animate-spin-slow drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                   </div>
-                  <div className="flex-1 relative z-10">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[10px] text-foreground font-bold uppercase tracking-wider">Level {stats.levelInfo.level}</span>
-                      <span className="text-[10px] text-foreground font-bold">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
-                    </div>
+                  <div className="flex-1 relative z-10 flex flex-col justify-center">
+                    <span className="text-[10px] text-foreground font-bold uppercase tracking-wider leading-none">Level {stats.levelInfo.level}</span>
+                    <span className="text-xs font-black font-headline leading-none mt-1">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
                   </div>
                 </div>
               ) : (
@@ -218,13 +216,11 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
               }}
             >
               <div className="relative z-10">
-                <Star className="h-3.5 w-3.5 text-blue-800 dark:text-blue-900 stroke-[2.5px]" />
+                <Star className="h-3.5 w-3.5 text-blue-800 dark:text-blue-900 stroke-[2.5px] animate-spin-slow drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
               </div>
-              <div className="flex-1 relative z-10">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[10px] text-foreground font-bold uppercase">Level {stats.levelInfo.level}</span>
-                  <span className="text-[10px] text-foreground font-bold">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
-                </div>
+              <div className="flex-1 relative z-10 flex flex-col justify-center">
+                <span className="text-[10px] text-foreground font-bold uppercase leading-none">Level {stats.levelInfo.level}</span>
+                <span className="text-xs font-black font-headline leading-none mt-1">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
               </div>
             </div>
           ) : (
