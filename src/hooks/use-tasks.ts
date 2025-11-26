@@ -84,6 +84,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
               })),
             createdAt: dbTask.created_at,
             isAutomated: dbTask.is_automated,
+            xp: dbTask.reward_xp || 10,
           }));
 
           setTasks(loadedTasks);
@@ -284,6 +285,25 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     const isCompleted = !currentTask.isCompleted;
     const completedAt = isCompleted ? new Date().toISOString() : null;
     
+    // Calculate XP with streak bonus
+    let newXP = currentTask.xp || 10;
+    if (isCompleted) {
+      // Check if any other task was completed today to determine if streak increments
+      const hasCompletedTaskToday = tasks.some(t => 
+        t.id !== taskId && 
+        t.isCompleted && 
+        t.completedAt && 
+        isToday(parseISO(t.completedAt))
+      );
+      
+      const effectiveStreak = hasCompletedTaskToday ? streaks.current : streaks.current + 1;
+      const multiplier = Math.min(1 + (effectiveStreak * 0.1), 5);
+      newXP = Math.round(10 * multiplier);
+    } else {
+      // Reset to base XP if uncompleted
+      newXP = 10;
+    }
+    
     // Update local state
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
@@ -291,6 +311,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           ...task,
           isCompleted,
           completedAt,
+          xp: newXP,
           subtasks: task.subtasks.map(sub => ({ ...sub, isCompleted })),
         };
       }
@@ -305,6 +326,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           .update({
             is_completed: isCompleted,
             completed_at: completedAt,
+            reward_xp: newXP
           })
           .eq('id', taskId);
 
@@ -585,6 +607,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           })),
         createdAt: dbTask.created_at,
         isAutomated: dbTask.is_automated,
+        xp: dbTask.reward_xp || 10,
       }));
 
       setTasks(loadedTasks);

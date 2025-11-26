@@ -1,7 +1,8 @@
 "use client";
 
-import { memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
 import type { LevelInfo } from '@/lib/level-system';
@@ -52,6 +53,22 @@ const getStreakStyles = (streak: number) => {
 
 function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: HeaderProps) {
   const streakStyles = streaks ? getStreakStyles(streaks.current) : getStreakStyles(0);
+  const [showXPAnimation, setShowXPAnimation] = useState(false);
+  const [xpGained, setXpGained] = useState(0);
+  const [prevXP, setPrevXP] = useState(0);
+
+  useEffect(() => {
+    if (stats?.levelInfo) {
+      const currentXP = stats.levelInfo.totalXP;
+      if (prevXP > 0 && currentXP > prevXP) {
+        setXpGained(currentXP - prevXP);
+        setShowXPAnimation(true);
+        const timer = setTimeout(() => setShowXPAnimation(false), 2000);
+        return () => clearTimeout(timer);
+      }
+      setPrevXP(currentXP);
+    }
+  }, [stats?.levelInfo?.totalXP]);
 
   const getUserInitials = (email?: string) => {
     if (!email) return 'U';
@@ -122,7 +139,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                 </div>
                 <div className="flex flex-col relative">
                   <span className="text-[10px] text-muted-foreground font-bold leading-none uppercase tracking-wider">Streak</span>
-                  <span className="text-lg font-black font-headline leading-none mt-0.5">{streaks.current}</span>
+                  <span className="text-lg font-black font-headline leading-none mt-0.5 text-foreground drop-shadow-[0_1.2px_1.2px_rgba(255,255,255,0.8)] dark:drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]">{streaks.current}</span>
                 </div>
               </div>
 
@@ -133,25 +150,43 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                 </div>
                 <div className="flex flex-col relative">
                   <span className="text-[10px] text-muted-foreground font-bold leading-none uppercase tracking-wider">Best</span>
-                  <span className="text-lg font-black font-headline leading-none mt-0.5">{streaks.longest}</span>
+                  <span className="text-lg font-black font-headline leading-none mt-0.5 text-foreground drop-shadow-[0_1.2px_1.2px_rgba(255,255,255,0.8)] dark:drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]">{streaks.longest}</span>
                 </div>
               </div>
 
               {/* Level & XP */}
               {stats.levelInfo ? (
-                <div 
-                  className="flex items-center gap-2 px-3 py-1.5 min-w-[180px] rounded-xl border-2 border-foreground shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
-                  style={{
-                    background: `linear-gradient(90deg, #60a5fa ${stats.levelInfo.progress}%, hsl(var(--card)) ${stats.levelInfo.progress}%)`
-                  }}
-                >
-                  <div className="relative z-10">
-                    <Star className="h-4 w-4 text-blue-800 dark:text-blue-900 stroke-[3px] animate-spin-slow drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                <div className="relative group">
+                  <div 
+                    className="flex items-center gap-2 px-3 py-1.5 min-w-[180px] rounded-xl border-2 border-foreground shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden bg-card"
+                  >
+                    <motion.div 
+                      className="absolute inset-y-0 left-0 bg-blue-700"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stats.levelInfo.progress}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                    <div className="relative z-10">
+                      <Star className={cn("h-4 w-4 stroke-[3px] animate-spin-slow", stats.levelInfo.progress >= 20 ? "text-white" : "text-blue-800 dark:text-blue-900")} />
+                    </div>
+                    <div className="flex-1 relative z-10 flex flex-col justify-center">
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider leading-none drop-shadow-sm", stats.levelInfo.progress >= 50 ? "text-white" : "text-foreground/90")}>Level {stats.levelInfo.level}</span>
+                      <span className={cn("text-xs font-black font-headline leading-none mt-1 drop-shadow-sm", stats.levelInfo.progress >= 50 ? "text-white" : "text-foreground")}>{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
+                    </div>
                   </div>
-                  <div className="flex-1 relative z-10 flex flex-col justify-center">
-                    <span className="text-[10px] text-foreground font-bold uppercase tracking-wider leading-none">Level {stats.levelInfo.level}</span>
-                    <span className="text-xs font-black font-headline leading-none mt-1">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
-                  </div>
+                  <AnimatePresence>
+                    {showXPAnimation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                        animate={{ opacity: 1, y: -25, scale: 1.2 }}
+                        exit={{ opacity: 0, y: -40, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                        className="absolute left-1/2 -translate-x-1/2 text-green-500 font-black text-sm whitespace-nowrap z-50 pointer-events-none drop-shadow-md"
+                      >
+                        +{xpGained} XP
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <div 
@@ -165,8 +200,8 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                   </div>
                   <div className="flex-1 relative z-10">
                     <div className="flex items-baseline justify-between">
-                      <span className="text-[10px] text-foreground font-bold uppercase tracking-wider">Completion</span>
-                      <span className="text-lg font-black font-headline leading-none mt-0.5">{Math.round(stats.completionPercentage)}%</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/90 drop-shadow-sm">Completion</span>
+                      <span className="text-lg font-black font-headline leading-none mt-0.5 text-foreground drop-shadow-sm">{Math.round(stats.completionPercentage)}%</span>
                     </div>
                   </div>
                 </div>
@@ -209,19 +244,37 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
 
           {/* Level & XP */}
           {stats.levelInfo ? (
-            <div 
-              className="flex items-center gap-2 px-2.5 py-1.5 flex-1 min-w-[140px] rounded-xl border-2 border-foreground shadow-[2px_2px_0px_0px_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
-              style={{
-                background: `linear-gradient(90deg, #60a5fa ${stats.levelInfo.progress}%, hsl(var(--card)) ${stats.levelInfo.progress}%)`
-              }}
-            >
-              <div className="relative z-10">
-                <Star className="h-3.5 w-3.5 text-blue-800 dark:text-blue-900 stroke-[2.5px] animate-spin-slow drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+            <div className="relative flex-1 min-w-[140px]">
+              <div 
+                className="flex items-center gap-2 px-2.5 py-1.5 w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0px_0px_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden bg-card"
+              >
+                <motion.div 
+                  className="absolute inset-y-0 left-0 bg-blue-700"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stats.levelInfo.progress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+                <div className="relative z-10">
+                  <Star className={cn("h-3.5 w-3.5 stroke-[2.5px] animate-spin-slow", stats.levelInfo.progress >= 20 ? "text-white" : "text-blue-800 dark:text-blue-900")} />
+                </div>
+                <div className="flex-1 relative z-10 flex flex-col justify-center">
+                  <span className={cn("text-[10px] font-bold uppercase leading-none drop-shadow-sm", stats.levelInfo.progress >= 50 ? "text-white" : "text-foreground/90")}>Level {stats.levelInfo.level}</span>
+                  <span className={cn("text-xs font-black font-headline leading-none mt-1 drop-shadow-sm", stats.levelInfo.progress >= 50 ? "text-white" : "text-foreground")}>{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
+                </div>
               </div>
-              <div className="flex-1 relative z-10 flex flex-col justify-center">
-                <span className="text-[10px] text-foreground font-bold uppercase leading-none">Level {stats.levelInfo.level}</span>
-                <span className="text-xs font-black font-headline leading-none mt-1">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
-              </div>
+              <AnimatePresence>
+                {showXPAnimation && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                    animate={{ opacity: 1, y: -25, scale: 1.2 }}
+                    exit={{ opacity: 0, y: -40, scale: 0.8 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    className="absolute left-1/2 -translate-x-1/2 text-green-500 font-black text-sm whitespace-nowrap z-50 pointer-events-none drop-shadow-md"
+                  >
+                    +{xpGained} XP
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <div 
@@ -235,8 +288,8 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
               </div>
               <div className="flex-1 relative z-10">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[10px] text-foreground font-bold uppercase">Completion</span>
-                  <span className="text-base font-black font-headline">{stats.completionPercentage}%</span>
+                  <span className="text-[10px] font-bold uppercase text-foreground/90 drop-shadow-sm">Completion</span>
+                  <span className="text-base font-black font-headline text-foreground drop-shadow-sm">{Math.round(stats.completionPercentage)}%</span>
                 </div>
               </div>
             </div>

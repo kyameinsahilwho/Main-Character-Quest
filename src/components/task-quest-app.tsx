@@ -23,8 +23,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Alert, AlertDescription } from './ui/alert';
 import { calculateLevel, XP_PER_TASK } from '@/lib/level-system';
+import { useToast } from '@/hooks/use-toast';
 
 // Lazy load Confetti for better initial load performance
 const Confetti = lazy(() => import('react-confetti'));
@@ -32,6 +32,7 @@ const Confetti = lazy(() => import('react-confetti'));
 
 export default function TaskQuestApp() {
   const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut } = useSupabaseSync();
+  const { toast } = useToast();
 
   const {
     tasks,
@@ -54,10 +55,24 @@ export default function TaskQuestApp() {
   const [activeTab, setActiveTab] = useState('active');
   const [syncComplete, setSyncComplete] = useState(false);
 
+  useEffect(() => {
+    if (syncComplete) {
+       toast({
+         title: "Sync Complete",
+         description: "Your quests are saved to the cloud.",
+       })
+    }
+  }, [syncComplete, toast]);
+
   const levelInfo = useMemo(() => {
-    const totalXP = stats.completedTasks * XP_PER_TASK;
+    const totalXP = tasks.reduce((acc, task) => {
+      if (task.isCompleted && !task.isAutomated) {
+        return acc + (task.xp || XP_PER_TASK);
+      }
+      return acc;
+    }, 0);
     return calculateLevel(totalXP);
-  }, [stats.completedTasks]);
+  }, [tasks]);
 
   // Sync local storage to Supabase when user first logs in
   useEffect(() => {
@@ -149,16 +164,6 @@ export default function TaskQuestApp() {
             </div>
           ) : (
             <div className="w-full">
-              {isSyncing && (
-                <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-6 lg:pt-8">
-                  <Alert className="mb-4">
-                    <AlertDescription>
-                      🔄 Syncing your data to the cloud...
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4 px-4 md:px-6 lg:px-8 pt-4 md:pt-6 lg:pt-8'>
                   <div className="flex items-center gap-4 w-full md:w-auto">

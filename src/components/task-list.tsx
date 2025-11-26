@@ -3,6 +3,7 @@
 import { memo, useMemo } from 'react';
 import Image from 'next/image';
 import { isToday, isTomorrow, isThisWeek, parseISO, isBefore, startOfToday } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Task } from '@/lib/types';
 import TaskItem from '@/components/task-item';
@@ -135,6 +136,7 @@ function TaskList({
       {sectionOrder.map(sectionName =>
         groupedTasks[sectionName] ? (
           <Section key={sectionName} title={sectionName} isPast={sectionName === 'Past'}>
+            <AnimatePresence mode="popLayout">
             {groupedTasks[sectionName].map(task => (
               <TaskItem
                 key={task.id}
@@ -147,6 +149,7 @@ function TaskList({
                 setCelebrating={setCelebrating}
               />
             ))}
+            </AnimatePresence>
           </Section>
         ) : null
       )}
