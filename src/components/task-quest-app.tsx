@@ -7,7 +7,6 @@ import TaskList from '@/components/task-list';
 import { useTasks } from '@/hooks/use-tasks';
 import { useSupabaseSync } from '@/hooks/use-supabase-sync';
 import { Skeleton } from './ui/skeleton';
-import OverallProgress from './overall-progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Task } from '@/lib/types';
 import { EditTaskDialog } from './edit-task-dialog';
@@ -25,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Alert, AlertDescription } from './ui/alert';
+import { calculateLevel, XP_PER_TASK } from '@/lib/level-system';
 
 // Lazy load Confetti for better initial load performance
 const Confetti = lazy(() => import('react-confetti'));
@@ -51,8 +51,13 @@ export default function TaskQuestApp() {
   const [isCelebrating, setCelebrating] = useState(false);
   const [windowSize, setWindowSize] = useState<{ width: number, height: number }>({ width: 0, height: 0 });
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [activeTab, setActiveTab] = useState("active");
+  const [activeTab, setActiveTab] = useState('active');
   const [syncComplete, setSyncComplete] = useState(false);
+
+  const levelInfo = useMemo(() => {
+    const totalXP = stats.completedTasks * XP_PER_TASK;
+    return calculateLevel(totalXP);
+  }, [stats.completedTasks]);
 
   // Sync local storage to Supabase when user first logs in
   useEffect(() => {
@@ -118,14 +123,14 @@ export default function TaskQuestApp() {
 
 
   return (
-    <div className="flex h-screen w-full flex-col bg-background font-body">
+    <div className="flex h-screen w-full flex-col font-body">
       {isCelebrating && (
         <Suspense fallback={null}>
           <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />
         </Suspense>
       )}
       <Header
-        stats={stats}
+        stats={{ ...stats, levelInfo }}
         streaks={streaks}
         isInitialLoad={isInitialLoad}
         user={user}
@@ -133,9 +138,10 @@ export default function TaskQuestApp() {
         isSyncing={isSyncing}
       />
       <main className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          {(isInitialLoad || authLoading) ? (
-            <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto">
+          <div className="w-full max-w-5xl mx-auto">
+            {(isInitialLoad || authLoading) ? (
+            <div className="space-y-4 p-4 md:p-6 lg:p-8">
               <h2 className="text-xl font-bold font-headline mb-4"><Skeleton className="h-8 w-32" /></h2>
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
@@ -144,15 +150,17 @@ export default function TaskQuestApp() {
           ) : (
             <div className="w-full">
               {isSyncing && (
-                <Alert className="mb-4">
-                  <AlertDescription>
-                    🔄 Syncing your data to the cloud...
-                  </AlertDescription>
-                </Alert>
+                <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-6 lg:pt-8">
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      🔄 Syncing your data to the cloud...
+                    </AlertDescription>
+                  </Alert>
+                </div>
               )}
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
+                <div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4 px-4 md:px-6 lg:px-8 pt-4 md:pt-6 lg:pt-8'>
                   <div className="flex items-center gap-4 w-full md:w-auto">
                     <TabsList className="grid w-full md:w-fit grid-cols-3">
                       <TabsTrigger value="active" className="transition-all duration-200 flex items-center justify-center">
@@ -220,7 +228,7 @@ export default function TaskQuestApp() {
                     </AddTaskDialog>
                   </div>
                 </div>
-                <TabsContent value="active" className="mt-4 animate-fade-in-up">
+                <TabsContent value="active" className="mt-4">
                   <TaskList
                     tasks={activeTasks}
                     listType='active'
@@ -232,7 +240,7 @@ export default function TaskQuestApp() {
                     setCelebrating={setCelebrating}
                   />
                 </TabsContent>
-                <TabsContent value="completed" className="mt-4 animate-fade-in-up">
+                <TabsContent value="completed" className="mt-4">
                   <TaskList
                     tasks={completedTasks}
                     listType='completed'
@@ -244,7 +252,7 @@ export default function TaskQuestApp() {
                     setCelebrating={setCelebrating}
                   />
                 </TabsContent>
-                <TabsContent value="automated" className="mt-4 animate-fade-in-up">
+                <TabsContent value="automated" className="mt-4">
                   <TaskList
                     tasks={automatedTasks}
                     listType='automated'
@@ -286,7 +294,7 @@ export default function TaskQuestApp() {
             </div>
           )}
         </div>
-        <OverallProgress completionPercentage={stats.completionPercentage} isInitialLoad={isInitialLoad} />
+        </div>
       </main>
       {taskToEdit && (
         <EditTaskDialog

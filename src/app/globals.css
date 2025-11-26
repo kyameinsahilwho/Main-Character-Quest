@@ -79,7 +79,35 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-hidden;
+    background-image:
+      linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+      linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    background-position: center top;
+  }
+
+  /* Neobrutal Scrollbar */
+  ::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-left: 2px solid hsl(var(--foreground));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border: 2px solid hsl(var(--foreground));
+    box-shadow: 2px 2px 0px 0px hsl(var(--foreground));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.8);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px 0px hsl(var(--foreground));
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, memo, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Calendar, ChevronDown, Plus, Trash2, Pencil } from 'lucide-react';
+import { Calendar, ChevronDown, Plus, Trash2, Pencil, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,7 +108,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
 
   return (
     <Card className={cn(
-        "transition-all duration-300 overflow-hidden h-full flex flex-col", 
+        "transition-all duration-300 overflow-hidden flex flex-col", 
         task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', 
         task.isAutomated && 'border-dashed border-primary/50',
         isAnimating && 'animate-green-flash'
@@ -120,44 +120,51 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
             if (!open && inputFocused) return;
             setIsExpanded(open);
           }}
-          className="flex flex-col h-full"
+          className="flex flex-col"
         >
-      <div className="flex items-center p-3 cursor-pointer" onClick={handleWrapperClick}>
-        <div data-interactive-area className='flex items-center mr-3' onClick={handleMainCheckboxClick}>
-            <Checkbox
-            id={`task-${task.id}`}
-            checked={task.isCompleted}
-            className={cn("h-5 w-5 rounded-md", task.isAutomated && "cursor-not-allowed")}
-            aria-label={`Mark task ${task.title} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
-            disabled={task.isAutomated}
-            />
+      <div className="flex items-center p-2 cursor-pointer" onClick={handleWrapperClick}>
+        <div data-interactive-area className='flex items-center mr-2' onClick={handleMainCheckboxClick}>
+            <div 
+              className={cn(
+                "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative overflow-hidden",
+                task.isCompleted ? "bg-green-500 border-green-500" : "border-muted-foreground",
+                task.isAutomated && "cursor-not-allowed opacity-50"
+              )}
+              style={{
+                background: !task.isCompleted && progress > 0 
+                  ? `conic-gradient(#22c55e ${progress}%, transparent 0)` 
+                  : undefined
+              }}
+            >
+              {task.isCompleted && <Check className="h-3 w-3 text-white z-10" />}
+              {!task.isCompleted && progress > 0 && (
+                 <div className="absolute inset-[3px] rounded-full bg-card z-0" />
+              )}
+            </div>
         </div>
         <div className="flex-1 min-w-0">
-          <CardTitle className={cn("text-base font-bold leading-tight", task.isCompleted && !task.isAutomated && 'line-through text-muted-foreground')}>
+          <CardTitle className={cn("text-sm font-bold leading-tight", task.isCompleted && !task.isAutomated && 'line-through text-muted-foreground')}>
             {task.title}
           </CardTitle>
           
           {task.subtasks.length > 0 && (
-             <div className="mt-2 flex items-center gap-2">
-                <Progress value={progress} className="h-1.5 flex-1" />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{completedSubtasks}/{task.subtasks.length}</span>
+             <div className="mt-1 flex items-center gap-2">
+                <Progress value={progress} className="h-1 flex-1" />
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{completedSubtasks}/{task.subtasks.length}</span>
             </div>
           )}
 
         </div>
-        <div data-interactive-area className="flex items-center gap-1.5 ml-2">
+        <div data-interactive-area className="flex items-center gap-1 ml-2">
           {task.dueDate && !task.isAutomated && (
-            <div className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
+            <div className="text-[10px] text-muted-foreground hidden sm:flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
               <span>{formattedDueDate}</span>
             </div>
           )}
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-7 h-7 p-0" onClick={handleCollapsibleToggle}>
-                <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isExpanded && "rotate-180")} />
-                <span className="sr-only">Toggle details</span>
-            </Button>
-          </CollapsibleTrigger>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleCollapsibleToggle}>
+            <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isExpanded ? "rotate-180" : "")} />
+          </Button>
         </div>
       </div>
       <CollapsibleContent className="overflow-hidden transition-all duration-300 ease-in-out data-[state=closed]:animate-collapse data-[state=open]:animate-expand">
@@ -229,40 +236,6 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         </div>
       </CollapsibleContent>
         </Collapsible>
-        <style jsx>{`
-          @keyframes fadeInSlide {
-            from {
-              opacity: 0;
-              transform: translateY(-8px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          @keyframes collapse {
-            from {
-              height: var(--radix-collapsible-content-height);
-            }
-            to {
-              height: 0;
-            }
-          }
-          @keyframes expand {
-            from {
-              height: 0;
-            }
-            to {
-              height: var(--radix-collapsible-content-height);
-            }
-          }
-          :global(.animate-collapse) {
-            animation: collapse 0.3s ease-in-out;
-          }
-          :global(.animate-expand) {
-            animation: expand 0.3s ease-in-out;
-          }
-        `}</style>
     </Card>
   );
 }

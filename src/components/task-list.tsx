@@ -38,9 +38,16 @@ const getTaskSection = (task: Task): string => {
 };
 
 const Section = memo(({ title, children, isPast }: { title: string, children: React.ReactNode, isPast?: boolean }) => (
-  <div className="mb-8">
-    <h2 className={cn("text-xl font-bold font-headline mb-4", isPast ? "text-destructive" : "text-foreground")}>{title}</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{children}</div>
+  <div className="mb-6">
+    <div className="sticky top-0 z-10 bg-background py-3 px-4 md:px-6 lg:px-8 mb-2 border-b-2 border-foreground/5 shadow-sm">
+      <h2 className={cn("text-xl font-bold font-headline flex items-center gap-3", isPast ? "text-destructive" : "text-foreground")}>
+        {title}
+        <div className="h-0.5 flex-1 bg-foreground/10 rounded-full" />
+      </h2>
+    </div>
+    <div className="flex flex-col gap-3 px-4 md:px-6 lg:px-8">
+      {children}
+    </div>
   </div>
 ));
 Section.displayName = 'Section';
@@ -90,9 +97,9 @@ function TaskList({
 
   if (listType === 'automated') {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="flex flex-col gap-3 max-w-4xl mx-auto">
         {tasks.map(task => (
-            <TaskItem
+          <TaskItem
             key={task.id}
             task={task}
             onToggle={onToggleTask}
@@ -101,12 +108,11 @@ function TaskList({
             onAddSubtask={onAddSubtask}
             onToggleSubtask={onToggleSubtask}
             setCelebrating={setCelebrating}
-            />
+          />
         ))}
-        </div>
+      </div>
     );
   }
-
 
   const groupedTasks = useMemo(() => {
     return tasks.reduce((acc, task) => {
@@ -125,7 +131,7 @@ function TaskList({
 
 
   return (
-    <div>
+    <div className="h-full max-w-4xl mx-auto">
       {sectionOrder.map(sectionName =>
         groupedTasks[sectionName] ? (
           <Section key={sectionName} title={sectionName} isPast={sectionName === 'Past'}>

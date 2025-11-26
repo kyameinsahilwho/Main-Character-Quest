@@ -1,9 +1,10 @@
 "use client";
 
 import { memo } from 'react';
-import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn } from 'lucide-react';
+import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
+import type { LevelInfo } from '@/lib/level-system';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -24,6 +25,7 @@ interface HeaderProps {
     totalTasks: number;
     completedTasks: number;
     completionPercentage: number;
+    levelInfo?: LevelInfo;
   };
   streaks?: Streaks;
   isInitialLoad?: boolean;
@@ -135,19 +137,42 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                 </div>
               </div>
 
-              {/* Completion Rate */}
-              <div className="flex items-center gap-2 px-3 py-1.5 min-w-[160px] rounded-xl bg-card border-2 border-foreground shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden">
-                <div className="relative">
-                  <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-500 stroke-[3px]" />
-                </div>
-                <div className="flex-1 relative">
-                  <div className="flex items-baseline justify-between mb-0.5">
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Completion</span>
-                    <span className="text-lg font-black font-headline">{stats.completionPercentage}%</span>
+              {/* Level & XP */}
+              {stats.levelInfo ? (
+                <div 
+                  className="flex items-center gap-2 px-3 py-1.5 min-w-[180px] rounded-xl border-2 border-foreground shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(90deg, #60a5fa ${stats.levelInfo.progress}%, hsl(var(--card)) ${stats.levelInfo.progress}%)`
+                  }}
+                >
+                  <div className="relative z-10">
+                    <Star className="h-4 w-4 text-blue-800 dark:text-blue-900 stroke-[3px]" />
                   </div>
-                  <Progress value={stats.completionPercentage} className="h-2 border-2 border-foreground rounded-full [&>div]:bg-green-500" />
+                  <div className="flex-1 relative z-10">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] text-foreground font-bold uppercase tracking-wider">Level {stats.levelInfo.level}</span>
+                      <span className="text-[10px] text-foreground font-bold">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div 
+                  className="flex items-center gap-2 px-3 py-1.5 min-w-[160px] rounded-xl border-2 border-foreground shadow-[3px_3px_0px_0px_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(90deg, #86efac ${stats.completionPercentage}%, hsl(var(--card)) ${stats.completionPercentage}%)`
+                  }}
+                >
+                  <div className="relative z-10">
+                    <TrendingUp className="h-4 w-4 text-green-800 dark:text-green-900 stroke-[3px]" />
+                  </div>
+                  <div className="flex-1 relative z-10">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] text-foreground font-bold uppercase tracking-wider">Completion</span>
+                      <span className="text-lg font-black font-headline leading-none mt-0.5">{Math.round(stats.completionPercentage)}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -184,18 +209,42 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-2.5 py-1.5 flex-1 min-w-[140px] rounded-xl bg-card border-2 border-foreground shadow-[2px_2px_0px_0px_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden">
-            <div className="relative">
-              <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-500 stroke-[2.5px]" />
-            </div>
-            <div className="flex-1 relative">
-              <div className="flex items-baseline justify-between mb-0.5">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase">Completion</span>
-                <span className="text-base font-black font-headline">{stats.completionPercentage}%</span>
+          {/* Level & XP */}
+          {stats.levelInfo ? (
+            <div 
+              className="flex items-center gap-2 px-2.5 py-1.5 flex-1 min-w-[140px] rounded-xl border-2 border-foreground shadow-[2px_2px_0px_0px_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
+              style={{
+                background: `linear-gradient(90deg, #60a5fa ${stats.levelInfo.progress}%, hsl(var(--card)) ${stats.levelInfo.progress}%)`
+              }}
+            >
+              <div className="relative z-10">
+                <Star className="h-3.5 w-3.5 text-blue-800 dark:text-blue-900 stroke-[2.5px]" />
               </div>
-              <Progress value={stats.completionPercentage} className="h-1.5 border-2 border-foreground rounded-full [&>div]:bg-green-500" />
+              <div className="flex-1 relative z-10">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[10px] text-foreground font-bold uppercase">Level {stats.levelInfo.level}</span>
+                  <span className="text-[10px] text-foreground font-bold">{Math.floor(stats.levelInfo.currentLevelXP)}/{stats.levelInfo.nextLevelXP} XP</span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div 
+              className="flex items-center gap-2 px-2.5 py-1.5 flex-1 min-w-[140px] rounded-xl border-2 border-foreground shadow-[2px_2px_0px_0px_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_hsl(var(--foreground))] transition-all relative overflow-hidden"
+              style={{
+                background: `linear-gradient(90deg, #86efac ${stats.completionPercentage}%, hsl(var(--card)) ${stats.completionPercentage}%)`
+              }}
+            >
+              <div className="relative z-10">
+                <TrendingUp className="h-3.5 w-3.5 text-green-800 dark:text-green-900 stroke-[2.5px]" />
+              </div>
+              <div className="flex-1 relative z-10">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[10px] text-foreground font-bold uppercase">Completion</span>
+                  <span className="text-base font-black font-headline">{stats.completionPercentage}%</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
