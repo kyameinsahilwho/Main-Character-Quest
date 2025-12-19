@@ -323,11 +323,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           dueDate: newTask.dueDate ? format(new Date(newTask.dueDate), 'yyyy-MM-dd') : null 
         };
         const result = await syncTaskAction(taskForGoogle, newTask.projectId);
-        if (result.success && result.task) {
+        if (result.success) {
           setTasks(prev => prev.map(t => t.id === newTask.id ? { 
             ...t, 
-            googleTaskId: result.task.googleTaskId, 
-            googleEventId: result.task.googleEventId 
+            googleTaskId: result.googleTaskId, 
+            googleEventId: result.googleEventId 
           } : t));
         }
       } catch (error) {
@@ -410,11 +410,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
              taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
           }
           const result = await syncTaskAction(taskToSync, updatedData.projectId || updatedTask.projectId);
-          if (result.success && result.task) {
+          if (result.success) {
             setTasks(prev => prev.map(t => t.id === taskId ? { 
               ...t, 
-              googleTaskId: result.task.googleTaskId, 
-              googleEventId: result.task.googleEventId 
+              googleTaskId: result.googleTaskId, 
+              googleEventId: result.googleEventId 
             } : t));
           }
         }
@@ -512,11 +512,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
            taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
         }
         const result = await syncTaskAction(taskToSync, currentTask.projectId);
-        if (result.success && result.task) {
+        if (result.success) {
           setTasks(prev => prev.map(t => t.id === taskId ? { 
             ...t, 
-            googleTaskId: result.task.googleTaskId, 
-            googleEventId: result.task.googleEventId 
+            googleTaskId: result.googleTaskId, 
+            googleEventId: result.googleEventId 
           } : t));
         }
       } catch (error) {
