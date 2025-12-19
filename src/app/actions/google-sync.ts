@@ -58,13 +58,21 @@ export async function syncTaskAction(task: any, projectId?: string) {
     const updatedTask = await syncTaskToGoogle(task, project);
     
     // Update the task in Supabase with the new Google IDs
-    const { error } = await supabase.from('tasks').update({
-      google_task_id: updatedTask.googleTaskId,
-      google_event_id: updatedTask.googleEventId
-    }).eq('id', task.id);
+    // We use a direct update and check the result
+    const { data: updateData, error: updateError } = await supabase
+      .from('tasks')
+      .update({
+        google_task_id: updatedTask.googleTaskId || null,
+        google_event_id: updatedTask.googleEventId || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', task.id)
+      .select();
 
-    if (error) {
-      console.error('Supabase Update Error:', error);
+    if (updateError) {
+      console.error('Supabase Update Error:', updateError);
+    } else {
+      console.log('Supabase Update Success:', updateData);
     }
 
     return { 

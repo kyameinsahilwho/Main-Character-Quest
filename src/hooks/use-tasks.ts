@@ -15,10 +15,16 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const tasksRef = useRef<Task[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
   const supabase = createClient();
+
+  // Keep tasksRef in sync with tasks state
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   // Load tasks from localStorage or Supabase
   useEffect(() => {
@@ -402,14 +408,15 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           .eq('id', taskId);
 
         // Sync to Google
-        const updatedTask = tasks.find(t => t.id === taskId);
-        if (updatedTask) {
-          const taskToSync = { ...updatedTask, ...updatedData };
+        // Use tasksRef to get the latest state which might have googleTaskId from a previous sync
+        const currentTask = tasksRef.current.find(t => t.id === taskId);
+        if (currentTask) {
+          const taskToSync = { ...currentTask, ...updatedData };
           // Ensure dueDate is formatted as YYYY-MM-DD for Google Sync
           if (taskToSync.dueDate) {
              taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
           }
-          const result = await syncTaskAction(taskToSync, updatedData.projectId || updatedTask.projectId);
+          const result = await syncTaskAction(taskToSync, updatedData.projectId || currentTask.projectId);
           if (result.success) {
             setTasks(prev => prev.map(t => t.id === taskId ? { 
               ...t, 
@@ -507,7 +514,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
 
         // Sync to Google
-        const taskToSync = { ...currentTask, isCompleted, completedAt };
+        // Use tasksRef to get the latest state which might have googleTaskId
+        const latestTask = tasksRef.current.find(t => t.id === taskId);
+        const taskToSync = { ...(latestTask || currentTask), isCompleted, completedAt };
+        
         if (taskToSync.dueDate) {
            taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
         }
