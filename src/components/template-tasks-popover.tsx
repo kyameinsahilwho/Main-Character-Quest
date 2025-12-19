@@ -14,13 +14,13 @@ import type { Task } from "@/lib/types"
 import { ScrollArea } from "./ui/scroll-area"
 import { Separator } from "./ui/separator"
 
-interface AutomatedTasksPopoverProps {
+interface TemplateTasksPopoverProps {
   children: React.ReactNode;
   tasks: Task[];
   onAddTasks: (taskIds: string[]) => void;
 }
 
-export function AutomatedTasksPopover({ children, tasks, onAddTasks }: AutomatedTasksPopoverProps) {
+export function TemplateTasksPopover({ children, tasks, onAddTasks }: TemplateTasksPopoverProps) {
   const [open, setOpen] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
 
@@ -56,7 +56,7 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <div className="p-4">
-            <h4 className="font-medium leading-none">Add Automated Quests</h4>
+            <h4 className="font-medium leading-none">Add Template Quests</h4>
             <p className="text-sm text-muted-foreground">
                 Select quests to add to your list for today.
             </p>
@@ -70,13 +70,13 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
                 onClick={handleToggleSelectAll}
             >
                 <Checkbox
-                    id="select-all-automated"
+                    id="select-all-templates"
                     checked={allSelected}
                     data-state={someSelected ? "indeterminate" : (allSelected ? "checked" : "unchecked")}
                     onCheckedChange={handleToggleSelectAll}
                 />
                 <label
-                    htmlFor="select-all-automated"
+                    htmlFor="select-all-templates"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
                     Select All
@@ -94,12 +94,12 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
                     onClick={() => handleToggleTask(task.id)}
                 >
                     <Checkbox
-                    id={`auto-task-${task.id}`}
+                    id={`template-task-${task.id}`}
                     checked={selectedTaskIds.includes(task.id)}
                     onCheckedChange={() => handleToggleTask(task.id)}
                     />
                     <label
-                    htmlFor={`auto-task-${task.id}`}
+                    htmlFor={`template-task-${task.id}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
                     {task.title}
@@ -107,7 +107,7 @@ export function AutomatedTasksPopover({ children, tasks, onAddTasks }: Automated
                 </div>
                 ))
             ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No automated quests found.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No template quests found.</p>
             )}
             </div>
         </ScrollArea>

@@ -15,10 +15,10 @@ function OverallProgress({ completionPercentage, isInitialLoad }: OverallProgres
       <div className="flex flex-col items-center justify-center h-full w-full">
         {isInitialLoad ? <Skeleton className="h-full w-full" /> : (
             <>
-                <div className="relative h-full w-8 rounded-full overflow-hidden bg-secondary/30 border border-border shadow-inner">
+                <div className="relative h-full w-8 rounded-full overflow-hidden bg-muted border-2 border-border">
                     {/* Liquid fill */}
                     <div 
-                      className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-emerald-400 transition-all duration-1000 ease-out"
+                      className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-primary via-primary/80 to-primary/60 transition-all duration-1000 ease-out"
                       style={{ height: `${completionPercentage}%` }}
                     >
                       {/* Multiple wave layers for more realistic liquid effect */}
@@ -33,7 +33,7 @@ function OverallProgress({ completionPercentage, isInitialLoad }: OverallProgres
                           <path 
                             d="M0,8 Q10,4 20,8 T40,8 T60,8 T80,8 T100,8 T120,8 T140,8 T160,8 T180,8 T200,8 L200,16 L0,16 Z" 
                             fill="currentColor"
-                            className="text-emerald-400 animate-wave-front drop-shadow-sm"
+                            className="text-primary/60 animate-wave-front drop-shadow-sm"
                           />
                         </svg>
                         {/* Middle wave */}
@@ -46,7 +46,7 @@ function OverallProgress({ completionPercentage, isInitialLoad }: OverallProgres
                           <path 
                             d="M0,8 Q10,11 20,8 T40,8 T60,8 T80,8 T100,8 T120,8 T140,8 T160,8 T180,8 T200,8 L200,16 L0,16 Z" 
                             fill="currentColor"
-                            className="text-emerald-500 animate-wave-middle"
+                            className="text-primary/80 animate-wave-middle"
                           />
                         </svg>
                         {/* Back wave - subtle */}

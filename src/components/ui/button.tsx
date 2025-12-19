@@ -5,25 +5,27 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border-2 border-foreground active:translate-y-px active:shadow-none shadow-[4px_4px_0px_0px_hsl(var(--foreground))] hover:shadow-[6px_6px_0px_0px_hsl(var(--foreground))] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-black uppercase tracking-wider ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:translate-y-[6px] active:border-b-0 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground border-b-[6px] border-[#46a302] hover:bg-[#61e002] hover:border-[#54c402] shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground border-b-[6px] border-[#d33131] hover:bg-[#ff5c5c] hover:border-[#ff4242] shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)]",
         outline:
-          "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border-2 border-b-[6px] border-border bg-background hover:bg-accent/10 hover:border-accent hover:text-accent shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "shadow-none border-0 hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline shadow-none border-0",
+          "bg-secondary text-secondary-foreground border-b-[6px] border-[#1899d6] hover:bg-[#23c4ff] hover:border-[#1cb0f6] shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)]",
+        ghost: "hover:bg-accent/20 hover:text-accent-foreground border-transparent",
+        link: "text-primary underline-offset-4 hover:underline",
+        sidebar: "bg-transparent hover:bg-accent/20 text-muted-foreground hover:text-accent border-2 border-transparent hover:border-accent border-b-[6px] justify-start px-4 w-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
+        sidebarActive: "bg-accent/20 text-accent border-2 border-accent border-b-[6px] justify-start px-4 w-full shadow-[inset_0_2px_0_0_rgba(255,255,255,0.2)]",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-14 px-6 py-3",
+        sm: "h-10 rounded-xl px-4 text-xs",
+        lg: "h-16 rounded-2xl px-10 text-base",
+        icon: "h-12 w-12 rounded-xl",
       },
     },
     defaultVariants: {

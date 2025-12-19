@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Task, Subtask, Streaks } from '@/lib/types';
+import { Task, Subtask, Streaks, Project } from '@/lib/types';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { syncTaskAction, deleteTaskAction, syncProjectAction, deleteProjectAction } from '@/app/actions/google-sync';
 
 const TASKS_STORAGE_KEY = 'taskQuestTasks';
+const PROJECTS_STORAGE_KEY = 'taskQuestProjects';
 const SAVE_DEBOUNCE_MS = 500; // Debounce localStorage saves
 
 export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedRef = useRef(false);
@@ -43,6 +46,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           if (syncStatus !== 'synced' && localTasks) {
             console.log('First login detected - loading from localStorage, will sync after');
             const parsedTasks = JSON.parse(localTasks);
+            const localProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+            if (localProjects) {
+              setProjects(JSON.parse(localProjects));
+            }
             console.log('Loaded', parsedTasks.length, 'tasks from localStorage');
             setTasks(parsedTasks);
             hasLoadedRef.current = true;
@@ -60,6 +67,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
           if (tasksError) throw tasksError;
 
+          const { data: projectsData, error: projectsError } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (projectsError) throw projectsError;
+
           const { data: subtasksData, error: subtasksError } = await supabase
             .from('subtasks')
             .select('*');
@@ -67,6 +82,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           if (subtasksError) throw subtasksError;
 
           console.log('Loaded', tasksData?.length || 0, 'tasks from Supabase');
+          console.log('Loaded', projectsData?.length || 0, 'projects from Supabase');
 
           // Convert DB format to app format
           const loadedTasks: Task[] = (tasksData || []).map((dbTask) => ({
@@ -83,11 +99,22 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
                 isCompleted: st.is_completed,
               })),
             createdAt: dbTask.created_at,
-            isAutomated: dbTask.is_automated,
+            isTemplate: dbTask.is_template,
             xp: dbTask.reward_xp || 10,
+            projectId: dbTask.project_id,
+          }));
+
+          const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
+            id: dbProject.id,
+            name: dbProject.name,
+            description: dbProject.description,
+            color: dbProject.color,
+            icon: dbProject.icon,
+            createdAt: dbProject.created_at,
           }));
 
           setTasks(loadedTasks);
+          setProjects(loadedProjects);
           hasLoadedRef.current = true;
         } else {
           // No user - load from localStorage
@@ -96,6 +123,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             const parsedTasks = JSON.parse(storedTasks);
             console.log('Not logged in - loaded', parsedTasks.length, 'tasks from localStorage');
             setTasks(parsedTasks);
+          }
+          const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+          if (storedProjects) {
+            setProjects(JSON.parse(storedProjects));
           }
           hasLoadedRef.current = true;
         }
@@ -126,6 +157,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         try {
           // Always save to localStorage as backup
           localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+          localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
 
           // If user is logged in, also save to Supabase
           if (user) {
@@ -145,6 +177,93 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     }
   }, [tasks, isInitialLoad, user]);
 
+  const stats = useMemo(() => {
+    const totalTasks = tasks.filter(t => !t.isTemplate).length;
+    const completedTasks = tasks.filter(task => task.isCompleted && !task.isTemplate).length;
+    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    return {
+      totalTasks,
+      completedTasks,
+      completionPercentage,
+    };
+  }, [tasks]);
+
+  const streaks = useMemo<Streaks>(() => {
+    const completedDates = tasks
+      .filter(task => task.completedAt && !task.isTemplate)
+      .map(task => startOfDay(parseISO(task.completedAt!)))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (completedDates.length === 0) return { current: 0, longest: 0 };
+    
+    // Use a Set for unique dates (more efficient than array operations)
+    const uniqueDates = Array.from(
+      new Set(completedDates.map(d => d.getTime()))
+    ).map(time => new Date(time));
+
+    if (uniqueDates.length === 0) return { current: 0, longest: 0 };
+
+    let longest = 1;
+    let current = 1;
+    
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const daysDiff = differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]);
+      if (daysDiff === 1) {
+        current++;
+      } else if (daysDiff > 1) {
+        longest = Math.max(longest, current);
+        current = 1;
+      }
+    }
+    longest = Math.max(longest, current);
+    
+    // Calculate current streak
+    let currentStreak = 0;
+    const lastCompletion = uniqueDates[uniqueDates.length - 1];
+
+    if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
+      currentStreak = 1;
+      for (let i = uniqueDates.length - 2; i >= 0; i--) {
+        const daysDiff = differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]);
+        if (daysDiff === 1) {
+          currentStreak++;
+        } else if (daysDiff > 1) {
+          break;
+        }
+      }
+    }
+
+    return { current: currentStreak, longest };
+  }, [tasks]);
+
+  // Sync streaks to Supabase whenever they change
+  useEffect(() => {
+    if (!isInitialLoad && user && streaks) {
+      const syncStreaks = async () => {
+        try {
+          const { error } = await supabase
+            .from('user_settings')
+            .upsert({
+              user_id: user.id,
+              current_streak: streaks.current,
+              longest_streak: streaks.longest,
+              tasks_completed: stats.completedTasks,
+              total_xp: 0, // Can be implemented later
+              level: 1, // Can be implemented later
+            }, {
+              onConflict: 'user_id'
+            });
+
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error syncing streaks to Supabase:', error);
+        }
+      };
+
+      syncStreaks();
+    }
+  }, [streaks, user, isInitialLoad, supabase, stats.completedTasks]);
+
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
     const newTask: Task = {
       ...taskData,
@@ -153,6 +272,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       completedAt: null,
       subtasks: taskData.subtasks || [],
       createdAt: new Date().toISOString(),
+      projectId: taskData.projectId,
     };
     
     setTasks(prev => [newTask, ...prev]);
@@ -168,9 +288,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             title: newTask.title,
             due_date: newTask.dueDate,
             is_completed: newTask.isCompleted,
-            is_automated: newTask.isAutomated || false,
+            is_template: newTask.isTemplate || false,
             completed_at: newTask.completedAt,
             created_at: newTask.createdAt,
+            project_id: newTask.projectId,
           });
 
         if (error) throw error;
@@ -190,20 +311,23 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
           if (subtasksError) throw subtasksError;
         }
+
+        // Sync to Google
+        syncTaskAction(newTask, newTask.projectId);
       } catch (error) {
         console.error('Error syncing task to Supabase:', error);
       }
     }
   }, [user, supabase]);
 
-  const addAutomatedTasksToToday = useCallback(async (taskIds: string[]) => {
+  const addTemplatesToToday = useCallback(async (taskIds: string[]) => {
     setTasks(prev => {
         const tasksToAdd = prev.filter(task => taskIds.includes(task.id));
         const newTasks = tasksToAdd.map(task => ({
             ...task,
             id: crypto.randomUUID(),
             dueDate: new Date().toISOString(),
-            isAutomated: false, // Make it a regular task for today
+            isTemplate: false, // Make it a regular task for today
             isCompleted: false,
             completedAt: null,
             subtasks: task.subtasks.map(st => ({...st, isCompleted: false, id: crypto.randomUUID()}))
@@ -219,9 +343,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
                 title: newTask.title,
                 due_date: newTask.dueDate,
                 is_completed: newTask.isCompleted,
-                is_automated: newTask.isAutomated,
+                is_template: newTask.isTemplate,
                 completed_at: newTask.completedAt,
                 created_at: newTask.createdAt,
+                project_id: newTask.projectId,
               });
 
               if (newTask.subtasks.length > 0) {
@@ -235,7 +360,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
                 );
               }
             } catch (error) {
-              console.error('Error syncing automated task:', error);
+              console.error('Error syncing template task:', error);
             }
           });
         }
@@ -253,29 +378,42 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         const updatePayload: any = {};
         if (updatedData.title !== undefined) updatePayload.title = updatedData.title;
         if (updatedData.dueDate !== undefined) updatePayload.due_date = updatedData.dueDate;
+        if (updatedData.projectId !== undefined) updatePayload.project_id = updatedData.projectId;
         
         await supabase
           .from('tasks')
           .update(updatePayload)
           .eq('id', taskId);
+
+        // Sync to Google
+        const updatedTask = tasks.find(t => t.id === taskId);
+        if (updatedTask) {
+          syncTaskAction({ ...updatedTask, ...updatedData }, updatedData.projectId || updatedTask.projectId);
+        }
       } catch (error) {
         console.error('Error updating task in Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, tasks]);
   
   const deleteTask = useCallback(async (taskId: string) => {
+    const taskToDelete = tasks.find(t => t.id === taskId);
     setTasks(prev => prev.filter(task => task.id !== taskId));
     
     // Delete from Supabase
     if (user) {
       try {
         await supabase.from('tasks').delete().eq('id', taskId);
+
+        // Delete from Google
+        if (taskToDelete?.googleTaskId || taskToDelete?.googleEventId) {
+          deleteTaskAction(taskToDelete.googleTaskId || undefined, taskToDelete.googleEventId || undefined, taskToDelete.projectId || undefined);
+        }
       } catch (error) {
         console.error('Error deleting task from Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, tasks]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     // First, get the current task to determine new state
@@ -339,11 +477,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
               .eq('id', subtask.id);
           }
         }
+
+        // Sync to Google
+        syncTaskAction({ ...currentTask, isCompleted, completedAt }, currentTask.projectId);
       } catch (error) {
         console.error('Error toggling task completion in Supabase:', error);
       }
     }
-  }, [user, supabase, tasks]);
+  }, [user, supabase, tasks, streaks.current]);
   
   const addSubtask = useCallback(async (taskId: string, text: string) => {
     const newSubtask: Subtask = {
@@ -456,99 +597,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     return changeType;
   }, [user, supabase, tasks]);
 
-  const stats = useMemo(() => {
-    const totalTasks = tasks.filter(t => !t.isAutomated).length;
-    const completedTasks = tasks.filter(task => task.isCompleted && !task.isAutomated).length;
-    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    return {
-      totalTasks,
-      completedTasks,
-      completionPercentage,
-    };
-  }, [tasks]);
-
-  const streaks = useMemo<Streaks>(() => {
-    const completedDates = tasks
-      .filter(task => task.completedAt && !task.isAutomated)
-      .map(task => startOfDay(parseISO(task.completedAt!)))
-      .sort((a, b) => a.getTime() - b.getTime());
-
-    if (completedDates.length === 0) return { current: 0, longest: 0 };
-    
-    // Use a Set for unique dates (more efficient than array operations)
-    const uniqueDates = Array.from(
-      new Set(completedDates.map(d => d.getTime()))
-    ).map(time => new Date(time));
-
-    if (uniqueDates.length === 0) return { current: 0, longest: 0 };
-
-    let longest = 1;
-    let current = 1;
-    
-    for (let i = 1; i < uniqueDates.length; i++) {
-      const daysDiff = differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]);
-      if (daysDiff === 1) {
-        current++;
-      } else if (daysDiff > 1) {
-        longest = Math.max(longest, current);
-        current = 1;
-      }
-    }
-    longest = Math.max(longest, current);
-    
-    // Calculate current streak
-    let currentStreak = 0;
-    const lastCompletion = uniqueDates[uniqueDates.length - 1];
-
-    if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
-      currentStreak = 1;
-      for (let i = uniqueDates.length - 2; i >= 0; i--) {
-        const daysDiff = differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]);
-        if (daysDiff === 1) {
-          currentStreak++;
-        } else if (daysDiff > 1) {
-          break;
-        }
-      }
-    }
-
-    return { current: currentStreak, longest };
-  }, [tasks]);
-
-  // Sync streaks to Supabase whenever they change
-  useEffect(() => {
-    if (!isInitialLoad && user && streaks) {
-      const syncStreaks = async () => {
-        try {
-          const { error } = await supabase
-            .from('user_settings')
-            .upsert({
-              user_id: user.id,
-              current_streak: streaks.current,
-              longest_streak: streaks.longest,
-              tasks_completed: stats.completedTasks,
-              total_xp: 0, // Can be implemented later
-              level: 1, // Can be implemented later
-            }, {
-              onConflict: 'user_id'
-            });
-
-          if (error) throw error;
-        } catch (error) {
-          console.error('Error syncing streaks to Supabase:', error);
-        }
-      };
-
-      syncStreaks();
-    }
-  }, [streaks, user, isInitialLoad, supabase, stats.completedTasks]);
-
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
-        if (a.isAutomated && !b.isAutomated) return 1;
-        if (!a.isAutomated && b.isAutomated) return -1;
+        if (a.isTemplate && !b.isTemplate) return 1;
+        if (!a.isTemplate && b.isTemplate) return -1;
 
-        if (a.isAutomated && b.isAutomated) {
+        if (a.isTemplate && b.isTemplate) {
           return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
         }
 
@@ -606,9 +660,28 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             isCompleted: st.is_completed,
           })),
         createdAt: dbTask.created_at,
-        isAutomated: dbTask.is_automated,
+        isTemplate: dbTask.is_template,
         xp: dbTask.reward_xp || 10,
+        projectId: dbTask.project_id,
       }));
+
+      const { data: projectsData } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (projectsData) {
+        const loadedProjects: Project[] = projectsData.map((dbProject) => ({
+          id: dbProject.id,
+          name: dbProject.name,
+          description: dbProject.description,
+          color: dbProject.color,
+          icon: dbProject.icon,
+          createdAt: dbProject.created_at,
+        }));
+        setProjects(loadedProjects);
+      }
 
       setTasks(loadedTasks);
     } catch (error) {
@@ -616,8 +689,90 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     }
   }, [user, supabase]);
 
+  const addProject = useCallback(async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+    const newProject: Project = {
+      ...projectData,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    
+    setProjects(prev => [newProject, ...prev]);
+
+    if (user) {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .insert({
+            id: newProject.id,
+            user_id: user.id,
+            name: newProject.name,
+            description: newProject.description,
+            color: newProject.color,
+            icon: newProject.icon,
+            created_at: newProject.createdAt,
+          });
+
+        if (error) throw error;
+
+        // Sync to Google
+        syncProjectAction(newProject);
+      } catch (error) {
+        console.error('Error syncing project to Supabase:', error);
+      }
+    }
+  }, [user, supabase]);
+
+  const updateProject = useCallback(async (projectId: string, updatedData: Partial<Omit<Project, 'id' | 'createdAt'>>) => {
+    setProjects(prev => prev.map(project => project.id === projectId ? { ...project, ...updatedData } : project));
+    
+    if (user) {
+      try {
+        const updatePayload: any = {};
+        if (updatedData.name !== undefined) updatePayload.name = updatedData.name;
+        if (updatedData.description !== undefined) updatePayload.description = updatedData.description;
+        if (updatedData.color !== undefined) updatePayload.color = updatedData.color;
+        if (updatedData.icon !== undefined) updatePayload.icon = updatedData.icon;
+        
+        await supabase
+          .from('projects')
+          .update(updatePayload)
+          .eq('id', projectId);
+
+        // Sync to Google
+        const updatedProject = projects.find(p => p.id === projectId);
+        if (updatedProject) {
+          syncProjectAction({ ...updatedProject, ...updatedData });
+        }
+      } catch (error) {
+        console.error('Error updating project in Supabase:', error);
+      }
+    }
+  }, [user, supabase, projects]);
+
+  const deleteProject = useCallback(async (projectId: string) => {
+    const projectToDelete = projects.find(p => p.id === projectId);
+    setProjects(prev => prev.filter(project => project.id !== projectId));
+    // Also clear project_id from tasks
+    setTasks(prev => prev.map(task => task.projectId === projectId ? { ...task, projectId: null } : task));
+    
+    if (user) {
+      try {
+        await supabase.from('projects').delete().eq('id', projectId);
+        // Tasks will have project_id set to NULL due to ON DELETE SET NULL in DB
+
+        // Sync to Google
+        if (projectToDelete?.googleTaskListId) {
+          deleteProjectAction(projectToDelete.googleTaskListId);
+        }
+      } catch (error) {
+        console.error('Error deleting project from Supabase:', error);
+      }
+    }
+  }, [user, supabase, projects]);
+
   return {
     tasks: sortedTasks,
+    projects,
     stats,
     streaks,
     addTask,
@@ -626,8 +781,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     toggleTaskCompletion,
     addSubtask,
     toggleSubtaskCompletion,
+    addProject,
+    updateProject,
+    deleteProject,
     isInitialLoad,
-    addAutomatedTasksToToday,
+    addTemplatesToToday,
     reloadFromSupabase,
   };
 };

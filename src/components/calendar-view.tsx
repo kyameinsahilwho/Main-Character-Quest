@@ -21,8 +21,9 @@ export default function CalendarView({ tasks }: CalendarViewProps) {
 
   const modifiersStyles = {
     completed: {
-      backgroundColor: 'hsl(var(--accent))',
-      color: 'hsl(var(--accent-foreground))',
+      backgroundColor: 'hsl(var(--primary))',
+      color: 'hsl(var(--primary-foreground))',
+      borderRadius: '50%',
     },
   };
 
@@ -32,7 +33,7 @@ export default function CalendarView({ tasks }: CalendarViewProps) {
         mode="single"
         modifiers={modifiers}
         modifiersStyles={modifiersStyles}
-        className="rounded-md border"
+        className="rounded-2xl border-2 border-border"
       />
     </div>
   );

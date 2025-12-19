@@ -33,12 +33,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import type { Task, Subtask } from "@/lib/types"
+import type { Task, Subtask, Project } from "@/lib/types"
 import { playAddTaskSound } from "@/lib/sounds"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   dueDate: z.date().optional(),
+  projectId: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -46,9 +54,10 @@ type FormValues = z.infer<typeof formSchema>
 interface AddTaskDialogProps {
   children: React.ReactNode
   onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void
+  projects?: Project[]
 }
 
-export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
+export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<{ text: string }[]>([]);
@@ -150,7 +159,8 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
       onAddTask({
         title: values.title,
         dueDate: values.dueDate ? values.dueDate.toISOString() : null,
-        subtasks: finalSubtasks
+        subtasks: finalSubtasks,
+        projectId: values.projectId === "none" ? null : values.projectId
       })
       form.reset()
       setSubtasks([])
@@ -248,6 +258,31 @@ export function AddTaskDialog({ children, onAddTask }: AddTaskDialogProps) {
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a project (optional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No Project</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

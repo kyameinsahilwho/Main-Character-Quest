@@ -18,18 +18,18 @@ interface StatsPanelProps {
 }
 
 const StatCard = ({ icon, title, value, unit, description, isInitialLoad, className }: { icon: React.ReactNode, title: string, value: string | number, unit?: string, description?: string, isInitialLoad: boolean, className?: string }) => (
-  <Card className={className}>
+  <Card className={cn("border-b-4", className)}>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{title}</CardTitle>
       {icon}
     </CardHeader>
     <CardContent>
       {isInitialLoad ? <Skeleton className="h-8 w-24" /> : (
-        <div className="text-2xl font-bold font-headline">
-          {value}{unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+        <div className="text-2xl font-black font-headline">
+          {value}{unit && <span className="text-xs text-muted-foreground ml-1">{unit}</span>}
         </div>
       )}
-      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
     </CardContent>
   </Card>
 );

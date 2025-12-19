@@ -37,7 +37,7 @@ export default function CompactStats({ stats, streaks, isInitialLoad }: CompactS
 
   if (isInitialLoad) {
     return (
-      <div className="flex items-center gap-4 p-4 bg-card/50 rounded-xl border-2 border-foreground">
+      <div className="flex items-center gap-4 p-4 bg-card/50 rounded-2xl border-2 border-border">
         <Skeleton className="h-12 w-24" />
         <Skeleton className="h-12 w-24" />
         <Skeleton className="h-12 flex-1" />
@@ -46,7 +46,7 @@ export default function CompactStats({ stats, streaks, isInitialLoad }: CompactS
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 p-3 bg-card/50 rounded-xl border-2 border-foreground shadow-lg">
+    <div className="flex flex-wrap items-center gap-3 p-3 bg-card/50 rounded-2xl border-2 border-border">
       {/* Current Streak */}
       <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg transition-all", streakStyles.bg)}>
         <Flame className={cn("h-5 w-5", streakStyles.icon)} />

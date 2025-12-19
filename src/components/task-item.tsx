@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, memo, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, isBefore, parseISO, startOfToday } from 'date-fns';
 import { Calendar, ChevronDown, Plus, Trash2, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -31,12 +31,17 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
   const [inputFocused, setInputFocused] = useState(false);
 
   // Memoize computed values
-  const { completedSubtasks, progress, formattedDueDate } = useMemo(() => {
+  const { completedSubtasks, progress, formattedDueDate, isPast } = useMemo(() => {
     const completed = task.subtasks.filter(st => st.isCompleted).length;
     const prog = task.subtasks.length > 0 ? (completed / task.subtasks.length) * 100 : 0;
     const formatted = task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '';
-    return { completedSubtasks: completed, progress: prog, formattedDueDate: formatted };
-  }, [task.subtasks, task.dueDate]);
+    
+    const isOverdue = task.dueDate && !task.isCompleted && !task.isTemplate 
+      ? isBefore(parseISO(task.dueDate), startOfToday()) 
+      : false;
+
+    return { completedSubtasks: completed, progress: prog, formattedDueDate: formatted, isPast: isOverdue };
+  }, [task.subtasks, task.dueDate, task.isCompleted, task.isTemplate]);
 
   const handleAddSubtask = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +73,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
   
   const handleMainCheckboxClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if(task.isAutomated) return;
+    if(task.isTemplate) return;
     
     if (!task.isCompleted) {
       setIsAnimating(true);
@@ -81,7 +86,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
     } else {
       onToggle(task.id);
     }
-  }, [task.isAutomated, task.isCompleted, task.id, onToggle, setCelebrating]);
+  }, [task.isTemplate, task.isCompleted, task.id, onToggle, setCelebrating]);
 
   const handleWrapperClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,58 +117,75 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
+      whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
       className="mb-3"
     >
     <Card className={cn(
-        "transition-all duration-300 overflow-hidden flex flex-col", 
-        task.isCompleted && !task.isAutomated ? 'bg-card/60 border-dashed opacity-70' : 'bg-card', 
-        task.isAutomated && 'border-dashed border-primary/50',
+        "transition-all duration-300 overflow-hidden flex flex-col border-2 border-b-[6px] border-muted-foreground/20 rounded-[2rem] relative", 
+        task.isCompleted && !task.isTemplate 
+          ? 'bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0' 
+          : 'bg-card hover:-translate-y-1 active:translate-y-[2px] active:border-b-[4px]', 
+        task.isTemplate && 'border-2 border-dashed border-primary/50 shadow-none',
         isAnimating && 'animate-green-flash'
     )}>
       <div className="flex flex-col">
-      <div className="flex items-center p-2 cursor-pointer" onClick={handleWrapperClick}>
-        <div data-interactive-area className='flex items-center mr-2' onClick={handleMainCheckboxClick}>
+      <div className="flex items-center p-3 cursor-pointer" onClick={handleWrapperClick}>
+        <div data-interactive-area className='flex items-center mr-4' onClick={handleMainCheckboxClick}>
             <div 
               className={cn(
-                "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative overflow-hidden",
-                task.isCompleted ? "bg-green-500 border-green-500" : "border-muted-foreground",
-                task.isAutomated && "cursor-not-allowed opacity-50"
+                "h-8 w-8 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[2px] active:border-b-0",
+                task.isCompleted ? "bg-primary border-primary border-b-[#46a302]" : "border-border bg-muted/20",
+                task.isTemplate && "cursor-not-allowed opacity-50"
               )}
-              style={{
-                background: !task.isCompleted && progress > 0 
-                  ? `conic-gradient(#22c55e ${progress}%, transparent 0)` 
-                  : undefined
-              }}
             >
-              {task.isCompleted && <Check className="h-3 w-3 text-white z-10" />}
+              {task.isCompleted && <Check className="h-5 w-5 text-white stroke-[4px] z-10" />}
             </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <CardTitle className={cn("text-sm font-bold leading-tight", task.isCompleted && !task.isAutomated && 'line-through text-muted-foreground')}>
+        <div className="flex-1 min-w-0 py-1">
+          <CardTitle className={cn("text-lg font-black leading-tight tracking-tight", task.isCompleted && !task.isTemplate && 'line-through text-muted-foreground/60')}>
             {task.title}
           </CardTitle>
           
           {task.subtasks.length > 0 && (
-             <div className="mt-1 flex items-center gap-2">
-                <Progress value={progress} className="h-1 flex-1" />
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{completedSubtasks}/{task.subtasks.length}</span>
+             <div className="mt-2 flex items-center gap-3">
+                <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden border border-border/80 p-0.5">
+                  <motion.div 
+                    className="h-full bg-primary rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+                <span className="text-[11px] font-black text-muted-foreground/80 whitespace-nowrap tracking-tighter">{completedSubtasks} / {task.subtasks.length}</span>
             </div>
           )}
 
         </div>
-        <div data-interactive-area className="flex items-center gap-1 ml-2">
-          {task.dueDate && !task.isAutomated && (
-            <div className="text-[10px] text-muted-foreground hidden sm:flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              <span>{formattedDueDate}</span>
-            </div>
+        <div data-interactive-area className="flex items-center gap-2 ml-2">
+          {isPast && !isExpanded ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-3 text-[10px] font-black uppercase tracking-tight border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl flex items-center gap-2 active:translate-y-[1px]"
+              onClick={handleEdit}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Assign New Date</span>
+              <span className="sm:hidden">Reschedule</span>
+            </Button>
+          ) : task.subtasks.length > 0 ? (
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-accent/50 rounded-xl border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleCollapsibleToggle}>
+              <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-accent/50 rounded-xl text-muted-foreground/40 hover:text-primary transition-all border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleEdit}>
+              <Pencil className="h-4 w-4" />
+            </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleCollapsibleToggle}>
-            <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isExpanded ? "rotate-180" : "")} />
-          </Button>
         </div>
       </div>
+
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -176,65 +198,66 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
             }}
             transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
           >
-            <Separator className="my-0"/>
-            <div className="px-3 py-2.5">
-              <div className="space-y-2">
+            <Separator className="h-0.5 bg-border/60"/>
+            <div className="px-4 py-4">
+              <div className="space-y-3">
                 {task.subtasks.map((subtask, index) => (
-                  <div 
+                  <motion.div 
                     key={subtask.id} 
-                    className="flex items-center group hover:bg-accent/50 rounded px-2 py-1.5 -mx-2 transition-colors duration-150 cursor-pointer"
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center group hover:bg-accent/40 rounded-2xl px-4 py-3 -mx-2 transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-border/30"
                     onClick={(e) => { e.preventDefault(); handleSubtaskToggle(subtask.id) }}
                   >
                     <Checkbox
                       id={`subtask-${subtask.id}`}
                       checked={subtask.isCompleted}
-                      className="mr-2.5 h-4 w-4"
+                      className="mr-4 h-6 w-6 rounded-lg border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       onClick={(e) => handleToggleSubtask(e, subtask.id)}
-                      disabled={task.isAutomated}
+                      disabled={task.isTemplate}
                     />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
-                      className={cn("text-sm cursor-pointer flex-1 transition-all duration-150 leading-snug", subtask.isCompleted && "line-through text-muted-foreground")}
+                      className={cn("text-sm font-black cursor-pointer flex-1 transition-all duration-200 leading-snug", subtask.isCompleted && "line-through text-muted-foreground/60")}
                     >
                       {subtask.text}
                     </label>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-              <form onSubmit={handleAddSubtask} className="mt-2.5 flex gap-2">
+              <form onSubmit={handleAddSubtask} className="mt-4 flex gap-2">
                 <Input
                   value={subtaskText}
                   onChange={e => setSubtaskText(e.target.value)}
                   onFocus={() => setInputFocused(true)}
                   onBlur={() => setTimeout(() => setInputFocused(false), 300)}
                   placeholder="Add a sub-quest..."
-                  className="h-8 text-sm"
+                  className="h-10 text-sm rounded-xl border-2 border-border/80 focus:border-primary/50 transition-all"
                 />
-                <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <Plus className="h-4 w-4" />
+                <Button type="submit" variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl hover:bg-primary/10 hover:text-primary border-2 border-transparent active:border-b-2 active:border-primary">
+                  <Plus className="h-5 w-5" />
                 </Button>
               </form>
             </div>
-            <Separator className="my-0"/>
-            <div data-interactive-area className="flex justify-between items-center p-2.5 px-3">
-                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    {task.dueDate && !task.isAutomated && (
-                        <div className="flex sm:hidden items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>Due {formattedDueDate}</span>
+            <Separator className="h-0.5 bg-border/60"/>
+            <div data-interactive-area className="flex justify-between items-center p-3 px-4 bg-muted/10">
+                <div className="text-xs font-black text-muted-foreground/60 flex items-center gap-2">
+                    {task.dueDate && !task.isTemplate && (
+                        <div className="flex items-center gap-2 bg-secondary/10 px-2.5 py-1 rounded-xl border border-secondary/20 text-secondary font-black">
+                            <Calendar className="h-4 w-4 stroke-[3px]" />
+                            <span className="uppercase tracking-tight text-[11px]">Due {formattedDueDate}</span>
                         </div>
                     )}
-                    {task.isAutomated && (
-                        <span className='font-semibold text-primary/80'>Template</span>
+                    {task.isTemplate && (
+                        <span className='font-black text-primary/60 uppercase tracking-widest text-[10px]'>Template</span>
                     )}
                 </div>
-                <div className='flex items-center gap-0.5'>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors" onClick={handleEdit}>
-                        <Pencil className="h-3.5 w-3.5" />
+                <div className='flex items-center gap-1'>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground/40 hover:text-primary transition-all rounded-xl hover:bg-primary/10" onClick={handleEdit}>
+                        <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit task</span>
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors" onClick={handleDelete}>
-                        <Trash2 className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground/40 hover:text-destructive transition-all rounded-xl hover:bg-destructive/10" onClick={handleDelete}>
+                        <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Delete task</span>
                     </Button>
                 </div>

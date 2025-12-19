@@ -12,8 +12,22 @@ export interface Task {
   completedAt: string | null;
   subtasks: Subtask[];
   createdAt: string;
-  isAutomated?: boolean;
+  isTemplate?: boolean;
   xp?: number;
+  projectId?: string | null;
+  googleTaskId?: string | null;
+  googleEventId?: string | null;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string;
+  icon?: string;
+  createdAt: string;
+  googleTaskListId?: string | null;
+  googleCalendarId?: string | null;
 }
 
 export interface Streaks {
@@ -31,6 +45,19 @@ export interface DbSubtask {
   updated_at: string;
 }
 
+export interface DbProject {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string | null;
+  color?: string;
+  icon?: string;
+  created_at: string;
+  updated_at: string;
+  google_task_list_id?: string | null;
+  google_calendar_id?: string | null;
+}
+
 export interface DbTask {
   id: string;
   user_id: string;
@@ -41,10 +68,13 @@ export interface DbTask {
   category?: string | null;
   reward_xp?: number;
   is_completed: boolean;
-  is_automated: boolean;
+  is_template: boolean;
   completed_at?: string | null;
   created_at: string;
   updated_at: string;
+  project_id?: string | null;
+  google_task_id?: string | null;
+  google_event_id?: string | null;
 }
 
 export interface DbUserSettings {
@@ -69,7 +99,23 @@ export function dbTaskToTask(dbTask: DbTask, subtasks: DbSubtask[]): Task {
     completedAt: dbTask.completed_at || null,
     subtasks: subtasks.map(dbSubtaskToSubtask),
     createdAt: dbTask.created_at,
-    isAutomated: dbTask.is_automated,
+    isTemplate: dbTask.is_template,
+    projectId: dbTask.project_id,
+    googleTaskId: dbTask.google_task_id,
+    googleEventId: dbTask.google_event_id,
+  };
+}
+
+export function dbProjectToProject(dbProject: DbProject): Project {
+  return {
+    id: dbProject.id,
+    name: dbProject.name,
+    description: dbProject.description,
+    color: dbProject.color,
+    icon: dbProject.icon,
+    createdAt: dbProject.created_at,
+    googleTaskListId: dbProject.google_task_list_id,
+    googleCalendarId: dbProject.google_calendar_id,
   };
 }
 
@@ -87,8 +133,11 @@ export function taskToDbTask(task: Omit<Task, 'subtasks'>, userId: string): Omit
     user_id: userId,
     title: task.title,
     is_completed: task.isCompleted,
-    is_automated: task.isAutomated || false,
+    is_template: task.isTemplate || false,
     completed_at: task.completedAt,
+    project_id: task.projectId,
+    google_task_id: task.googleTaskId,
+    google_event_id: task.googleEventId,
   };
 }
 

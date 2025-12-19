@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['"Space Grotesk"', 'sans-serif'],
+        body: ['Nunito', 'sans-serif'],
+        headline: ['Nunito', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -92,7 +92,6 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'spin-slow': 'spin 20s linear infinite',
       },
     },
   },

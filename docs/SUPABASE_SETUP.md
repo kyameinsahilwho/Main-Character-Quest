@@ -196,7 +196,7 @@ For issues with:
 - `category` (text, nullable)
 - `reward_xp` (integer, default 10)
 - `is_completed` (boolean)
-- `is_automated` (boolean)
+- `is_template` (boolean)
 - `completed_at` (timestamptz, nullable)
 - `created_at` (timestamptz)
 - `updated_at` (timestamptz)

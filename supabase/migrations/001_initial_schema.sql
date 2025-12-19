@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     category TEXT,
     reward_xp INTEGER DEFAULT 10,
     is_completed BOOLEAN DEFAULT FALSE,
-    is_automated BOOLEAN DEFAULT FALSE,
+    is_template BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON public.tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_completed ON public.tasks(is_completed);
-CREATE INDEX IF NOT EXISTS idx_tasks_automated ON public.tasks(is_automated);
+CREATE INDEX IF NOT EXISTS idx_tasks_template ON public.tasks(is_template);
 CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON public.tasks(created_at);
 CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON public.subtasks(task_id);
 

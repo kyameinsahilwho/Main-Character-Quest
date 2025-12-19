@@ -75,7 +75,7 @@ export function useSupabaseSync() {
       console.log(`Syncing ${localTasks.length} local tasks to Supabase...`);
 
       // Calculate streaks from local tasks
-      const completedTasks = localTasks.filter(t => t.isCompleted && !t.isAutomated);
+      const completedTasks = localTasks.filter(t => t.isCompleted && !t.isTemplate);
       const completedDates = completedTasks
         .filter(task => task.completedAt)
         .map(task => {
@@ -156,7 +156,7 @@ export function useSupabaseSync() {
             title: task.title,
             due_date: task.dueDate,
             is_completed: task.isCompleted,
-            is_automated: task.isAutomated || false,
+            is_template: task.isTemplate || false,
             completed_at: task.completedAt,
             created_at: task.createdAt,
           })

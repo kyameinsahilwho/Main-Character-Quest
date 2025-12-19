@@ -32,11 +32,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import type { Task, Subtask } from "@/lib/types"
+import type { Task, Subtask, Project } from "@/lib/types"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   dueDate: z.date().optional(),
+  projectId: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -46,9 +54,10 @@ interface EditTaskDialogProps {
   onClose: () => void;
   task: Task;
   onEditTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void;
+  projects?: Project[];
 }
 
-export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDialogProps) {
+export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [] }: EditTaskDialogProps) {
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
@@ -99,6 +108,7 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
       form.reset({
         title: task.title,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+        projectId: task.projectId || "none",
       });
       setSubtasks(task.subtasks);
     }
@@ -133,12 +143,17 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
     setSubtasks(subtasks.filter((sub) => sub.id !== id));
   };
 
+  const handleUpdateSubtask = (id: string, newText: string) => {
+    setSubtasks(subtasks.map(sub => sub.id === id ? { ...sub, text: newText } : sub));
+  };
+
 
   function onSubmit(values: FormValues) {
     onEditTask({
       title: values.title,
       dueDate: values.dueDate ? values.dueDate.toISOString() : null,
-      subtasks: subtasks
+      subtasks: subtasks,
+      projectId: values.projectId === "none" ? null : values.projectId,
     })
     onClose();
   }
@@ -235,18 +250,47 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask }: EditTaskDi
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a project (optional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No Project</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div>
               <FormLabel>Sub-Quests</FormLabel>
               <div className="mt-2 space-y-2">
                 {subtasks.map((subtask) => (
                   <div key={subtask.id} className="flex items-center gap-2">
-                    <span className="flex-1 text-sm p-2 bg-muted/50 rounded-md">{subtask.text}</span>
+                    <Input 
+                      value={subtask.text}
+                      onChange={(e) => handleUpdateSubtask(subtask.id, e.target.value)}
+                      className="flex-1 h-9 text-sm bg-muted/30 border-transparent focus:border-primary/50 transition-all"
+                    />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
                       onClick={() => handleRemoveSubtask(subtask.id)}
                     >
                       <X className="h-4 w-4" />
