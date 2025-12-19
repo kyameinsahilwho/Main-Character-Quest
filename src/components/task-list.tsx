@@ -154,7 +154,12 @@ function TaskList({
   }, [tasks]);
 
   const sectionOrder = useMemo(() => {
-    if (listType === 'completed') return ['Completed Today', 'Completed Earlier'];
+    if (listType === 'completed') {
+      const order = [];
+      if (groupedTasks['Completed Today']) order.push('Completed Today');
+      if (groupedTasks['Completed Earlier']) order.push('Completed Earlier');
+      return order;
+    }
     
     const sections = Object.keys(groupedTasks);
     const fixedSections = ['Past', 'Today', 'Tomorrow'];
@@ -189,7 +194,7 @@ function TaskList({
             count={groupedTasks[sectionName]?.length}
           >
             <AnimatePresence mode="popLayout">
-            {groupedTasks[sectionName].map(task => (
+            {groupedTasks[sectionName]?.map(task => (
               <TaskItem
                 key={task.id}
                 task={task}
