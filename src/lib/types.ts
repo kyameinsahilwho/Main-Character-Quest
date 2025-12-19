@@ -97,6 +97,8 @@ export function dbTaskToTask(dbTask: DbTask, subtasks: DbSubtask[]): Task {
     dueDate: null, // Can be extended later
     isCompleted: dbTask.is_completed,
     completedAt: dbTask.completed_at || null,
+    googleTaskId: dbTask.google_task_id,
+    googleEventId: dbTask.google_event_id,
     subtasks: subtasks.map(dbSubtaskToSubtask),
     createdAt: dbTask.created_at,
     isTemplate: dbTask.is_template,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Task, Subtask, Streaks, Project } from '@/lib/types';
-import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO } from 'date-fns';
+import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO, format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { syncTaskAction, deleteTaskAction, syncProjectAction, deleteProjectAction } from '@/app/actions/google-sync';
@@ -91,6 +91,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             dueDate: dbTask.due_date || null,
             isCompleted: dbTask.is_completed,
             completedAt: dbTask.completed_at || null,
+            googleTaskId: dbTask.google_task_id,
+            googleEventId: dbTask.google_event_id,
             subtasks: (subtasksData || [])
               .filter((st) => st.task_id === dbTask.id)
               .map((st) => ({
@@ -316,7 +318,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
 
         // Sync to Google
-        const result = await syncTaskAction(newTask, newTask.projectId);
+        const taskForGoogle = { 
+          ...newTask, 
+          dueDate: newTask.dueDate ? format(new Date(newTask.dueDate), 'yyyy-MM-dd') : null 
+        };
+        const result = await syncTaskAction(taskForGoogle, newTask.projectId);
         if (result.success && result.task) {
           setTasks(prev => prev.map(t => t.id === newTask.id ? { 
             ...t, 
@@ -398,7 +404,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         // Sync to Google
         const updatedTask = tasks.find(t => t.id === taskId);
         if (updatedTask) {
-          const result = await syncTaskAction({ ...updatedTask, ...updatedData }, updatedData.projectId || updatedTask.projectId);
+          const taskToSync = { ...updatedTask, ...updatedData };
+          // Ensure dueDate is formatted as YYYY-MM-DD for Google Sync
+          if (taskToSync.dueDate) {
+             taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
+          }
+          const result = await syncTaskAction(taskToSync, updatedData.projectId || updatedTask.projectId);
           if (result.success && result.task) {
             setTasks(prev => prev.map(t => t.id === taskId ? { 
               ...t, 
@@ -496,7 +507,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
 
         // Sync to Google
-        const result = await syncTaskAction({ ...currentTask, isCompleted, completedAt }, currentTask.projectId);
+        const taskToSync = { ...currentTask, isCompleted, completedAt };
+        if (taskToSync.dueDate) {
+           taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
+        }
+        const result = await syncTaskAction(taskToSync, currentTask.projectId);
         if (result.success && result.task) {
           setTasks(prev => prev.map(t => t.id === taskId ? { 
             ...t, 
