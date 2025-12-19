@@ -15,8 +15,6 @@ export interface Task {
   isTemplate?: boolean;
   xp?: number;
   projectId?: string | null;
-  googleTaskId?: string | null;
-  googleEventId?: string | null;
 }
 
 export interface Project {
@@ -26,8 +24,6 @@ export interface Project {
   color?: string;
   icon?: string;
   createdAt: string;
-  googleTaskListId?: string | null;
-  googleCalendarId?: string | null;
 }
 
 export interface Streaks {
@@ -54,8 +50,6 @@ export interface DbProject {
   icon?: string;
   created_at: string;
   updated_at: string;
-  google_task_list_id?: string | null;
-  google_calendar_id?: string | null;
 }
 
 export interface DbTask {
@@ -73,8 +67,6 @@ export interface DbTask {
   created_at: string;
   updated_at: string;
   project_id?: string | null;
-  google_task_id?: string | null;
-  google_event_id?: string | null;
 }
 
 export interface DbUserSettings {
@@ -97,14 +89,10 @@ export function dbTaskToTask(dbTask: DbTask, subtasks: DbSubtask[]): Task {
     dueDate: null, // Can be extended later
     isCompleted: dbTask.is_completed,
     completedAt: dbTask.completed_at || null,
-    googleTaskId: dbTask.google_task_id,
-    googleEventId: dbTask.google_event_id,
     subtasks: subtasks.map(dbSubtaskToSubtask),
     createdAt: dbTask.created_at,
     isTemplate: dbTask.is_template,
     projectId: dbTask.project_id,
-    googleTaskId: dbTask.google_task_id,
-    googleEventId: dbTask.google_event_id,
   };
 }
 
@@ -116,8 +104,6 @@ export function dbProjectToProject(dbProject: DbProject): Project {
     color: dbProject.color,
     icon: dbProject.icon,
     createdAt: dbProject.created_at,
-    googleTaskListId: dbProject.google_task_list_id,
-    googleCalendarId: dbProject.google_calendar_id,
   };
 }
 
@@ -138,8 +124,6 @@ export function taskToDbTask(task: Omit<Task, 'subtasks'>, userId: string): Omit
     is_template: task.isTemplate || false,
     completed_at: task.completedAt,
     project_id: task.projectId,
-    google_task_id: task.googleTaskId,
-    google_event_id: task.googleEventId,
   };
 }
 

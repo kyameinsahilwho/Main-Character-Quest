@@ -118,12 +118,6 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border" />
-                {user.app_metadata.provider === 'google' && (
-                  <DropdownMenuItem className="cursor-default focus:bg-transparent">
-                    <Calendar className="mr-2 h-4 w-4 text-blue-500" />
-                    <span className="text-xs font-bold text-blue-600">Google Sync Active</span>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem onClick={onSignOut} className="text-red-600 focus:text-red-600 cursor-pointer font-bold focus:bg-red-50 rounded-xl">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>

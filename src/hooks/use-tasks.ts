@@ -5,7 +5,6 @@ import { Task, Subtask, Streaks, Project } from '@/lib/types';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO, format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { syncTaskAction, deleteTaskAction, syncProjectAction, deleteProjectAction } from '@/app/actions/google-sync';
 
 const TASKS_STORAGE_KEY = 'taskQuestTasks';
 const PROJECTS_STORAGE_KEY = 'taskQuestProjects';
@@ -97,8 +96,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             dueDate: dbTask.due_date || null,
             isCompleted: dbTask.is_completed,
             completedAt: dbTask.completed_at || null,
-            googleTaskId: dbTask.google_task_id,
-            googleEventId: dbTask.google_event_id,
             subtasks: (subtasksData || [])
               .filter((st) => st.task_id === dbTask.id)
               .map((st) => ({
@@ -110,8 +107,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             isTemplate: dbTask.is_template,
             xp: dbTask.reward_xp || 10,
             projectId: dbTask.project_id,
-            googleTaskId: dbTask.google_task_id,
-            googleEventId: dbTask.google_event_id,
           }));
 
           const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
@@ -121,7 +116,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             color: dbProject.color,
             icon: dbProject.icon,
             createdAt: dbProject.created_at,
-            googleTaskListId: dbProject.google_task_list_id,
           }));
 
           setTasks(loadedTasks);
@@ -322,20 +316,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
           if (subtasksError) throw subtasksError;
         }
-
-        // Sync to Google
-        const taskForGoogle = { 
-          ...newTask, 
-          dueDate: newTask.dueDate ? format(new Date(newTask.dueDate), 'yyyy-MM-dd') : null 
-        };
-        const result = await syncTaskAction(taskForGoogle, newTask.projectId);
-        if (result.success) {
-          setTasks(prev => prev.map(t => t.id === newTask.id ? { 
-            ...t, 
-            googleTaskId: result.googleTaskId, 
-            googleEventId: result.googleEventId 
-          } : t));
-        }
       } catch (error) {
         console.error('Error syncing task to Supabase:', error);
       }
@@ -406,25 +386,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           .from('tasks')
           .update(updatePayload)
           .eq('id', taskId);
-
-        // Sync to Google
-        // Use tasksRef to get the latest state which might have googleTaskId from a previous sync
-        const currentTask = tasksRef.current.find(t => t.id === taskId);
-        if (currentTask) {
-          const taskToSync = { ...currentTask, ...updatedData };
-          // Ensure dueDate is formatted as YYYY-MM-DD for Google Sync
-          if (taskToSync.dueDate) {
-             taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
-          }
-          const result = await syncTaskAction(taskToSync, updatedData.projectId || currentTask.projectId);
-          if (result.success) {
-            setTasks(prev => prev.map(t => t.id === taskId ? { 
-              ...t, 
-              googleTaskId: result.googleTaskId, 
-              googleEventId: result.googleEventId 
-            } : t));
-          }
-        }
       } catch (error) {
         console.error('Error updating task in Supabase:', error);
       }
@@ -432,18 +393,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   }, [user, supabase, tasks]);
   
   const deleteTask = useCallback(async (taskId: string) => {
-    const taskToDelete = tasks.find(t => t.id === taskId);
     setTasks(prev => prev.filter(task => task.id !== taskId));
     
     // Delete from Supabase
     if (user) {
       try {
         await supabase.from('tasks').delete().eq('id', taskId);
-
-        // Delete from Google
-        if (taskToDelete?.googleTaskId || taskToDelete?.googleEventId) {
-          deleteTaskAction(taskToDelete.googleTaskId || undefined, taskToDelete.googleEventId || undefined, taskToDelete.projectId || undefined);
-        }
       } catch (error) {
         console.error('Error deleting task from Supabase:', error);
       }
@@ -511,23 +466,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
               .update({ is_completed: isCompleted })
               .eq('id', subtask.id);
           }
-        }
-
-        // Sync to Google
-        // Use tasksRef to get the latest state which might have googleTaskId
-        const latestTask = tasksRef.current.find(t => t.id === taskId);
-        const taskToSync = { ...(latestTask || currentTask), isCompleted, completedAt };
-        
-        if (taskToSync.dueDate) {
-           taskToSync.dueDate = format(new Date(taskToSync.dueDate), 'yyyy-MM-dd');
-        }
-        const result = await syncTaskAction(taskToSync, currentTask.projectId);
-        if (result.success) {
-          setTasks(prev => prev.map(t => t.id === taskId ? { 
-            ...t, 
-            googleTaskId: result.googleTaskId, 
-            googleEventId: result.googleEventId 
-          } : t));
         }
       } catch (error) {
         console.error('Error toggling task completion in Supabase:', error);
@@ -712,8 +650,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         isTemplate: dbTask.is_template,
         xp: dbTask.reward_xp || 10,
         projectId: dbTask.project_id,
-        googleTaskId: dbTask.google_task_id,
-        googleEventId: dbTask.google_event_id,
       }));
 
       const { data: projectsData } = await supabase
@@ -730,7 +666,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           color: dbProject.color,
           icon: dbProject.icon,
           createdAt: dbProject.created_at,
-          googleTaskListId: dbProject.google_task_list_id,
         }));
         setProjects(loadedProjects);
       }
@@ -765,15 +700,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           });
 
         if (error) throw error;
-
-        // Sync to Google
-        const result = await syncProjectAction(newProject);
-        if (result.success && result.project) {
-          setProjects(prev => prev.map(p => p.id === newProject.id ? { 
-            ...p, 
-            googleTaskListId: result.project.googleTaskListId 
-          } : p));
-        }
       } catch (error) {
         console.error('Error syncing project to Supabase:', error);
       }
@@ -795,18 +721,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           .from('projects')
           .update(updatePayload)
           .eq('id', projectId);
-
-        // Sync to Google
-        const updatedProject = projects.find(p => p.id === projectId);
-        if (updatedProject) {
-          const result = await syncProjectAction({ ...updatedProject, ...updatedData });
-          if (result.success && result.project) {
-            setProjects(prev => prev.map(p => p.id === projectId ? { 
-              ...p, 
-              googleTaskListId: result.project.googleTaskListId 
-            } : p));
-          }
-        }
       } catch (error) {
         console.error('Error updating project in Supabase:', error);
       }
@@ -814,7 +728,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   }, [user, supabase, projects]);
 
   const deleteProject = useCallback(async (projectId: string) => {
-    const projectToDelete = projects.find(p => p.id === projectId);
     setProjects(prev => prev.filter(project => project.id !== projectId));
     // Also clear project_id from tasks
     setTasks(prev => prev.map(task => task.projectId === projectId ? { ...task, projectId: null } : task));
@@ -823,11 +736,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       try {
         await supabase.from('projects').delete().eq('id', projectId);
         // Tasks will have project_id set to NULL due to ON DELETE SET NULL in DB
-
-        // Sync to Google
-        if (projectToDelete?.googleTaskListId) {
-          deleteProjectAction(projectToDelete.googleTaskListId);
-        }
       } catch (error) {
         console.error('Error deleting project from Supabase:', error);
       }
