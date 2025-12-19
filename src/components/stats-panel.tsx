@@ -95,8 +95,8 @@ export default function StatsPanel({ stats, streaks, isInitialLoad }: StatsPanel
                 <span className="text-2xl font-bold font-headline">{stats.completionPercentage}</span>
                 <span className="text-lg font-semibold text-muted-foreground">%</span>
               </div>
-              <Progress value={stats.completionPercentage} className="h-2" />
-              <p className="mt-2 text-xs text-muted-foreground">
+              <Progress value={stats.completionPercentage} className="h-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]" />
+              <p className="mt-2 text-xs text-muted-foreground font-medium">
                 {stats.completedTasks} of {stats.totalTasks} quests completed.
               </p>
             </>

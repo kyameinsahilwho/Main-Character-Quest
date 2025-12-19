@@ -137,7 +137,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
           {stats && streaks && !isInitialLoad && (
             <div className="hidden lg:flex items-center gap-3">
               {/* Current Streak */}
-              <div className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl transition-all border-2 border-border bg-card", streakStyles.bg)}>
+              <div className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl transition-all border-2 border-border bg-card shadow-sm hover:shadow-md", streakStyles.bg)}>
                 <div className="relative">
                   <Flame className={cn("h-5 w-5 stroke-[3px]", streakStyles.icon)} />
                 </div>
@@ -148,7 +148,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
               </div>
 
               {/* Longest Streak */}
-              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-card border-2 border-border transition-all relative overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-card border-2 border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
                 <div className="relative">
                   <Trophy className="h-5 w-5 text-amber-500 stroke-[3px]" />
                 </div>
@@ -163,7 +163,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
                 <div className="relative group">
                   <div 
                     className={cn(
-                      "flex items-center gap-3 px-5 py-3 min-w-[220px] rounded-3xl border-b-4 transition-all duration-500 relative overflow-hidden",
+                      "flex items-center gap-3 px-5 py-3 min-w-[220px] rounded-3xl border-2 border-b-4 shadow-sm hover:shadow-md transition-all duration-500 relative overflow-hidden",
                       showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-secondary/20"
                     )}
                   >
@@ -226,7 +226,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
       {/* Stats bar on mobile/tablet */}
       {stats && streaks && !isInitialLoad && (
         <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all whitespace-nowrap border-2 border-border bg-card", streakStyles.bg)}>
+          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all whitespace-nowrap border-2 border-border bg-card shadow-sm", streakStyles.bg)}>
             <div className="relative">
               <Flame className={cn("h-4 w-4 stroke-[2.5px]", streakStyles.icon)} />
             </div>
@@ -236,7 +236,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-card whitespace-nowrap border-2 border-border transition-all relative overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-card whitespace-nowrap border-2 border-border shadow-sm transition-all relative overflow-hidden">
             <div className="relative">
               <Trophy className="h-4 w-4 text-amber-500 stroke-[2.5px]" />
             </div>
@@ -251,7 +251,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
             <div className="relative flex-1 min-w-[140px]">
               <div 
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 transition-all duration-500 relative overflow-hidden",
+                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 shadow-sm transition-all duration-500 relative overflow-hidden",
                   showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-border"
                 )}
               >

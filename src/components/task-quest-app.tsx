@@ -168,17 +168,17 @@ export default function TaskQuestApp() {
                   <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] ml-1">Navigation</p>
                   <TabsList className="flex flex-col h-auto bg-transparent border-0 p-0 gap-3 w-full">
                     <AddTaskDialog onAddTask={handleAddTask} projects={projects}>
-                      <Button className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-primary bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 group rounded-2xl shadow-lg active:translate-y-[2px] active:border-b-[4px] mb-2">
+                      <Button className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-[#58cc02] bg-[#58cc02] text-white hover:bg-[#46a302] transition-all duration-200 group rounded-2xl shadow-lg active:translate-y-[2px] active:border-b-[4px] mb-2">
                         <Plus className="mr-3 h-6 w-6 stroke-[4px]" />
                         <span className="font-black tracking-wide">New Quest</span>
                       </Button>
                     </AddTaskDialog>
 
-                    <TabsTrigger value="active" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:border-b-[#46a302] data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
+                    <TabsTrigger value="active" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-muted-foreground/10 data-[state=active]:text-foreground data-[state=active]:border-muted-foreground/20 data-[state=active]:border-b-muted-foreground/40 data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
                       <Sword className="mr-3 h-5 w-5 group-data-[state=active]:animate-bounce-subtle" />
                       <span className="font-black tracking-wide">Active Quests</span>
                       {activeTasks.length > 0 && (
-                        <span className="ml-auto bg-muted text-muted-foreground group-data-[state=active]:bg-background/20 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                        <span className="ml-auto bg-muted text-muted-foreground group-data-[state=active]:bg-foreground/10 group-data-[state=active]:text-foreground px-2 py-0.5 rounded-full text-xs font-bold">
                           {activeTasks.length}
                         </span>
                       )}
@@ -213,9 +213,9 @@ export default function TaskQuestApp() {
                       <div>
                         <div className="flex justify-between items-center text-xs font-black uppercase mb-2">
                             <span className="text-secondary flex items-center gap-1.5"><Star className="h-3.5 w-3.5 fill-secondary" /> Level {levelInfo.level}</span>
-                            <span className="text-secondary/70 tracking-tighter">{Math.floor(levelInfo.currentLevelXP)} / {levelInfo.nextLevelXP} XP</span>
+                            <span className="text-secondary tracking-tighter">{Math.floor(levelInfo.currentLevelXP)} / {levelInfo.nextLevelXP} XP</span>
                         </div>
-                        <div className="w-full bg-secondary/10 h-4 rounded-full overflow-hidden border-2 border-secondary/20 p-0.5">
+                        <div className="w-full bg-secondary/10 h-3 rounded-full overflow-hidden border-2 border-secondary/20 p-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
                             <motion.div 
                               className="bg-secondary h-full rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" 
                               initial={{ width: 0 }}
@@ -228,9 +228,9 @@ export default function TaskQuestApp() {
                       <div>
                         <div className="flex justify-between items-center text-xs font-black uppercase mb-2">
                             <span className="text-primary flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Progress</span>
-                            <span className="text-primary/70 tracking-tighter">{Math.round(stats.completionPercentage)}%</span>
+                            <span className="text-primary tracking-tighter">{Math.round(stats.completionPercentage)}%</span>
                         </div>
-                        <div className="w-full bg-primary/10 h-4 rounded-full overflow-hidden border-2 border-primary/20 p-0.5">
+                        <div className="w-full bg-primary/10 h-3 rounded-full overflow-hidden border-2 border-primary/20 p-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
                             <motion.div 
                               className="bg-primary h-full rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" 
                               initial={{ width: 0 }}
@@ -328,14 +328,14 @@ export default function TaskQuestApp() {
               {/* Mobile Tabs (Bottom) */}
               <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 flex justify-center">
                  <TabsList className="grid w-full grid-cols-5 bg-background/90 backdrop-blur-xl p-1.5 rounded-[2rem] border-2 border-b-[6px] border-border shadow-2xl h-auto">
-                    <TabsTrigger value="active" className="rounded-[1.5rem] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+                    <TabsTrigger value="active" className="rounded-[1.5rem] data-[state=active]:bg-foreground/10 data-[state=active]:text-foreground data-[state=active]:shadow-none transition-all font-bold py-4 h-auto active:translate-y-[2px]">
                       <Sword className="h-6 w-6"/>
                     </TabsTrigger>
                     <TabsTrigger value="projects" className="rounded-[1.5rem] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">
                       <Folder className="h-6 w-6"/>
                     </TabsTrigger>
                     <AddTaskDialog onAddTask={handleAddTask} projects={projects}>
-                      <Button variant="ghost" className="rounded-[1.5rem] bg-primary text-primary-foreground shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-full w-full active:translate-y-[2px] hover:bg-primary/90 border-b-4 border-[#46a302]">
+                      <Button variant="ghost" className="rounded-[1.5rem] bg-[#58cc02] text-white shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-full w-full active:translate-y-[2px] hover:bg-[#46a302] border-b-4 border-[#46a302]">
                         <Plus className="h-7 w-7 stroke-[4px]"/>
                       </Button>
                     </AddTaskDialog>

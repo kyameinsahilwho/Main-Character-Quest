@@ -130,26 +130,26 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         isAnimating && 'animate-green-flash'
     )}>
       <div className="flex flex-col">
-      <div className="flex items-center p-3 cursor-pointer" onClick={handleWrapperClick}>
-        <div data-interactive-area className='flex items-center mr-4' onClick={handleMainCheckboxClick}>
+      <div className="flex items-center p-5 cursor-pointer" onClick={handleWrapperClick}>
+        <div data-interactive-area className='flex items-center mr-4 shrink-0' onClick={handleMainCheckboxClick}>
             <div 
               className={cn(
-                "h-8 w-8 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[2px] active:border-b-0",
+                "h-9 w-9 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[2px] active:border-b-0",
                 task.isCompleted ? "bg-primary border-primary border-b-[#46a302]" : "border-border bg-muted/20",
                 task.isTemplate && "cursor-not-allowed opacity-50"
               )}
             >
-              {task.isCompleted && <Check className="h-5 w-5 text-white stroke-[4px] z-10" />}
+              {task.isCompleted && <Check className="h-6 w-6 text-white stroke-[4px] z-10" />}
             </div>
         </div>
-        <div className="flex-1 min-w-0 py-1">
-          <CardTitle className={cn("text-lg font-black leading-tight tracking-tight", task.isCompleted && !task.isTemplate && 'line-through text-muted-foreground/60')}>
+        <div className="flex-1 min-w-0 py-2">
+          <CardTitle className={cn("text-xl font-black leading-tight tracking-tight", task.isCompleted && !task.isTemplate && 'line-through text-muted-foreground/60')}>
             {task.title}
           </CardTitle>
           
           {task.subtasks.length > 0 && (
              <div className="mt-2 flex items-center gap-3">
-                <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden border border-border/80 p-0.5">
+                <div className="h-3 flex-1 bg-muted rounded-full overflow-hidden border border-border/80 p-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
                   <motion.div 
                     className="h-full bg-primary rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
                     initial={{ width: 0 }}
@@ -157,7 +157,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
                     transition={{ duration: 0.5 }}
                   />
                 </div>
-                <span className="text-[11px] font-black text-muted-foreground/80 whitespace-nowrap tracking-tighter">{completedSubtasks} / {task.subtasks.length}</span>
+                <span className="text-[11px] font-black text-muted-foreground whitespace-nowrap tracking-tighter">{completedSubtasks} / {task.subtasks.length}</span>
             </div>
           )}
 
@@ -248,15 +248,15 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
                         </div>
                     )}
                     {task.isTemplate && (
-                        <span className='font-black text-primary/60 uppercase tracking-widest text-[10px]'>Template</span>
+                        <span className='font-black text-primary uppercase tracking-widest text-[10px]'>Template</span>
                     )}
                 </div>
                 <div className='flex items-center gap-1'>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground/40 hover:text-primary transition-all rounded-xl hover:bg-primary/10" onClick={handleEdit}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary transition-all rounded-xl hover:bg-primary/10" onClick={handleEdit}>
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit task</span>
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground/40 hover:text-destructive transition-all rounded-xl hover:bg-destructive/10" onClick={handleDelete}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive transition-all rounded-xl hover:bg-destructive/10" onClick={handleDelete}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Delete task</span>
                     </Button>

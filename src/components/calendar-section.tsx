@@ -88,8 +88,8 @@ export function CalendarSection({ tasks }: CalendarSectionProps) {
               ),
               day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground font-semibold border-2 border-primary",
-              day_outside: "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
-              day_disabled: "text-muted-foreground opacity-50",
+              day_outside: "text-muted-foreground font-medium opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
+              day_disabled: "text-muted-foreground font-medium opacity-50",
               day_hidden: "invisible",
             }}
             modifiers={{
