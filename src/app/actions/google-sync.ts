@@ -32,6 +32,23 @@ export async function deleteProjectAction(googleTaskListId: string) {
 export async function syncTaskAction(task: any, projectId?: string) {
   try {
     const supabase = await createClient();
+    
+    // Fetch current task from DB to get existing Google IDs if client state is missing them
+    const { data: dbTask } = await supabase
+      .from('tasks')
+      .select('google_task_id, google_event_id')
+      .eq('id', task.id)
+      .single();
+
+    if (dbTask) {
+      if (!task.googleTaskId && dbTask.google_task_id) {
+        task.googleTaskId = dbTask.google_task_id;
+      }
+      if (!task.googleEventId && dbTask.google_event_id) {
+        task.googleEventId = dbTask.google_event_id;
+      }
+    }
+
     let project = null;
     if (projectId) {
       const { data } = await supabase.from('projects').select('*').eq('id', projectId).single();

@@ -33,16 +33,33 @@ export async function syncTaskToGoogle(task: any, project?: any) {
 
   // Sync to Google Tasks
   if (task.googleTaskId) {
-    await tasks.tasks.update({
-      tasklist: taskListId,
-      task: task.googleTaskId,
-      requestBody: {
-        id: task.googleTaskId,
-        title: task.title,
-        status: task.isCompleted ? 'completed' : 'needsAction',
-        due: task.dueDate ? formatGoogleDate(task.dueDate) : undefined,
-      },
-    });
+    try {
+      await tasks.tasks.update({
+        tasklist: taskListId,
+        task: task.googleTaskId,
+        requestBody: {
+          id: task.googleTaskId,
+          title: task.title,
+          status: task.isCompleted ? 'completed' : 'needsAction',
+          due: task.dueDate ? formatGoogleDate(task.dueDate) : undefined,
+        },
+      });
+    } catch (error: any) {
+      // If task not found, insert it instead
+      if (error.code === 404) {
+        const res = await tasks.tasks.insert({
+          tasklist: taskListId,
+          requestBody: {
+            title: task.title,
+            status: task.isCompleted ? 'completed' : 'needsAction',
+            due: task.dueDate ? formatGoogleDate(task.dueDate) : undefined,
+          },
+        });
+        task.googleTaskId = res.data.id;
+      } else {
+        throw error;
+      }
+    }
   } else {
     const res = await tasks.tasks.insert({
       tasklist: taskListId,
@@ -61,15 +78,32 @@ export async function syncTaskToGoogle(task: any, project?: any) {
     const endDate = new Date(new Date(googleDate).getTime() + 3600000).toISOString();
 
     if (task.googleEventId) {
-      await calendar.events.update({
-        calendarId: 'primary',
-        eventId: task.googleEventId,
-        requestBody: {
-          summary: task.title,
-          start: { dateTime: googleDate },
-          end: { dateTime: endDate },
-        },
-      });
+      try {
+        await calendar.events.update({
+          calendarId: 'primary',
+          eventId: task.googleEventId,
+          requestBody: {
+            summary: task.title,
+            start: { dateTime: googleDate },
+            end: { dateTime: endDate },
+          },
+        });
+      } catch (error: any) {
+        // If event not found, insert it instead
+        if (error.code === 404) {
+          const res = await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: {
+              summary: task.title,
+              start: { dateTime: googleDate },
+              end: { dateTime: endDate },
+            },
+          });
+          task.googleEventId = res.data.id;
+        } else {
+          throw error;
+        }
+      }
     } else {
       const res = await calendar.events.insert({
         calendarId: 'primary',

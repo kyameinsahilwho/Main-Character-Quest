@@ -125,7 +125,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         "transition-all duration-300 overflow-hidden flex flex-col border-2 border-b-[6px] border-muted-foreground/20 rounded-[2rem] relative", 
         task.isCompleted && !task.isTemplate 
           ? 'bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0' 
-          : 'bg-card hover:-translate-y-1 active:translate-y-[2px] active:border-b-[4px]', 
+          : 'bg-card active:translate-y-[2px] active:border-b-[4px]', 
         task.isTemplate && 'border-2 border-dashed border-primary/50 shadow-none',
         isAnimating && 'animate-green-flash'
     )}>
