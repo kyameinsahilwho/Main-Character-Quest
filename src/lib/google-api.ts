@@ -14,6 +14,16 @@ export async function getGoogleAuth() {
   return auth;
 }
 
+/**
+ * Formats a date string for Google Tasks/Calendar to avoid timezone shifts.
+ * Google Tasks only cares about the date part, but requires a full ISO string.
+ * Setting it to noon UTC ensures it stays on the same day in most timezones.
+ */
+function formatGoogleDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)).toISOString();
+}
+
 export async function syncTaskToGoogle(task: any, project?: any) {
   const auth = await getGoogleAuth();
   const tasks = google.tasks({ version: 'v1', auth });
@@ -30,7 +40,7 @@ export async function syncTaskToGoogle(task: any, project?: any) {
         id: task.googleTaskId,
         title: task.title,
         status: task.isCompleted ? 'completed' : 'needsAction',
-        due: task.dueDate ? new Date(task.dueDate).toISOString() : undefined,
+        due: task.dueDate ? formatGoogleDate(task.dueDate) : undefined,
       },
     });
   } else {
@@ -39,7 +49,7 @@ export async function syncTaskToGoogle(task: any, project?: any) {
       requestBody: {
         title: task.title,
         status: task.isCompleted ? 'completed' : 'needsAction',
-        due: task.dueDate ? new Date(task.dueDate).toISOString() : undefined,
+        due: task.dueDate ? formatGoogleDate(task.dueDate) : undefined,
       },
     });
     task.googleTaskId = res.data.id;
@@ -47,14 +57,17 @@ export async function syncTaskToGoogle(task: any, project?: any) {
 
   // Sync to Google Calendar if it has a due date
   if (task.dueDate) {
+    const googleDate = formatGoogleDate(task.dueDate);
+    const endDate = new Date(new Date(googleDate).getTime() + 3600000).toISOString();
+
     if (task.googleEventId) {
       await calendar.events.update({
         calendarId: 'primary',
         eventId: task.googleEventId,
         requestBody: {
           summary: task.title,
-          start: { dateTime: new Date(task.dueDate).toISOString() },
-          end: { dateTime: new Date(new Date(task.dueDate).getTime() + 3600000).toISOString() }, // 1 hour later
+          start: { dateTime: googleDate },
+          end: { dateTime: endDate },
         },
       });
     } else {
@@ -62,8 +75,8 @@ export async function syncTaskToGoogle(task: any, project?: any) {
         calendarId: 'primary',
         requestBody: {
           summary: task.title,
-          start: { dateTime: new Date(task.dueDate).toISOString() },
-          end: { dateTime: new Date(new Date(task.dueDate).getTime() + 3600000).toISOString() },
+          start: { dateTime: googleDate },
+          end: { dateTime: endDate },
         },
       });
       task.googleEventId = res.data.id;

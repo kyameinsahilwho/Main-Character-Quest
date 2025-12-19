@@ -102,6 +102,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             isTemplate: dbTask.is_template,
             xp: dbTask.reward_xp || 10,
             projectId: dbTask.project_id,
+            googleTaskId: dbTask.google_task_id,
+            googleEventId: dbTask.google_event_id,
           }));
 
           const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
@@ -111,6 +113,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             color: dbProject.color,
             icon: dbProject.icon,
             createdAt: dbProject.created_at,
+            googleTaskListId: dbProject.google_task_list_id,
           }));
 
           setTasks(loadedTasks);
@@ -313,7 +316,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
 
         // Sync to Google
-        syncTaskAction(newTask, newTask.projectId);
+        const result = await syncTaskAction(newTask, newTask.projectId);
+        if (result.success && result.task) {
+          setTasks(prev => prev.map(t => t.id === newTask.id ? { 
+            ...t, 
+            googleTaskId: result.task.googleTaskId, 
+            googleEventId: result.task.googleEventId 
+          } : t));
+        }
       } catch (error) {
         console.error('Error syncing task to Supabase:', error);
       }
@@ -388,7 +398,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         // Sync to Google
         const updatedTask = tasks.find(t => t.id === taskId);
         if (updatedTask) {
-          syncTaskAction({ ...updatedTask, ...updatedData }, updatedData.projectId || updatedTask.projectId);
+          const result = await syncTaskAction({ ...updatedTask, ...updatedData }, updatedData.projectId || updatedTask.projectId);
+          if (result.success && result.task) {
+            setTasks(prev => prev.map(t => t.id === taskId ? { 
+              ...t, 
+              googleTaskId: result.task.googleTaskId, 
+              googleEventId: result.task.googleEventId 
+            } : t));
+          }
         }
       } catch (error) {
         console.error('Error updating task in Supabase:', error);
@@ -479,7 +496,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
 
         // Sync to Google
-        syncTaskAction({ ...currentTask, isCompleted, completedAt }, currentTask.projectId);
+        const result = await syncTaskAction({ ...currentTask, isCompleted, completedAt }, currentTask.projectId);
+        if (result.success && result.task) {
+          setTasks(prev => prev.map(t => t.id === taskId ? { 
+            ...t, 
+            googleTaskId: result.task.googleTaskId, 
+            googleEventId: result.task.googleEventId 
+          } : t));
+        }
       } catch (error) {
         console.error('Error toggling task completion in Supabase:', error);
       }
@@ -663,6 +687,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         isTemplate: dbTask.is_template,
         xp: dbTask.reward_xp || 10,
         projectId: dbTask.project_id,
+        googleTaskId: dbTask.google_task_id,
+        googleEventId: dbTask.google_event_id,
       }));
 
       const { data: projectsData } = await supabase
@@ -679,6 +705,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           color: dbProject.color,
           icon: dbProject.icon,
           createdAt: dbProject.created_at,
+          googleTaskListId: dbProject.google_task_list_id,
         }));
         setProjects(loadedProjects);
       }
@@ -715,7 +742,13 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         if (error) throw error;
 
         // Sync to Google
-        syncProjectAction(newProject);
+        const result = await syncProjectAction(newProject);
+        if (result.success && result.project) {
+          setProjects(prev => prev.map(p => p.id === newProject.id ? { 
+            ...p, 
+            googleTaskListId: result.project.googleTaskListId 
+          } : p));
+        }
       } catch (error) {
         console.error('Error syncing project to Supabase:', error);
       }
@@ -741,7 +774,13 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         // Sync to Google
         const updatedProject = projects.find(p => p.id === projectId);
         if (updatedProject) {
-          syncProjectAction({ ...updatedProject, ...updatedData });
+          const result = await syncProjectAction({ ...updatedProject, ...updatedData });
+          if (result.success && result.project) {
+            setProjects(prev => prev.map(p => p.id === projectId ? { 
+              ...p, 
+              googleTaskListId: result.project.googleTaskListId 
+            } : p));
+          }
         }
       } catch (error) {
         console.error('Error updating project in Supabase:', error);
