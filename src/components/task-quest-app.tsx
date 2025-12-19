@@ -174,11 +174,11 @@ export default function TaskQuestApp() {
                       </Button>
                     </AddTaskDialog>
 
-                    <TabsTrigger value="active" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-muted-foreground/10 data-[state=active]:text-foreground data-[state=active]:border-muted-foreground/20 data-[state=active]:border-b-muted-foreground/40 data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
+                    <TabsTrigger value="active" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-[#9D4EDD] data-[state=active]:text-white data-[state=active]:border-[#9D4EDD] data-[state=active]:border-b-[#7B2CBF] data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
                       <Sword className="mr-3 h-5 w-5 group-data-[state=active]:animate-bounce-subtle" />
                       <span className="font-black tracking-wide">Active Quests</span>
                       {activeTasks.length > 0 && (
-                        <span className="ml-auto bg-muted text-muted-foreground group-data-[state=active]:bg-foreground/10 group-data-[state=active]:text-foreground px-2 py-0.5 rounded-full text-xs font-bold">
+                        <span className="ml-auto bg-muted text-muted-foreground group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-xs font-bold">
                           {activeTasks.length}
                         </span>
                       )}
@@ -328,7 +328,7 @@ export default function TaskQuestApp() {
               {/* Mobile Tabs (Bottom) */}
               <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 flex justify-center">
                  <TabsList className="grid w-full grid-cols-5 bg-background/90 backdrop-blur-xl p-1.5 rounded-[2rem] border-2 border-b-[6px] border-border shadow-2xl h-auto">
-                    <TabsTrigger value="active" className="rounded-[1.5rem] data-[state=active]:bg-foreground/10 data-[state=active]:text-foreground data-[state=active]:shadow-none transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+                    <TabsTrigger value="active" className="rounded-[1.5rem] data-[state=active]:bg-[#9D4EDD] data-[state=active]:text-white data-[state=active]:shadow-none transition-all font-bold py-4 h-auto active:translate-y-[2px]">
                       <Sword className="h-6 w-6"/>
                     </TabsTrigger>
                     <TabsTrigger value="projects" className="rounded-[1.5rem] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">

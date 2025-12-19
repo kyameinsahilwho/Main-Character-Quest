@@ -170,7 +170,6 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [
     }} modal={true}>
       <DialogContent
         className="sm:max-w-[425px] touch-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
           // Prevent closing when clicking outside
           e.preventDefault();
@@ -206,7 +205,7 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [
                 <FormItem>
                   <FormLabel>Quest Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Conquer the Dragon's Lair" {...field} />
+                    <Input autoFocus placeholder="e.g., Conquer the Dragon's Lair" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

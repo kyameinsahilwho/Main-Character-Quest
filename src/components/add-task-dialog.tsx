@@ -182,7 +182,6 @@ export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDia
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         className="sm:max-w-[425px] touch-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
           // Prevent closing when clicking outside
           e.preventDefault();
@@ -218,7 +217,7 @@ export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDia
                 <FormItem>
                   <FormLabel>Quest Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Conquer the Dragon's Lair" {...field} />
+                    <Input autoFocus placeholder="e.g., Conquer the Dragon's Lair" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
