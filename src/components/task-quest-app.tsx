@@ -325,6 +325,7 @@ export default function TaskQuestApp() {
                         onAddTask={handleAddTask}
                         selectedProjectId={selectedProjectId}
                         onSelectProject={setSelectedProjectId}
+                        setCelebrating={setCelebrating}
                       />
                     </TabsContent>
                     <TabsContent value="templates" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">

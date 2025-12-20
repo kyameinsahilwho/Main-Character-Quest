@@ -44,7 +44,7 @@ const Section = memo(({ title, children, isPast, isToday, count }: { title: stri
 
   return (
     <div className="mb-10">
-      <div className="py-2 px-4 md:px-6 lg:px-8 mb-4 cursor-pointer group" onClick={() => setIsOpen(!isOpen)}>
+      <div className="py-2 mb-4 cursor-pointer group" onClick={() => setIsOpen(!isOpen)}>
         <h2 className={cn(
           "text-sm md:text-base font-black font-headline flex items-center gap-4 uppercase tracking-[0.2em]", 
           isPast ? "text-destructive" : isToday ? "text-primary" : "text-muted-foreground/60"
@@ -69,7 +69,7 @@ const Section = memo(({ title, children, isPast, isToday, count }: { title: stri
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col gap-4 px-4 md:px-6 lg:px-8 overflow-hidden"
+            className="flex flex-col gap-4 overflow-hidden"
           >
             {children}
           </motion.div>
@@ -125,7 +125,7 @@ function TaskList({
 
   if (listType === 'templates') {
     return (
-      <div className="flex flex-col gap-3 max-w-4xl mx-auto">
+      <div className="flex flex-col gap-3 w-full">
         {tasks.map(task => (
           <TaskItem
             key={task.id}
@@ -184,7 +184,7 @@ function TaskList({
 
 
   return (
-    <div className="h-full max-w-4xl mx-auto">
+    <div className="h-full w-full">
       {sectionOrder.map(sectionName => (
           <Section 
             key={sectionName} 

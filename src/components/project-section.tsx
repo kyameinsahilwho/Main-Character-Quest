@@ -26,10 +26,11 @@ interface ProjectSectionProps {
   onDeleteTask: (id: string) => void;
   onEditTask: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
-  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => 'subtask' | 'main' | 'none' | Promise<'subtask' | 'main' | 'none'>;
   onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void;
   selectedProjectId: string | null;
   onSelectProject: (id: string | null) => void;
+  setCelebrating: (celebrating: boolean) => void;
 }
 
 export default function ProjectSection({
@@ -46,6 +47,7 @@ export default function ProjectSection({
   onAddTask,
   selectedProjectId,
   onSelectProject,
+  setCelebrating,
 }: ProjectSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -72,54 +74,42 @@ export default function ProjectSection({
   const projectTasks = tasks.filter(t => t.projectId === selectedProjectId);
 
   return (
-    <div className="flex flex-col h-full gap-6 p-4 md:p-6 overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black font-headline tracking-tight">Projects</h2>
-        <Button 
-          onClick={() => setIsAddDialogOpen(true)}
-          className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:translate-y-[2px] active:border-b-2"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Project
-        </Button>
-      </div>
+    <div className="flex flex-col h-full gap-6 overflow-y-auto w-full">
+      {!selectedProjectId && (
+        <div className="flex items-center justify-end mb-2">
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:translate-y-[2px] active:border-b-2"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Project
+          </Button>
+        </div>
+      )}
 
       {selectedProjectId ? (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => onSelectProject(null)}
-                className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
-              >
-                Projects
-              </Button>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              <span className="font-black text-xl">{selectedProject?.name}</span>
-            </div>
-
-            <AddTaskDialog 
-              onAddTask={onAddTask} 
-              projects={projects} 
-              defaultProjectId={selectedProjectId} 
-              forceProject={true}
+        <div className="flex flex-col gap-4 w-full">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => onSelectProject(null)}
+              className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
             >
-              <Button className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:translate-y-[2px] active:border-b-2">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Quest to Project
-              </Button>
-            </AddTaskDialog>
+              Projects
+            </Button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="font-black text-xl">{selectedProject?.name}</span>
           </div>
           
           <TaskList
             tasks={projectTasks}
+            listType="active"
             onToggleTask={onToggleTask}
             onDeleteTask={onDeleteTask}
             onEditTask={onEditTask}
             onAddSubtask={onAddSubtask}
             onToggleSubtask={onToggleSubtask}
-            emptyMessage="No tasks in this project yet."
+            setCelebrating={setCelebrating}
           />
         </div>
       ) : (
