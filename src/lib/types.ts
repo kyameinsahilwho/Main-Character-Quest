@@ -26,12 +26,56 @@ export interface Project {
   createdAt: string;
 }
 
+export interface Habit {
+  id: string;
+  title: string;
+  description?: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  targetDays: number;
+  currentStreak: number;
+  bestStreak: number;
+  xp?: number;
+  color?: string;
+  icon?: string;
+  createdAt: string;
+  completions: HabitCompletion[];
+}
+
+export interface HabitCompletion {
+  id: string;
+  habitId: string;
+  completedAt: string;
+}
+
 export interface Streaks {
   current: number;
   longest: number;
 }
 
 // Database types for Supabase
+export interface DbHabit {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  target_days: number;
+  current_streak: number;
+  best_streak: number;
+  color?: string;
+  icon?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbHabitCompletion {
+  id: string;
+  habit_id: string;
+  user_id: string;
+  completed_at: string;
+  created_at: string;
+}
+
 export interface DbSubtask {
   id: string;
   task_id: string;
@@ -112,6 +156,26 @@ export function dbSubtaskToSubtask(dbSubtask: DbSubtask): Subtask {
     id: dbSubtask.id,
     text: dbSubtask.title,
     isCompleted: dbSubtask.is_completed,
+  };
+}
+
+export function dbHabitToHabit(dbHabit: DbHabit, completions: DbHabitCompletion[]): Habit {
+  return {
+    id: dbHabit.id,
+    title: dbHabit.title,
+    description: dbHabit.description,
+    frequency: dbHabit.frequency,
+    targetDays: dbHabit.target_days,
+    currentStreak: dbHabit.current_streak,
+    bestStreak: dbHabit.best_streak,
+    color: dbHabit.color,
+    icon: dbHabit.icon,
+    createdAt: dbHabit.created_at,
+    completions: completions.map(c => ({
+      id: c.id,
+      habitId: c.habit_id,
+      completedAt: c.completed_at,
+    })),
   };
 }
 
