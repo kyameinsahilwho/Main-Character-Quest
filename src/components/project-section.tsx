@@ -28,6 +28,8 @@ interface ProjectSectionProps {
   onAddSubtask: (taskId: string, text: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
   onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void;
+  selectedProjectId: string | null;
+  onSelectProject: (id: string | null) => void;
 }
 
 export default function ProjectSection({
@@ -42,12 +44,13 @@ export default function ProjectSection({
   onAddSubtask,
   onToggleSubtask,
   onAddTask,
+  selectedProjectId,
+  onSelectProject,
 }: ProjectSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const handleAddProject = () => {
     if (newProjectName.trim()) {
@@ -87,7 +90,7 @@ export default function ProjectSection({
             <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
-                onClick={() => setSelectedProjectId(null)}
+                onClick={() => onSelectProject(null)}
                 className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
               >
                 Projects
@@ -137,7 +140,7 @@ export default function ProjectSection({
                 <Card 
                   key={project.id}
                   className="group relative overflow-hidden border-2 border-b-[6px] border-border hover:border-primary/50 transition-all cursor-pointer rounded-3xl"
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => onSelectProject(project.id)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">

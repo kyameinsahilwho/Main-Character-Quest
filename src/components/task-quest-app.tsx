@@ -53,6 +53,14 @@ export default function TaskQuestApp() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState('active');
   const [syncComplete, setSyncComplete] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  // Clear selected project when switching tabs away from projects
+  useEffect(() => {
+    if (activeTab !== 'projects') {
+      setSelectedProjectId(null);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (syncComplete) {
@@ -167,10 +175,17 @@ export default function TaskQuestApp() {
                 <div className="flex flex-col gap-3">
                   <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] ml-1">Navigation</p>
                   <TabsList className="flex flex-col h-auto bg-transparent border-0 p-0 gap-3 w-full">
-                    <AddTaskDialog onAddTask={handleAddTask} projects={projects}>
+                    <AddTaskDialog 
+                      onAddTask={handleAddTask} 
+                      projects={projects}
+                      defaultProjectId={selectedProjectId}
+                      forceProject={!!selectedProjectId}
+                    >
                       <Button className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-[#58cc02] bg-[#58cc02] text-white hover:bg-[#46a302] transition-all duration-200 group rounded-2xl shadow-lg active:translate-y-[2px] active:border-b-[4px] mb-2">
                         <Plus className="mr-3 h-6 w-6 stroke-[4px]" />
-                        <span className="font-black tracking-wide">New Quest</span>
+                        <span className="font-black tracking-wide">
+                          {selectedProjectId ? "Add to Project" : "New Quest"}
+                        </span>
                       </Button>
                     </AddTaskDialog>
 
@@ -308,6 +323,8 @@ export default function TaskQuestApp() {
                         onAddSubtask={addSubtask}
                         onToggleSubtask={toggleSubtaskCompletion}
                         onAddTask={handleAddTask}
+                        selectedProjectId={selectedProjectId}
+                        onSelectProject={setSelectedProjectId}
                       />
                     </TabsContent>
                     <TabsContent value="templates" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -335,7 +352,12 @@ export default function TaskQuestApp() {
                     <TabsTrigger value="projects" className="rounded-xl data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <Folder className="h-6 w-6"/>
                     </TabsTrigger>
-                    <AddTaskDialog onAddTask={handleAddTask} projects={projects}>
+                    <AddTaskDialog 
+                      onAddTask={handleAddTask} 
+                      projects={projects}
+                      defaultProjectId={selectedProjectId}
+                      forceProject={!!selectedProjectId}
+                    >
                       <Button variant="ghost" className="rounded-xl bg-[#58cc02] text-white shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-full w-full active:translate-y-[2px] hover:bg-[#46a302] border-b-4 border-[#46a302]">
                         <Plus className="h-7 w-7 stroke-[4px]"/>
                       </Button>
