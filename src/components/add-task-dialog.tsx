@@ -55,9 +55,17 @@ interface AddTaskDialogProps {
   children: React.ReactNode
   onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void
   projects?: Project[]
+  defaultProjectId?: string | null
+  forceProject?: boolean
 }
 
-export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDialogProps) {
+export function AddTaskDialog({ 
+  children, 
+  onAddTask, 
+  projects = [], 
+  defaultProjectId = null,
+  forceProject = false
+}: AddTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<{ text: string }[]>([]);
@@ -118,8 +126,21 @@ export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDia
     defaultValues: {
       title: "",
       dueDate: new Date(),
+      projectId: defaultProjectId || "none",
     },
   })
+
+  // Update default values when defaultProjectId changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        title: "",
+        dueDate: new Date(),
+        projectId: defaultProjectId || "none",
+      });
+      setSubtasks([]);
+    }
+  }, [open, defaultProjectId, form]);
 
   const subtaskInputRef = useRef<HTMLInputElement>(null);
   const justAddedSubtask = useRef(false);
@@ -267,14 +288,14 @@ export function AddTaskDialog({ children, onAddTask, projects = [] }: AddTaskDia
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={forceProject}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project (optional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">No Project</SelectItem>
+                      {!forceProject && <SelectItem value="none">No Project</SelectItem>}
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}

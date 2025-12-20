@@ -217,7 +217,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
                     />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
-                      className={cn("text-sm font-black cursor-pointer flex-1 transition-all duration-200 leading-snug", subtask.isCompleted && "line-through text-muted-foreground/60")}
+                      className={cn("text-sm font-medium cursor-pointer flex-1 transition-all duration-200 leading-snug", subtask.isCompleted && "line-through text-muted-foreground/60")}
                     >
                       {subtask.text}
                     </label>

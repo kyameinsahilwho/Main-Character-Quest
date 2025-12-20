@@ -382,15 +382,44 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         if (updatedData.dueDate !== undefined) updatePayload.due_date = updatedData.dueDate;
         if (updatedData.projectId !== undefined) updatePayload.project_id = updatedData.projectId;
         
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update(updatePayload)
           .eq('id', taskId);
+
+        if (error) throw error;
+
+        // Sync subtasks if they were updated
+        if (updatedData.subtasks !== undefined) {
+          // Delete existing subtasks first
+          const { error: deleteError } = await supabase
+            .from('subtasks')
+            .delete()
+            .eq('task_id', taskId);
+
+          if (deleteError) throw deleteError;
+
+          // Insert new subtasks
+          if (updatedData.subtasks.length > 0) {
+            const { error: insertError } = await supabase
+              .from('subtasks')
+              .insert(
+                updatedData.subtasks.map((st) => ({
+                  id: st.id,
+                  task_id: taskId,
+                  title: st.text,
+                  is_completed: st.isCompleted,
+                }))
+              );
+
+            if (insertError) throw insertError;
+          }
+        }
       } catch (error) {
         console.error('Error updating task in Supabase:', error);
       }
     }
-  }, [user, supabase, tasks]);
+  }, [user, supabase]);
   
   const deleteTask = useCallback(async (taskId: string) => {
     setTasks(prev => prev.filter(task => task.id !== taskId));

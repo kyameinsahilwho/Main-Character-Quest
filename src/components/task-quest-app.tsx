@@ -307,6 +307,7 @@ export default function TaskQuestApp() {
                         onEditTask={handleEditTask}
                         onAddSubtask={addSubtask}
                         onToggleSubtask={toggleSubtaskCompletion}
+                        onAddTask={handleAddTask}
                       />
                     </TabsContent>
                     <TabsContent value="templates" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -326,23 +327,23 @@ export default function TaskQuestApp() {
               </main>
 
               {/* Mobile Tabs (Bottom) */}
-              <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 flex justify-center">
-                 <TabsList className="grid w-full grid-cols-5 bg-background/90 backdrop-blur-xl p-1.5 rounded-[2rem] border-2 border-b-[6px] border-border shadow-2xl h-auto">
-                    <TabsTrigger value="active" className="rounded-[1.5rem] data-[state=active]:bg-[#9D4EDD] data-[state=active]:text-white data-[state=active]:shadow-none transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+              <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t-4 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe">
+                 <TabsList className="grid w-full grid-cols-5 p-2 h-auto bg-transparent border-0 rounded-none gap-1">
+                    <TabsTrigger value="active" className="rounded-xl data-[state=active]:bg-[#9D4EDD] data-[state=active]:text-white data-[state=active]:shadow-none transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <Sword className="h-6 w-6"/>
                     </TabsTrigger>
-                    <TabsTrigger value="projects" className="rounded-[1.5rem] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+                    <TabsTrigger value="projects" className="rounded-xl data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <Folder className="h-6 w-6"/>
                     </TabsTrigger>
                     <AddTaskDialog onAddTask={handleAddTask} projects={projects}>
-                      <Button variant="ghost" className="rounded-[1.5rem] bg-[#58cc02] text-white shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-full w-full active:translate-y-[2px] hover:bg-[#46a302] border-b-4 border-[#46a302]">
+                      <Button variant="ghost" className="rounded-xl bg-[#58cc02] text-white shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-full w-full active:translate-y-[2px] hover:bg-[#46a302] border-b-4 border-[#46a302]">
                         <Plus className="h-7 w-7 stroke-[4px]"/>
                       </Button>
                     </AddTaskDialog>
-                    <TabsTrigger value="completed" className="rounded-[1.5rem] data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+                    <TabsTrigger value="completed" className="rounded-xl data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <CheckCircle2 className="h-6 w-6"/>
                     </TabsTrigger>
-                    <TabsTrigger value="templates" className="rounded-[1.5rem] data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-4 h-auto active:translate-y-[2px]">
+                    <TabsTrigger value="templates" className="rounded-xl data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <Bot className="h-6 w-6"/>
                     </TabsTrigger>
                  </TabsList>

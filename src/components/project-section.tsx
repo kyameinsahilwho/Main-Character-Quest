@@ -14,6 +14,7 @@ import {
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import TaskList from './task-list';
+import { AddTaskDialog } from './add-task-dialog';
 
 interface ProjectSectionProps {
   projects: Project[];
@@ -26,6 +27,7 @@ interface ProjectSectionProps {
   onEditTask: (task: Task) => void;
   onAddSubtask: (taskId: string, text: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onAddTask: (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => void;
 }
 
 export default function ProjectSection({
@@ -39,6 +41,7 @@ export default function ProjectSection({
   onEditTask,
   onAddSubtask,
   onToggleSubtask,
+  onAddTask,
 }: ProjectSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -80,16 +83,30 @@ export default function ProjectSection({
 
       {selectedProjectId ? (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              onClick={() => setSelectedProjectId(null)}
-              className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                onClick={() => setSelectedProjectId(null)}
+                className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
+              >
+                Projects
+              </Button>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <span className="font-black text-xl">{selectedProject?.name}</span>
+            </div>
+
+            <AddTaskDialog 
+              onAddTask={onAddTask} 
+              projects={projects} 
+              defaultProjectId={selectedProjectId} 
+              forceProject={true}
             >
-              Projects
-            </Button>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="font-black text-xl">{selectedProject?.name}</span>
+              <Button className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:translate-y-[2px] active:border-b-2">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Quest to Project
+              </Button>
+            </AddTaskDialog>
           </div>
           
           <TaskList
