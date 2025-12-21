@@ -1,6 +1,6 @@
 # Supabase Integration Setup Guide
 
-This guide will help you set up Supabase authentication and database sync for your Main Character Quest app.
+This guide will help you set up Supabase authentication and database sync for your Pollytasks app.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ This guide will help you set up Supabase authentication and database sync for yo
 1. Go to https://app.supabase.com
 2. Click "New Project"
 3. Fill in your project details:
-   - Name: "main-character-quest" (or your preferred name)
+   - Name: "pollytasks" (or your preferred name)
    - Database Password: Create a strong password
    - Region: Choose closest to your users
 4. Wait for the project to be created (takes ~2 minutes)

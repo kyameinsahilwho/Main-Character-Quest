@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star, Sword, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
@@ -86,16 +87,16 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2 md:gap-6">
           <div className="flex items-center gap-2 md:gap-3">
-            <span className="text-xl md:text-2xl" role="img" aria-label="crown and sword">👑⚔️</span>
+            <Image src="/favicon.ico" alt="Pollytasks Logo" width={64} height={64} className="w-14 h-14 md:w-16 md:h-16" />
             <h1 className="text-base md:text-xl font-black font-headline text-foreground tracking-tight hidden sm:block">
-              Main Character Quest
+              Pollytasks
             </h1>
           </div>
 
           {/* App Switcher Toggle Switch */}
           <button
             onClick={() => onAppChange(currentApp === 'quests' ? 'habits' : 'quests')}
-            className="relative flex items-center p-1 bg-muted/50 rounded-full border-2 border-border shadow-inner overflow-hidden w-[80px] md:w-[90px] h-9 md:h-10 group transition-all active:scale-95"
+            className="relative hidden md:flex items-center p-1 bg-muted/50 rounded-full border-2 border-border shadow-inner overflow-hidden w-[80px] md:w-[90px] h-9 md:h-10 group transition-all active:scale-95"
           >
             {/* Track Labels */}
             <div className="absolute inset-0 flex items-center justify-between px-3 md:px-3.5 pointer-events-none">
@@ -148,6 +149,61 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
             </div>
           )}
         </div>
+
+        {/* Mobile XP Bar / Completion */}
+        {stats && !isInitialLoad && (
+          <div className="flex md:hidden flex-1 mx-2 max-w-[180px]">
+            {stats.levelInfo ? (
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 shadow-sm transition-all duration-500 relative overflow-hidden",
+                  showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-border"
+                )}
+              >
+                <motion.div 
+                  className={cn(
+                    "absolute inset-y-0 left-0 transition-colors duration-500",
+                    showXPAnimation ? "bg-primary/40" : "bg-secondary/30"
+                  )}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stats.levelInfo.progress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+                <div className="relative z-10">
+                  <Star className={cn(
+                    "h-4 w-4 stroke-[2.5px] animate-spin-slow transition-colors duration-500",
+                    showXPAnimation ? "text-primary fill-primary" : "text-secondary"
+                  )} />
+                </div>
+                <div className="flex flex-col relative z-10">
+                  <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Level {stats.levelInfo.level}</span>
+                  <span className="text-base font-black font-headline leading-none mt-0.5">
+                    {Math.floor(stats.levelInfo.currentLevelXP)}
+                    <span className="text-[10px] text-muted-foreground ml-1 font-bold">/ {stats.levelInfo.nextLevelXP}</span>
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 border-border bg-primary/10 transition-all relative overflow-hidden"
+              >
+                <motion.div 
+                  className="absolute inset-y-0 left-0 bg-primary/30"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stats.completionPercentage}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+                <div className="relative z-10">
+                  <TrendingUp className="h-4 w-4 text-primary stroke-[2.5px]" />
+                </div>
+                <div className="flex flex-col relative z-10">
+                  <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Completion</span>
+                  <span className="text-base font-black font-headline leading-none mt-0.5">{Math.round(stats.completionPercentage)}%</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           {/* Auth Button/Menu */}
@@ -300,9 +356,58 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
             </div>
           </div>
 
-          {/* Level & XP */}
+          {/* App Switcher for mobile */}
+          <button
+            onClick={() => onAppChange(currentApp === 'quests' ? 'habits' : 'quests')}
+            className="relative flex md:hidden items-center p-1 bg-muted/50 rounded-full border-2 border-border shadow-inner overflow-hidden flex-1 h-9 group transition-all active:scale-95"
+          >
+            {/* Track Labels */}
+            <div className="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
+              <Sword className={cn(
+                "h-4 w-4 transition-all duration-300",
+                currentApp === 'quests' ? "text-white opacity-0" : "text-muted-foreground/40"
+              )} />
+              <Repeat className={cn(
+                "h-4 w-4 transition-all duration-300",
+                currentApp === 'habits' ? "text-white opacity-0" : "text-muted-foreground/40"
+              )} />
+            </div>
+
+            {/* Sliding Switch Thumb */}
+            <motion.div
+              initial={false}
+              animate={{
+                x: currentApp === 'quests' ? 0 : '100%',
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full z-10 flex items-center justify-center shadow-lg"
+              style={{
+                backgroundColor: currentApp === 'quests' ? '#58cc02' : '#6366f1',
+                borderBottom: `2px solid ${currentApp === 'quests' ? '#46a302' : '#4f46e5'}`,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.3)'
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentApp}
+                  initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0.5, rotate: 20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {currentApp === 'quests' ? (
+                    <Sword className="h-4 w-4 text-white" />
+                  ) : (
+                    <Repeat className="h-4 w-4 text-white" />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          </button>
+
+          {/* Level & XP - Hidden on mobile, shown on tablet */}
           {stats.levelInfo ? (
-            <div className="relative flex-1 min-w-[140px]">
+            <div className="relative hidden md:flex flex-1 min-w-[140px]">
               <div 
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 shadow-sm transition-all duration-500 relative overflow-hidden",
@@ -335,7 +440,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
             </div>
           ) : (
             <div 
-              className="flex items-center gap-2 px-3 py-1.5 flex-1 min-w-[140px] rounded-2xl border-2 border-border bg-primary/10 transition-all relative overflow-hidden"
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 flex-1 min-w-[140px] rounded-2xl border-2 border-border bg-primary/10 transition-all relative overflow-hidden"
             >
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-primary/30"

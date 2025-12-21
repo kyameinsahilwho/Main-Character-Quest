@@ -436,7 +436,7 @@ export default function TaskQuestApp() {
               <nav className={cn(
                 "md:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-500",
                 currentApp === 'habits' 
-                  ? "bg-card/95 border-t-4 border-[#1cb0f6] backdrop-blur-xl" 
+                  ? "bg-card/95 border-t-4 border-[#6366f1] backdrop-blur-xl" 
                   : "bg-card/95 border-t-4 border-border backdrop-blur-md"
               )}>
                 <div className="flex flex-col">
