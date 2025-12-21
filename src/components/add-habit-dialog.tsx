@@ -10,21 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { CompactIconPicker } from "./icon-picker";
+
 interface AddHabitDialogProps {
   children: React.ReactNode;
   onAddHabit: (habitData: Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>) => void;
 }
 
 const COLORS = [
-  "bg-blue-500/20 border-blue-500/30",
-  "bg-purple-500/20 border-purple-500/30",
-  "bg-cyan-500/20 border-cyan-500/30",
-  "bg-rose-500/20 border-rose-500/30",
-  "bg-amber-500/20 border-amber-500/30",
-  "bg-indigo-500/20 border-indigo-500/30",
+  "bg-blue-600/20 border-blue-600/30",
+  "bg-purple-600/20 border-purple-600/30",
+  "bg-cyan-600/20 border-cyan-600/30",
+  "bg-rose-600/20 border-rose-600/30",
+  "bg-amber-600/20 border-amber-600/30",
+  "bg-indigo-600/20 border-indigo-600/30",
 ];
-
-const ICONS = ["✨", "💪", "📚", "🧘", "💧", "🏃", "🥗", "💤", "🧠", "🎹"];
 
 export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [open, setOpen] = useState(false);
@@ -32,11 +32,11 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [targetDays, setTargetDays] = useState("7");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
+  const [selectedIcon, setSelectedIcon] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !selectedIcon) return;
 
     onAddHabit({
       title,
@@ -49,107 +49,111 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
     setTitle("");
     setFrequency('daily');
     setTargetDays("7");
+    setSelectedIcon("");
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-[#faf7ed] border-2 border-b-8 border-[#e8e2c8] text-[#4a4a4a] rounded-[2rem] shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-black font-headline uppercase tracking-tight flex items-center gap-3 text-[#5c4d3c]">
-            <div className="w-10 h-10 rounded-xl bg-[#e8e2c8] border-2 border-b-4 border-[#d6d3c9] flex items-center justify-center">
-              <Plus className="w-6 h-6 text-[#5c4d3c] stroke-[3]" />
+      <DialogContent className="w-[90vw] max-w-[600px] bg-white border-2 border-b-8 border-[#CBD5E1] text-[#1E293B] rounded-[2rem] shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogTitle className="sr-only">Create New Ritual</DialogTitle>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-white flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#CBD5E1] flex items-center justify-center">
+              <Plus className="w-5 h-5 text-[#1E293B] stroke-[3]" />
             </div>
-            New Ritual
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-xs font-black uppercase tracking-widest text-[#8c7b60]/60">Ritual Name</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Read for 30 mins"
-              autoFocus
-              className="bg-white border-2 border-b-4 border-[#e8e2c8] focus-visible:border-[#8c7b60] focus-visible:ring-0 focus:border-[#8c7b60] focus:ring-0 h-12 rounded-xl text-lg font-bold text-[#4a4a4a] placeholder:text-gray-200 transition-all"
-            />
+            <h2 className="text-lg font-black font-headline uppercase tracking-tight text-[#1E293B]">New Ritual</h2>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Icon Avatar + Ritual Name Row */}
             <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-[#8c7b60]/60">Frequency</Label>
-              <Select value={frequency} onValueChange={(v: any) => setFrequency(v)}>
-                <SelectTrigger className="bg-white border-2 border-b-4 border-[#e8e2c8] h-12 rounded-xl text-[#4a4a4a] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:border-[#8c7b60] focus-visible:border-[#8c7b60]">
-                  <SelectValue placeholder="Frequency" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#faf7ed] border-2 border-[#e8e2c8]">
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-[#8c7b60]/60">Target Days</Label>
-              <Input
-                type="number"
-                min="1"
-                max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
-                value={targetDays}
-                onChange={(e) => setTargetDays(e.target.value)}
-                className="bg-white border-2 border-b-4 border-[#e8e2c8] h-12 rounded-xl text-[#4a4a4a] focus-visible:border-[#8c7b60] focus-visible:ring-0 focus:border-[#8c7b60] focus:ring-0"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-xs font-black uppercase tracking-widest text-[#8c7b60]/60">Icon & Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {ICONS.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  onClick={() => setSelectedIcon(icon)}
-                  className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border-2 border-b-4 active:border-b-2 active:translate-y-0.5",
-                    selectedIcon === icon 
-                      ? "bg-[#e8e2c8] border-[#d6d3c9] scale-105" 
-                      : "bg-white border-[#faf7ed] hover:border-[#e8e2c8]"
-                  )}
-                >
-                  {icon}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-3 pt-2">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={cn(
-                    "w-8 h-8 rounded-full border-2 transition-all shadow-sm",
-                    color,
-                    selectedColor === color ? "scale-125 border-[#5c4d3c]" : "border-transparent"
-                  )}
+              <Label htmlFor="title" className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Ritual Name & Icon</Label>
+              <div className="flex items-center gap-3">
+                <CompactIconPicker
+                  selectedIcon={selectedIcon}
+                  onSelectIcon={setSelectedIcon}
+                  selectedColor={selectedColor}
+                  onSelectColor={setSelectedColor}
+                  colors={COLORS}
                 />
-              ))}
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Read for 30 mins"
+                  autoFocus
+                  className="flex-1 bg-white border-2 border-b-4 border-[#E2E8F0] focus-visible:border-[#CBD5E1] focus-visible:ring-0 h-14 rounded-lg text-sm font-bold text-[#1E293B] placeholder:text-[#CBD5E1] transition-all"
+                />
+              </div>
             </div>
-          </div>
 
-          <DialogFooter className="pt-4">
-            <Button 
-              type="submit" 
-              className="w-full h-14 rounded-2xl bg-[#5c4d3c] hover:bg-[#4a3e30] text-white font-black text-lg uppercase tracking-wider border-b-[6px] border-[#3e3428] active:border-b-0 active:translate-y-1 transition-all shadow-lg shadow-[#d6d3c9] relative overflow-hidden"
-            >
-              {/* 3D Highlight */}
-              <div className="absolute inset-x-0 top-0 h-px bg-white/20 z-10 pointer-events-none" />
-              Start Ritual
-            </Button>
-          </DialogFooter>
-        </form>
+            {/* Ritual Aura Color Picker */}
+            <div className="space-y-2">
+              <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Ritual Aura</Label>
+              <div className="flex gap-2 flex-wrap">
+                {COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setSelectedColor(color)}
+                    className={cn(
+                      "w-9 h-9 rounded-full border-3 transition-all shadow-sm active:scale-90 cursor-pointer",
+                      color.split(' ')[0],
+                      selectedColor === color ? "scale-125 border-[#1E293B] shadow-md" : "border-transparent hover:scale-110"
+                    )}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Frequency</Label>
+                <Select value={frequency} onValueChange={(v: any) => setFrequency(v)}>
+                  <SelectTrigger className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus:ring-0 focus:border-[#CBD5E1]">
+                    <SelectValue placeholder="Frequency" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-2 border-[#E2E8F0] rounded-lg">
+                    <SelectItem value="daily" className="font-bold text-xs">Daily</SelectItem>
+                    <SelectItem value="weekly" className="font-bold text-xs">Weekly</SelectItem>
+                    <SelectItem value="monthly" className="font-bold text-xs">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Target Days</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
+                  value={targetDays}
+                  onChange={(e) => setTargetDays(e.target.value)}
+                  className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus-visible:border-[#CBD5E1] focus-visible:ring-0 w-full"
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer Button */}
+        <div className="border-t border-[#E2E8F0] px-6 py-4 bg-white flex-shrink-0">
+          <Button 
+            type="submit" 
+            disabled={!title.trim() || !selectedIcon}
+            onClick={handleSubmit}
+            className="w-full h-14 rounded-2xl bg-[#6366f1] border-2 border-b-[6px] border-[#4f46e5] text-white hover:bg-[#818cf8] hover:border-[#6366f1] font-black text-lg uppercase tracking-wider active:translate-y-[2px] active:border-b-[4px] transition-all shadow-lg relative overflow-hidden"
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-white/40 z-10 pointer-events-none" />
+            Start Ritual
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -118,8 +118,8 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
               transition={{ type: "spring", stiffness: 400, damping: 35 }}
               className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full z-10 flex items-center justify-center shadow-lg"
               style={{
-                backgroundColor: currentApp === 'quests' ? '#58cc02' : '#5c4d3c',
-                borderBottom: `2px solid ${currentApp === 'quests' ? '#46a302' : '#3e3428'}`,
+                backgroundColor: currentApp === 'quests' ? '#58cc02' : '#6366f1',
+                borderBottom: `2px solid ${currentApp === 'quests' ? '#46a302' : '#4f46e5'}`,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.3)'
               }}
             >

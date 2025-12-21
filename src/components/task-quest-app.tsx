@@ -165,7 +165,7 @@ export default function TaskQuestApp() {
   return (
     <div className={cn(
       "flex h-screen w-full flex-col font-body transition-colors duration-500",
-      currentApp === 'habits' ? "bg-[#faf7ed]" : "bg-background"
+      currentApp === 'habits' ? "bg-[#F1F4F9]" : "bg-background"
     )}>
       {isCelebrating && (
         <Suspense fallback={null}>
@@ -197,7 +197,7 @@ export default function TaskQuestApp() {
               <aside className={cn(
                 "hidden md:flex w-72 flex-col gap-6 p-6 border-r-4 transition-all duration-500 z-10",
                 currentApp === 'habits' 
-                  ? "bg-[#f5f1e3]/80 border-[#e8e2c8] backdrop-blur-xl" 
+                  ? "bg-[#E2E8F0]/80 border-[#CBD5E1] backdrop-blur-xl" 
                   : "bg-card/50 border-border backdrop-blur-md"
               )}>
                 <div className="flex flex-col gap-3">
@@ -258,10 +258,10 @@ export default function TaskQuestApp() {
                         className="flex flex-col gap-3 w-full"
                       >
                         <AddHabitDialog onAddHabit={addHabit}>
-                          <Button className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-[#e8e2c8] bg-[#faf7ed] text-[#5c4d3c] hover:bg-white hover:border-[#8c7b60] transition-all duration-200 group rounded-2xl shadow-lg shadow-[#d6d3c9]/20 active:translate-y-[2px] active:border-b-[4px] mb-2 relative overflow-hidden">
+                          <Button className="w-[92%] mx-auto justify-center px-4 py-5 h-auto text-lg border-2 border-b-[6px] border-[#4f46e5] bg-[#6366f1] text-white hover:bg-[#818cf8] hover:border-[#6366f1] transition-all duration-200 group rounded-2xl shadow-lg active:translate-y-[2px] active:border-b-[4px] mb-4 relative overflow-hidden">
                             {/* 3D Highlight */}
-                            <div className="absolute inset-x-0 top-0 h-px bg-white/60 z-10 pointer-events-none" />
-                            <Plus className="mr-3 h-6 w-6 stroke-[4px]" />
+                            <div className="absolute inset-x-0 top-0 h-px bg-white/40 z-10 pointer-events-none" />
+                            <Plus className="mr-3 h-6 w-6 stroke-[4px] text-white" />
                             <span className="font-black tracking-wide">New Ritual</span>
                           </Button>
                         </AddHabitDialog>
@@ -436,7 +436,7 @@ export default function TaskQuestApp() {
               <nav className={cn(
                 "md:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-500",
                 currentApp === 'habits' 
-                  ? "bg-[#f5f1e3]/95 border-t-4 border-[#e8e2c8] backdrop-blur-xl" 
+                  ? "bg-card/95 border-t-4 border-[#1cb0f6] backdrop-blur-xl" 
                   : "bg-card/95 border-t-4 border-border backdrop-blur-md"
               )}>
                 <div className="flex flex-col">
@@ -482,9 +482,9 @@ export default function TaskQuestApp() {
                         className="p-2"
                       >
                         <AddHabitDialog onAddHabit={addHabit}>
-                          <Button className="w-full h-14 rounded-2xl bg-[#faf7ed] border-2 border-b-[6px] border-[#e8e2c8] text-[#5c4d3c] hover:bg-white hover:border-[#8c7b60] font-black uppercase tracking-wider gap-2 shadow-lg active:translate-y-[2px] active:border-b-[4px] relative overflow-hidden">
+                          <Button className="w-full h-16 rounded-2xl bg-[#6366f1] border-2 border-b-[6px] border-[#4f46e5] text-white hover:bg-[#818cf8] hover:border-[#6366f1] font-black uppercase tracking-wider text-lg gap-2 shadow-lg active:translate-y-[2px] active:border-b-[4px] relative overflow-hidden">
                             {/* 3D Highlight */}
-                            <div className="absolute inset-x-0 top-0 h-px bg-white/60 z-10 pointer-events-none" />
+                            <div className="absolute inset-x-0 top-0 h-px bg-white/40 z-10 pointer-events-none" />
                             <Plus className="h-6 w-6 stroke-[3px]" />
                             Add New Ritual
                           </Button>

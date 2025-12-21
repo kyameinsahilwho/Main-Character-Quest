@@ -3,10 +3,10 @@
 import { useState, useRef } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed } from "lucide-react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { format, isToday, parseISO, eachDayOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths } from "date-fns";
 import { EditHabitDialog } from "./edit-habit-dialog";
 import confetti from 'canvas-confetti';
 import { playCompletionSound } from "@/lib/sounds";
@@ -43,59 +43,76 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
 
   const isPeriodTargetMet = periodCompletions >= habit.targetDays;
 
+  const getCompletionsForPeriod = (date: Date, frequency: 'weekly' | 'monthly') => {
+    return habit.completions.filter(c => {
+      const completionDate = parseISO(c.completedAt);
+      return frequency === 'weekly' 
+        ? isSameWeek(completionDate, date, { weekStartsOn: 0 })
+        : isSameMonth(completionDate, date);
+    }).length;
+  };
+
+  const periods = habit.frequency === 'daily' ? [] : Array.from({ length: 4 }).map((_, i) => {
+    const date = habit.frequency === 'weekly' ? subWeeks(now, i) : subMonths(now, i);
+    const completions = getCompletionsForPeriod(date, habit.frequency as 'weekly' | 'monthly');
+    const isTargetMet = completions >= habit.targetDays;
+    const label = habit.frequency === 'weekly' ? `W${4-i}` : format(date, 'MMM');
+    return { date, completions, isTargetMet, label, isCurrent: i === 0 };
+  }).reverse();
+
   const getHabitCardAesthetics = (colorStr?: string) => {
     if (!colorStr) return {
-      card: "bg-white border-[#e8e2c8] hover:border-[#d0c8a0]",
-      checkbox: "bg-[#5c4d3c] border-[#3e3428] shadow-[#d6d3c9]",
-      iconBg: "bg-[#faf7ed] border-[#e8e2c8]"
+      card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+      checkbox: "bg-[#1E293B] border-[#0F172A]",
+      iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
     };
 
-    const match = colorStr.match(/bg-([a-z]+)-500/);
+    const match = colorStr.match(/bg-([a-z]+)-600/);
     if (match && match[1]) {
       const color = match[1];
       const themes: Record<string, { card: string; checkbox: string; iconBg: string }> = {
         blue: {
-          card: "bg-blue-50/30 border-blue-100 hover:border-blue-200",
-          checkbox: "bg-blue-500 border-blue-700 shadow-blue-100",
-          iconBg: "bg-blue-50 border-blue-100"
+          card: "bg-blue-50 border-blue-200 hover:border-blue-400",
+          checkbox: "bg-blue-600 border-blue-800",
+          iconBg: "bg-blue-100 border-blue-200"
         },
         purple: {
-          card: "bg-purple-50/30 border-purple-100 hover:border-purple-200",
-          checkbox: "bg-purple-500 border-purple-700 shadow-purple-100",
-          iconBg: "bg-purple-50 border-purple-100"
+          card: "bg-purple-50 border-purple-200 hover:border-purple-400",
+          checkbox: "bg-purple-600 border-purple-800",
+          iconBg: "bg-purple-100 border-purple-200"
         },
         cyan: {
-          card: "bg-cyan-50/30 border-cyan-100 hover:border-cyan-200",
-          checkbox: "bg-cyan-500 border-cyan-700 shadow-cyan-100",
-          iconBg: "bg-cyan-50 border-cyan-100"
+          card: "bg-cyan-50 border-cyan-200 hover:border-cyan-400",
+          checkbox: "bg-cyan-600 border-cyan-800",
+          iconBg: "bg-cyan-100 border-cyan-200"
         },
         rose: {
-          card: "bg-rose-50/30 border-rose-100 hover:border-rose-200",
-          checkbox: "bg-rose-500 border-rose-700 shadow-rose-100",
-          iconBg: "bg-rose-50 border-rose-100"
+          card: "bg-rose-50 border-rose-200 hover:border-rose-400",
+          checkbox: "bg-rose-600 border-rose-800",
+          iconBg: "bg-rose-100 border-rose-200"
         },
         amber: {
-          card: "bg-amber-50/30 border-amber-100 hover:border-amber-200",
-          checkbox: "bg-amber-500 border-amber-700 shadow-amber-100",
-          iconBg: "bg-amber-50 border-amber-100"
+          card: "bg-amber-50 border-amber-200 hover:border-amber-400",
+          checkbox: "bg-amber-600 border-amber-800",
+          iconBg: "bg-amber-100 border-amber-200"
         },
         indigo: {
-          card: "bg-indigo-50/30 border-indigo-100 hover:border-indigo-200",
-          checkbox: "bg-indigo-500 border-indigo-700 shadow-indigo-100",
-          iconBg: "bg-indigo-50 border-indigo-100"
+          card: "bg-indigo-50 border-indigo-200 hover:border-indigo-400",
+          checkbox: "bg-indigo-600 border-indigo-800",
+          iconBg: "bg-indigo-100 border-indigo-200"
         },
       };
       return themes[color] || {
-        card: "bg-white border-[#e8e2c8] hover:border-[#d0c8a0]",
-        checkbox: "bg-[#5c4d3c] border-[#3e3428] shadow-[#d6d3c9]",
-        iconBg: "bg-[#faf7ed] border-[#e8e2c8]"
+        card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+        checkbox: "bg-[#1E293B] border-[#0F172A]",
+        iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
       };
     }
 
     return {
-      card: "bg-white border-[#e8e2c8] hover:border-[#d0c8a0]",
-      checkbox: "bg-[#5c4d3c] border-[#3e3428] shadow-[#d6d3c9]",
-      iconBg: "bg-[#faf7ed] border-[#e8e2c8]"
+      card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+      checkbox: "bg-[#1E293B] border-[#0F172A]",
+      iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
     };
   };
 
@@ -103,10 +120,10 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
   const cardRef = useRef<HTMLDivElement>(null);
 
   const themeColors = {
-    text: habit.color ? aesthetics.checkbox.replace('bg-', 'text-').split(' ')[0] : 'text-[#5c4d3c]',
-    border: habit.color ? aesthetics.card.split(' ')[1] : 'border-[#e8e2c8]',
+    text: habit.color ? aesthetics.checkbox.replace('bg-', 'text-').split(' ')[0] : 'text-[#0F172A]',
+    border: habit.color ? aesthetics.card.split(' ')[1] : 'border-[#CBD5E1]',
     bg: habit.color ? aesthetics.card.split(' ')[0] : 'bg-white',
-    icon: habit.color ? aesthetics.iconBg.split(' ')[0] : 'bg-[#faf7ed]'
+    icon: habit.color ? aesthetics.iconBg.split(' ')[0] : 'bg-[#F1F4F9]'
   };
 
   const handleToggle = (habitId: string, date: string, e?: React.MouseEvent) => {
@@ -128,7 +145,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
           particleCount: 40,
           spread: 60,
           origin: { x, y },
-          colors: [habit.color || '#5c4d3c', '#ffffff', '#ffd700'],
+          colors: [habit.color || '#1E293B', '#ffffff', '#ffd700'],
           startVelocity: 30,
           ticks: 100,
           gravity: 1.2,
@@ -170,7 +187,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
             "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl shadow-inner border-2 border-b-4",
             aesthetics.iconBg
           )}>
-            {habit.icon || "✨"}
+            {habit.icon || <CircleDashed className="w-6 h-6 text-gray-400" />}
           </div>
           <div className="flex flex-col flex-1">
             <h3 className={cn(
@@ -214,12 +231,12 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                     disabled={isFuture}
                     className={cn(
                       "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
-                      isFuture ? "opacity-10 cursor-not-allowed border-gray-100" : "cursor-pointer active:translate-y-1 active:border-b-0",
+                      isFuture ? "opacity-10 cursor-not-allowed border-gray-100" : "cursor-pointer active:translate-y-0.5",
                       completed 
-                        ? `${aesthetics.checkbox} text-white border-b-4 shadow-md`
+                        ? `${aesthetics.checkbox} text-white`
                         : cn(
-                            "bg-white border-b-4",
-                            today ? themeColors.border : "border-[#faf7ed]",
+                            "bg-white",
+                            today ? themeColors.border : "border-[#F1F4F9]",
                             today && themeColors.icon
                           )
                     )}
@@ -234,61 +251,69 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
               );
             })
           ) : (
-            <div className="flex items-center gap-4 pr-2">
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
-                  {habit.frequency === 'weekly' ? 'This Week' : 'This Month'}
-                </span>
-                <span className={cn("text-xs font-black tabular-nums", themeColors.text)}>
-                  {periodCompletions} / {habit.targetDays}
-                </span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggle(habit.id, new Date().toISOString(), e);
-                }}
-                className={cn(
-                  "w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
-                  (isPeriodTargetMet || isCompletedToday)
-                    ? `${aesthetics.checkbox} text-white border-b-4 shadow-md`
-                    : cn("bg-white border-b-4 shadow-sm active:translate-y-1 active:border-b-0", themeColors.border)
-                )}
-              >
-                {isPeriodTargetMet ? (
-                  <Check className="w-6 h-6 md:w-8 md:h-8 text-white stroke-[4]" />
-                ) : (
-                  <Plus className={cn(
-                    "w-6 h-6 stroke-[4]",
-                    isCompletedToday ? "text-white" : themeColors.text
-                  )} />
-                )}
-              </button>
+            <div className="flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar">
+              {periods.map((period, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 min-w-[40px] md:min-w-[48px]">
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-tighter transition-colors",
+                    period.isCurrent ? themeColors.text : "text-gray-300"
+                  )}>
+                    {period.label}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (period.isCurrent) handleToggle(habit.id, period.date.toISOString(), e);
+                    }}
+                    className={cn(
+                      "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
+                      !period.isCurrent && "opacity-40 cursor-default",
+                      period.isTargetMet 
+                        ? `${aesthetics.checkbox} text-white`
+                        : cn(
+                            "bg-white",
+                            period.isCurrent ? themeColors.border : "border-[#F1F4F9]",
+                            period.isCurrent && themeColors.icon
+                          ),
+                      period.isCurrent && "active:translate-y-0.5 cursor-pointer"
+                    )}
+                  >
+                    {period.isTargetMet ? (
+                      <Check className="w-5 h-5 md:w-6 md:h-6 text-white stroke-[4]" />
+                    ) : period.completions > 0 ? (
+                      <Check className={cn("w-5 h-5 md:w-6 md:h-6 stroke-[4]", themeColors.text)} />
+                    ) : period.isCurrent ? (
+                      <div className={cn("w-2 h-2 rounded-full animate-pulse", themeColors.text.replace('text-', 'bg-'))} />
+                    ) : null}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeInOut" }}
+            initial="collapsed"
+            animate="open"
+            exit="collapsed"
+            variants={{
+              open: { opacity: 1, height: "auto" },
+              collapsed: { opacity: 0, height: 0 }
+            }}
+            transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 pt-4 mt-2 border-t-2 border-[#faf7ed]">
+            <div className="flex items-center gap-2 pt-4 mt-2 border-t-2 border-[#F1F4F9]">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onViewStats(habit.id)}
                 className={cn(
                   "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
-                  themeColors.bg,
-                  themeColors.border,
-                  themeColors.text,
-                  "hover:brightness-95"
+                  "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
                 )}
               >
                 <BarChart2 className="w-4 h-4 mr-2" />
@@ -300,10 +325,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                   size="sm"
                   className={cn(
                     "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
-                    themeColors.bg,
-                    themeColors.border,
-                    themeColors.text,
-                    "hover:brightness-95"
+                    "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
                   )}
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
