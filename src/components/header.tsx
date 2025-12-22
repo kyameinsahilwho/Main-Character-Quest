@@ -40,16 +40,28 @@ interface HeaderProps {
 
 const getStreakStyles = (streak: number) => {
   if (streak >= 30) {
-    return { icon: "text-red-500 animate-bounce", bg: "bg-red-500/10" };
+    return { 
+      icon: "text-red-600 fill-red-600", 
+      bg: "bg-red-500/10" 
+    };
   }
   if (streak >= 14) {
-    return { icon: "text-orange-500 animate-bounce", bg: "bg-orange-500/10" };
+    return { 
+      icon: "text-orange-600 fill-orange-600", 
+      bg: "bg-orange-500/10" 
+    };
   }
   if (streak >= 7) {
-    return { icon: "text-amber-500 animate-bounce", bg: "bg-amber-500/10" };
+    return { 
+      icon: "text-orange-500 fill-orange-500", 
+      bg: "bg-orange-500/10" 
+    };
   }
   if (streak > 0) {
-    return { icon: "text-primary animate-bounce", bg: "bg-primary/10" };
+    return { 
+      icon: "text-amber-500 fill-amber-500", 
+      bg: "bg-amber-500/10" 
+    };
   }
   return { icon: "text-muted-foreground", bg: "bg-muted/30" };
 };
@@ -152,12 +164,12 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
 
         {/* Mobile XP Bar / Completion */}
         {stats && !isInitialLoad && (
-          <div className="flex md:hidden flex-1 mx-2 max-w-[180px]">
+          <div className="flex md:hidden flex-1 mx-2">
             {stats.levelInfo ? (
               <div 
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 shadow-sm transition-all duration-500 relative overflow-hidden",
-                  showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-border"
+                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 border-b-4 shadow-sm transition-all duration-500 relative overflow-hidden",
+                  showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-secondary/20"
                 )}
               >
                 <motion.div 
@@ -172,12 +184,12 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
                 <div className="relative z-10">
                   <Star className={cn(
                     "h-4 w-4 stroke-[2.5px] animate-spin-slow transition-colors duration-500",
-                    showXPAnimation ? "text-primary fill-primary" : "text-secondary"
+                    showXPAnimation ? "text-primary fill-primary" : "text-secondary fill-secondary"
                   )} />
                 </div>
                 <div className="flex flex-col relative z-10">
                   <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Level {stats.levelInfo.level}</span>
-                  <span className="text-base font-black font-headline leading-none mt-0.5">
+                  <span className="text-sm font-black font-headline leading-none mt-0.5">
                     {Math.floor(stats.levelInfo.currentLevelXP)}
                     <span className="text-[10px] text-muted-foreground ml-1 font-bold">/ {stats.levelInfo.nextLevelXP}</span>
                   </span>
@@ -185,7 +197,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
               </div>
             ) : (
               <div 
-                className="flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 border-border bg-primary/10 transition-all relative overflow-hidden"
+                className="flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 border-b-4 border-primary/20 bg-primary/10 transition-all relative overflow-hidden"
               >
                 <motion.div 
                   className="absolute inset-y-0 left-0 bg-primary/30"
@@ -198,7 +210,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
                 </div>
                 <div className="flex flex-col relative z-10">
                   <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Completion</span>
-                  <span className="text-base font-black font-headline leading-none mt-0.5">{Math.round(stats.completionPercentage)}%</span>
+                  <span className="text-sm font-black font-headline leading-none mt-0.5">{Math.round(stats.completionPercentage)}%</span>
                 </div>
               </div>
             )}
@@ -247,13 +259,23 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
           {stats && streaks && !isInitialLoad && (
             <div className="hidden lg:flex items-center gap-3">
               {/* Current Streak */}
-              <div className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl transition-all border-2 border-border bg-card shadow-sm hover:shadow-md", streakStyles.bg)}>
-                <div className="relative">
-                  <Flame className={cn("h-5 w-5 stroke-[3px]", streakStyles.icon)} />
-                </div>
-                <div className="flex flex-col relative">
-                  <span className="text-[10px] text-muted-foreground font-black leading-none uppercase tracking-wider">Streak</span>
-                  <span className="text-xl font-black font-headline leading-none mt-0.5 text-foreground">{streaks.current}</span>
+              <div className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl transition-all border-2 border-border bg-card shadow-sm hover:shadow-md relative overflow-hidden", streakStyles.bg)}>
+                {/* Background Particles */}
+                {streaks.current > 0 && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="absolute bottom-[-4px] left-[10%] w-1 h-1 bg-orange-400/40 rounded-full animate-particle" style={{ animationDelay: '0s', animationDuration: '2s' }} />
+                    <div className="absolute bottom-[-4px] left-[30%] w-1 h-1 bg-red-400/40 rounded-full animate-particle" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }} />
+                    <div className="absolute bottom-[-4px] left-[50%] w-1 h-1 bg-amber-400/40 rounded-full animate-particle" style={{ animationDelay: '1s', animationDuration: '2.2s' }} />
+                    <div className="absolute bottom-[-4px] left-[70%] w-1 h-1 bg-orange-400/40 rounded-full animate-particle" style={{ animationDelay: '1.5s', animationDuration: '1.8s' }} />
+                    <div className="absolute bottom-[-4px] left-[90%] w-1 h-1 bg-red-400/40 rounded-full animate-particle" style={{ animationDelay: '0.2s', animationDuration: '2.8s' }} />
+                  </div>
+                )}
+                <div className="relative z-10 flex items-center gap-2">
+                  <Flame className={cn("h-5 w-5", streakStyles.icon)} />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-muted-foreground font-black leading-none uppercase tracking-wider">Streak</span>
+                    <span className="text-xl font-black font-headline leading-none mt-0.5 text-foreground">{streaks.current}</span>
+                  </div>
                 </div>
               </div>
 
@@ -336,13 +358,23 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
       {/* Stats bar on mobile/tablet */}
       {stats && streaks && !isInitialLoad && (
         <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all whitespace-nowrap border-2 border-border bg-card shadow-sm", streakStyles.bg)}>
-            <div className="relative">
-              <Flame className={cn("h-4 w-4 stroke-[2.5px]", streakStyles.icon)} />
-            </div>
-            <div className="flex flex-col relative">
-              <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Streak</span>
-              <span className="text-base font-black font-headline leading-none mt-0.5">{streaks.current}</span>
+          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all whitespace-nowrap border-2 border-border bg-card shadow-sm relative overflow-hidden", streakStyles.bg)}>
+            {/* Background Particles */}
+            {streaks.current > 0 && (
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute bottom-[-4px] left-[10%] w-0.5 h-0.5 bg-orange-400/40 rounded-full animate-particle" style={{ animationDelay: '0s', animationDuration: '2s' }} />
+                <div className="absolute bottom-[-4px] left-[30%] w-0.5 h-0.5 bg-red-400/40 rounded-full animate-particle" style={{ animationDelay: '0.6s', animationDuration: '2.5s' }} />
+                <div className="absolute bottom-[-4px] left-[50%] w-0.5 h-0.5 bg-amber-400/40 rounded-full animate-particle" style={{ animationDelay: '1.2s', animationDuration: '1.8s' }} />
+                <div className="absolute bottom-[-4px] left-[70%] w-0.5 h-0.5 bg-orange-400/40 rounded-full animate-particle" style={{ animationDelay: '0.3s', animationDuration: '2.2s' }} />
+                <div className="absolute bottom-[-4px] left-[90%] w-0.5 h-0.5 bg-red-400/40 rounded-full animate-particle" style={{ animationDelay: '0.8s', animationDuration: '2.7s' }} />
+              </div>
+            )}
+            <div className="relative z-10 flex items-center gap-2">
+              <Flame className={cn("h-4 w-4", streakStyles.icon)} />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground font-black leading-none uppercase">Streak</span>
+                <span className="text-base font-black font-headline leading-none mt-0.5">{streaks.current}</span>
+              </div>
             </div>
           </div>
 
@@ -410,8 +442,8 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
             <div className="relative hidden md:flex flex-1 min-w-[140px]">
               <div 
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 shadow-sm transition-all duration-500 relative overflow-hidden",
-                  showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-border"
+                  "flex items-center gap-2 px-3 py-1.5 w-full rounded-2xl border-2 border-b-4 shadow-sm transition-all duration-500 relative overflow-hidden",
+                  showXPAnimation ? "bg-primary/20 border-primary/30" : "bg-secondary/10 border-secondary/20"
                 )}
               >
                 <motion.div 
@@ -426,7 +458,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
                 <div className="relative z-10">
                   <Star className={cn(
                     "h-4 w-4 stroke-[2.5px] animate-spin-slow transition-colors duration-500",
-                    showXPAnimation ? "text-primary fill-primary" : "text-secondary"
+                    showXPAnimation ? "text-primary fill-primary" : "text-secondary fill-secondary"
                   )} />
                 </div>
                 <div className="flex flex-col relative z-10">
@@ -440,7 +472,7 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
             </div>
           ) : (
             <div 
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 flex-1 min-w-[140px] rounded-2xl border-2 border-border bg-primary/10 transition-all relative overflow-hidden"
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 flex-1 min-w-[140px] rounded-2xl border-2 border-b-4 border-primary/20 bg-primary/10 transition-all relative overflow-hidden"
             >
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-primary/30"

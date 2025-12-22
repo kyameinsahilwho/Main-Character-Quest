@@ -199,7 +199,10 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
             </h3>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
-                <Flame className={cn("w-3 h-3 fill-current", habit.currentStreak > 0 ? "text-orange-500" : "text-gray-300")} />
+                <Flame className={cn(
+                  "w-3 h-3 fill-current", 
+                  habit.currentStreak > 0 ? "text-orange-500" : "text-gray-300"
+                )} />
                 <span className={cn("text-[10px] font-black uppercase tracking-wider", habit.currentStreak > 0 ? "text-orange-500" : "text-gray-300")}>
                   {habit.currentStreak} day streak
                 </span>
