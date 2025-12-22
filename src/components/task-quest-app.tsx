@@ -30,7 +30,7 @@ const Confetti = lazy(() => import('react-confetti'));
 
 
 export default function TaskQuestApp() {
-  const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut } = useSupabaseSync();
+  const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut, supabase } = useSupabaseSync();
   const { toast } = useToast();
 
   const {
@@ -98,6 +98,36 @@ export default function TaskQuestApp() {
 
     return calculateLevel(taskXP + habitXP);
   }, [tasks, habits]);
+
+  // Sync user settings (XP, Level, Streaks) to Supabase
+  useEffect(() => {
+    if (user && !isInitialLoad && levelInfo) {
+      const syncSettings = async () => {
+        try {
+          const { error } = await supabase
+            .from('user_settings')
+            .upsert({
+              user_id: user.id,
+              total_xp: levelInfo.totalXP,
+              level: levelInfo.level,
+              current_streak: streaks.current,
+              longest_streak: streaks.longest,
+              tasks_completed: stats.completedTasks,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id'
+            });
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error syncing user settings:', error);
+        }
+      };
+
+      // Debounce sync to avoid too many requests
+      const timer = setTimeout(syncSettings, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isInitialLoad, levelInfo.totalXP, levelInfo.level, streaks, stats.completedTasks, supabase]);
 
   // Sync local storage to Supabase when user first logs in
   useEffect(() => {

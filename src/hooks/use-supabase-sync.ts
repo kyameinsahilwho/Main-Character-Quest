@@ -135,8 +135,7 @@ export function useSupabaseSync() {
           current_streak: currentStreak,
           longest_streak: longestStreak,
           tasks_completed: completedTasks.length,
-          total_xp: 0,
-          level: 1,
+          // total_xp and level will be updated by TaskQuestApp
         }, {
           onConflict: 'user_id'
         });

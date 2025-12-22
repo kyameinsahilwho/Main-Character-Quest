@@ -10,6 +10,31 @@ import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-sy
 const HABITS_STORAGE_KEY = 'taskQuestHabits';
 const SAVE_DEBOUNCE_MS = 500;
 
+const calculateHabitXP = (completions: { completedAt: string }[]) => {
+  const sortedCompletions = [...completions]
+    .map(c => startOfDay(parseISO(c.completedAt)))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  const totalXP = completions.length * XP_PER_RITUAL;
+
+  let streakBonusXP = 0;
+  if (sortedCompletions.length > 0) {
+    let tempStreak = 1;
+    for (let i = 1; i < sortedCompletions.length; i++) {
+      const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i-1]);
+      if (diff === 1) {
+        tempStreak++;
+        const bonus = Math.min(tempStreak * STREAK_XP_BONUS, MAX_STREAK_BONUS);
+        streakBonusXP += bonus;
+      } else {
+        tempStreak = 1;
+      }
+    }
+  }
+
+  return totalXP + streakBonusXP;
+};
+
 export const useHabits = (user?: User | null) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -47,32 +72,43 @@ export const useHabits = (user?: User | null) => {
 
           if (completionsError) throw completionsError;
 
-          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit) => ({
-            id: dbHabit.id,
-            title: dbHabit.title,
-            description: dbHabit.description,
-            frequency: dbHabit.frequency,
-            targetDays: dbHabit.target_days,
-            currentStreak: dbHabit.current_streak,
-            bestStreak: dbHabit.best_streak,
-            color: dbHabit.color,
-            icon: dbHabit.icon,
-            createdAt: dbHabit.created_at,
-            completions: (completionsData || [])
+          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit) => {
+            const completions = (completionsData || [])
               .filter((c) => c.habit_id === dbHabit.id)
               .map((c) => ({
                 id: c.id,
                 habitId: c.habit_id,
                 completedAt: c.completed_at,
-              })),
-          }));
+              }));
+            
+            return {
+              id: dbHabit.id,
+              title: dbHabit.title,
+              description: dbHabit.description,
+              frequency: dbHabit.frequency,
+              targetDays: dbHabit.target_days,
+              currentStreak: dbHabit.current_streak,
+              bestStreak: dbHabit.best_streak,
+              color: dbHabit.color,
+              icon: dbHabit.icon,
+              createdAt: dbHabit.created_at,
+              completions,
+              xp: calculateHabitXP(completions),
+            };
+          });
 
           setHabits(loadedHabits);
           hasLoadedRef.current = true;
         } else {
           const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
           if (storedHabits) {
-            setHabits(JSON.parse(storedHabits));
+            const parsedHabits: Habit[] = JSON.parse(storedHabits);
+            // Ensure XP is calculated for local habits too
+            const habitsWithXP = parsedHabits.map(habit => ({
+              ...habit,
+              xp: calculateHabitXP(habit.completions || [])
+            }));
+            setHabits(habitsWithXP);
           }
           hasLoadedRef.current = true;
         }
@@ -80,7 +116,12 @@ export const useHabits = (user?: User | null) => {
         console.error("Failed to load habits", error);
         const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
         if (storedHabits) {
-          setHabits(JSON.parse(storedHabits));
+          const parsedHabits: Habit[] = JSON.parse(storedHabits);
+          const habitsWithXP = parsedHabits.map(habit => ({
+            ...habit,
+            xp: calculateHabitXP(habit.completions || [])
+          }));
+          setHabits(habitsWithXP);
         }
         hasLoadedRef.current = true;
       } finally {
@@ -216,26 +257,7 @@ export const useHabits = (user?: User | null) => {
         bestStreak = Math.max(bestStreak, currentStreak);
         
         // Calculate XP: Base reward + streak bonus
-        const totalXP = newCompletions.reduce((acc, c) => {
-          return acc + XP_PER_RITUAL;
-        }, 0);
-
-        let streakBonusXP = 0;
-        if (sortedCompletions.length > 0) {
-          let tempStreak = 1;
-          for (let i = 1; i < sortedCompletions.length; i++) {
-            const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i-1]);
-            if (diff === 1) {
-              tempStreak++;
-              const bonus = Math.min(tempStreak * STREAK_XP_BONUS, MAX_STREAK_BONUS);
-              streakBonusXP += bonus;
-            } else {
-              tempStreak = 1;
-            }
-          }
-        }
-
-        const finalXP = totalXP + streakBonusXP;
+        const finalXP = calculateHabitXP(newCompletions);
 
         if (user) {
           supabase.from('habits')
