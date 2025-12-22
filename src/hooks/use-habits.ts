@@ -10,7 +10,7 @@ import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-sy
 const HABITS_STORAGE_KEY = 'taskQuestHabits';
 const SAVE_DEBOUNCE_MS = 500;
 
-const calculateHabitXP = (completions: { completedAt: string }[]) => {
+const calculateHabitXP = (completions: { completedAt: string }[], frequency: Habit['frequency'] = 'daily') => {
   const sortedCompletions = [...completions]
     .map(c => startOfDay(parseISO(c.completedAt)))
     .sort((a, b) => a.getTime() - b.getTime());
@@ -20,9 +20,13 @@ const calculateHabitXP = (completions: { completedAt: string }[]) => {
   let streakBonusXP = 0;
   if (sortedCompletions.length > 0) {
     let tempStreak = 1;
+    const maxGap = frequency === 'every_2_days' ? 2 : 
+                   frequency === 'every_3_days' ? 3 : 
+                   frequency === 'every_4_days' ? 4 : 1;
+
     for (let i = 1; i < sortedCompletions.length; i++) {
       const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i-1]);
-      if (diff === 1) {
+      if (diff <= maxGap) {
         tempStreak++;
         const bonus = Math.min(tempStreak * STREAK_XP_BONUS, MAX_STREAK_BONUS);
         streakBonusXP += bonus;
@@ -93,7 +97,7 @@ export const useHabits = (user?: User | null) => {
               icon: dbHabit.icon,
               createdAt: dbHabit.created_at,
               completions,
-              xp: calculateHabitXP(completions),
+              xp: calculateHabitXP(completions, dbHabit.frequency),
             };
           });
 
@@ -106,7 +110,7 @@ export const useHabits = (user?: User | null) => {
             // Ensure XP is calculated for local habits too
             const habitsWithXP = parsedHabits.map(habit => ({
               ...habit,
-              xp: calculateHabitXP(habit.completions || [])
+              xp: calculateHabitXP(habit.completions || [], habit.frequency)
             }));
             setHabits(habitsWithXP);
           }
@@ -119,7 +123,7 @@ export const useHabits = (user?: User | null) => {
           const parsedHabits: Habit[] = JSON.parse(storedHabits);
           const habitsWithXP = parsedHabits.map(habit => ({
             ...habit,
-            xp: calculateHabitXP(habit.completions || [])
+            xp: calculateHabitXP(habit.completions || [], habit.frequency)
           }));
           setHabits(habitsWithXP);
         }
@@ -240,14 +244,17 @@ export const useHabits = (user?: User | null) => {
 
         if (sortedCompletions.length > 0) {
           const lastCompletion = sortedCompletions[sortedCompletions.length - 1];
+          const maxGap = habit.frequency === 'every_2_days' ? 2 : 
+                         habit.frequency === 'every_3_days' ? 3 : 
+                         habit.frequency === 'every_4_days' ? 4 : 1;
           
-          if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
+          if (differenceInCalendarDays(new Date(), lastCompletion) <= maxGap) {
             currentStreak = 1;
             for (let i = sortedCompletions.length - 2; i >= 0; i--) {
               const diff = differenceInCalendarDays(sortedCompletions[i+1], sortedCompletions[i]);
-              if (diff === 1) {
+              if (diff <= maxGap) {
                 currentStreak++;
-              } else if (diff > 1) {
+              } else {
                 break;
               }
             }
@@ -257,7 +264,7 @@ export const useHabits = (user?: User | null) => {
         bestStreak = Math.max(bestStreak, currentStreak);
         
         // Calculate XP: Base reward + streak bonus
-        const finalXP = calculateHabitXP(newCompletions);
+        const finalXP = calculateHabitXP(newCompletions, habit.frequency);
 
         if (user) {
           supabase.from('habits')

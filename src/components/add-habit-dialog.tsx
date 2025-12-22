@@ -29,7 +29,7 @@ const COLORS = [
 export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days'>('daily');
   const [targetDays, setTargetDays] = useState("7");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState("");
@@ -124,6 +124,10 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
                     <SelectItem value="daily" className="font-bold text-xs">Daily</SelectItem>
                     <SelectItem value="weekly" className="font-bold text-xs">Weekly</SelectItem>
                     <SelectItem value="monthly" className="font-bold text-xs">Monthly</SelectItem>
+                    <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#64748B]/50">Interval</div>
+                    <SelectItem value="every_2_days" className="font-bold text-xs">Every 2nd Day</SelectItem>
+                    <SelectItem value="every_3_days" className="font-bold text-xs">Every 3rd Day</SelectItem>
+                    <SelectItem value="every_4_days" className="font-bold text-xs">Every 4th Day</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

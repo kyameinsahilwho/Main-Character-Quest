@@ -30,6 +30,7 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   const dailyHabits = habits.filter(h => h.frequency === 'daily');
   const weeklyHabits = habits.filter(h => h.frequency === 'weekly');
   const monthlyHabits = habits.filter(h => h.frequency === 'monthly');
+  const customHabits = habits.filter(h => ['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency));
 
   const renderHabitList = (title: string, habitsList: Habit[]) => {
     if (habitsList.length === 0) return null;
@@ -74,6 +75,7 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
         {habits.length > 0 ? (
           <>
             {renderHabitList("Daily", dailyHabits)}
+            {renderHabitList("Interval", customHabits)}
             {renderHabitList("Weekly", weeklyHabits)}
             {renderHabitList("Monthly", monthlyHabits)}
           </>

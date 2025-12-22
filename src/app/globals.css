@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Emoji Mart Custom Styles - Performance Optimized */
+.emoji-picker-container {
+  width: 320px;
+  min-width: 280px;
+  height: 350px;
+  background: white;
+  border: 2px solid #CBD5E1;
+  border-bottom-width: 8px;
+  border-radius: 2rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  contain: layout style paint;
+}
+
+.emoji-picker-container em-emoji-picker {
+  --border-radius: 0;
+  --category-icon-size: 0;
+  --font-family: inherit;
+  --font-size: 14px;
+  --rgb-accent: 99, 102, 241;
+  --rgb-background: 255, 255, 255;
+  --rgb-color: 30, 41, 59;
+  --rgb-input: 241, 244, 249;
+  --shadow: none;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -91,6 +120,26 @@
 }
 
 @layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #CBD5E1;
+  }
+  .custom-scrollbar {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #E2E8F0 transparent;
+  }
+
   .three-d-shadow {
     box-shadow: 
       0 1px 0 0 rgba(255, 255, 255, 0.4) inset,

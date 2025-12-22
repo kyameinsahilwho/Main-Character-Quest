@@ -17,7 +17,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
   
   // Frequency-aware completion calculation
   const getCompletionRate = () => {
-    if (habit.frequency === 'daily') {
+    if (habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
       return Math.min(100, Math.round((habit.currentStreak / habit.targetDays) * 100));
     }
     
@@ -89,13 +89,13 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           <div className="flex items-center gap-3 text-orange-500">
             <Flame className="w-6 h-6 fill-orange-500" />
             <span className="text-xs font-black uppercase tracking-widest">
-              {habit.frequency === 'daily' ? 'Current Streak' : `${habit.frequency} Progress`}
+              {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? 'Current Streak' : `${habit.frequency} Progress`}
             </span>
           </div>
           <div className="text-5xl font-black text-[#1E293B]">
-            {habit.frequency === 'daily' ? habit.currentStreak : `${getCompletionRate()}%`}
+            {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? habit.currentStreak : `${getCompletionRate()}%`}
             <span className="text-xl text-gray-300 uppercase ml-2">
-              {habit.frequency === 'daily' ? 'Days' : 'Done'}
+              {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? 'Days' : 'Done'}
             </span>
           </div>
         </div>

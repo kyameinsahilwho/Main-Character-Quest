@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed } from "lucide-react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { format, isToday, parseISO, eachDayOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays } from "date-fns";
 import { EditHabitDialog } from "./edit-habit-dialog";
 import confetti from 'canvas-confetti';
 import { playCompletionSound } from "@/lib/sounds";
@@ -28,6 +28,32 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
     end: endOfWeek(new Date(), { weekStartsOn: 0 }),
   });
 
+  const getCustomDays = () => {
+    const startDate = startOfDay(parseISO(habit.createdAt));
+    const today = startOfDay(new Date());
+    
+    let interval = 1;
+    if (habit.frequency === 'every_2_days') interval = 2;
+    else if (habit.frequency === 'every_3_days') interval = 3;
+    else if (habit.frequency === 'every_4_days') interval = 4;
+    else return currentWeek;
+
+    const diffDays = differenceInCalendarDays(today, startDate);
+    const currentOccurrenceIndex = Math.max(0, Math.floor(diffDays / interval));
+    
+    const occurrences: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const occurrenceDate = new Date(startDate);
+      occurrenceDate.setDate(startDate.getDate() + (currentOccurrenceIndex + i) * interval);
+      occurrences.push(occurrenceDate);
+    }
+    return occurrences;
+  };
+
+  const displayDays = ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency) 
+    ? getCustomDays() 
+    : currentWeek;
+
   // Frequency-aware status
   const now = new Date();
   const periodCompletions = habit.completions.filter(c => {
@@ -43,18 +69,30 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
 
   const isPeriodTargetMet = periodCompletions >= habit.targetDays;
 
-  const getCompletionsForPeriod = (date: Date, frequency: 'weekly' | 'monthly') => {
+  const getFrequencyLabel = (freq: Habit['frequency']) => {
+    switch (freq) {
+      case 'daily': return 'Daily';
+      case 'weekly': return 'Weekly';
+      case 'monthly': return 'Monthly';
+      case 'every_2_days': return 'Every 2nd Day';
+      case 'every_3_days': return 'Every 3rd Day';
+      case 'every_4_days': return 'Every 4th Day';
+      default: return freq;
+    }
+  };
+
+  const getCompletionsForPeriod = (date: Date, frequency: Habit['frequency']) => {
     return habit.completions.filter(c => {
       const completionDate = parseISO(c.completedAt);
-      return frequency === 'weekly' 
-        ? isSameWeek(completionDate, date, { weekStartsOn: 0 })
-        : isSameMonth(completionDate, date);
+      if (frequency === 'weekly') return isSameWeek(completionDate, date, { weekStartsOn: 0 });
+      if (frequency === 'monthly') return isSameMonth(completionDate, date);
+      return false;
     }).length;
   };
 
-  const periods = habit.frequency === 'daily' ? [] : Array.from({ length: 4 }).map((_, i) => {
+  const periods = (habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? [] : Array.from({ length: 4 }).map((_, i) => {
     const date = habit.frequency === 'weekly' ? subWeeks(now, i) : subMonths(now, i);
-    const completions = getCompletionsForPeriod(date, habit.frequency as 'weekly' | 'monthly');
+    const completions = getCompletionsForPeriod(date, habit.frequency);
     const isTargetMet = completions >= habit.targetDays;
     const label = habit.frequency === 'weekly' ? `W${4-i}` : format(date, 'MMM');
     return { date, completions, isTargetMet, label, isCurrent: i === 0 };
@@ -207,13 +245,17 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                   {habit.currentStreak} day streak
                 </span>
               </div>
+              <div className="h-1 w-1 rounded-full bg-gray-300" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                {getFrequencyLabel(habit.frequency)}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-          {habit.frequency === 'daily' ? (
-            currentWeek.map((date, i) => {
+          {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? (
+            displayDays.map((date, i) => {
               const completed = isCompletedOnDate(date);
               const today = isToday(date);
               const isFuture = date > new Date();

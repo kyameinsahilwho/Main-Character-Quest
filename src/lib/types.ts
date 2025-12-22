@@ -30,7 +30,7 @@ export interface Habit {
   id: string;
   title: string;
   description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days';
   targetDays: number;
   currentStreak: number;
   bestStreak: number;
@@ -58,7 +58,7 @@ export interface DbHabit {
   user_id: string;
   title: string;
   description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days';
   target_days: number;
   current_streak: number;
   best_streak: number;
