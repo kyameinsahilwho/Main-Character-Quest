@@ -21,6 +21,7 @@ interface HabitTrackerProps {
 
 export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit, onDeleteHabit }: HabitTrackerProps) {
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const selectedHabit = habits.find(h => h.id === selectedHabitId);
 
@@ -35,13 +36,21 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   const weeklyHabits = habits.filter(h => h.frequency === 'weekly');
   const monthlyHabits = habits.filter(h => h.frequency === 'monthly');
   
-  const intervalHabits = habits.filter(h => 
-    ['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)
-  );
+  const intervalHabits = habits.filter(h => {
+    if (!['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)) return false;
+    if (showAll) return true;
+    
+    const interval = parseInt(h.frequency.split('_')[1]);
+    const startDate = startOfDay(parseISO(h.createdAt));
+    const diffDays = differenceInCalendarDays(startOfDay(today), startDate);
+    return diffDays >= 0 && diffDays % interval === 0;
+  });
 
-  const specificDayHabits = habits.filter(h => 
-    h.frequency === 'specific_days' && h.customDays?.includes(dayOfWeek)
-  );
+  const specificDayHabits = habits.filter(h => {
+    if (h.frequency !== 'specific_days') return false;
+    if (showAll) return true;
+    return h.customDays?.includes(dayOfWeek);
+  });
 
   const isAnyHabitVisible = dailyHabits.length > 0 || 
                             specificDayHabits.length > 0 || 
@@ -84,6 +93,29 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black font-headline text-[#334155] uppercase tracking-[0.2em] flex items-center gap-4 flex-1">
           <span className="px-4 py-2 rounded-xl bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] text-[#1E293B]">My Rituals</span>
+          
+          <div 
+            onClick={() => setShowAll(!showAll)}
+            className="flex items-center bg-[#F1F4F9] p-1.5 rounded-xl border-2 border-[#E2E8F0] gap-1 cursor-pointer select-none"
+          >
+            <div
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-150",
+                !showAll ? "text-[#1E293B] bg-white border-2 border-b-4 border-[#E2E8F0] shadow-sm" : "text-[#64748B]"
+              )}
+            >
+              Today
+            </div>
+            <div
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-150",
+                showAll ? "text-[#1E293B] bg-white border-2 border-b-4 border-[#E2E8F0] shadow-sm" : "text-[#64748B]"
+              )}
+            >
+              All
+            </div>
+          </div>
+
           <div className="h-1 flex-1 bg-[#E2E8F0]" />
         </h2>
       </div>
