@@ -35,13 +35,9 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   const weeklyHabits = habits.filter(h => h.frequency === 'weekly');
   const monthlyHabits = habits.filter(h => h.frequency === 'monthly');
   
-  const intervalHabits = habits.filter(h => {
-    if (!['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)) return false;
-    const interval = parseInt(h.frequency.split('_')[1]);
-    const startDate = startOfDay(parseISO(h.createdAt));
-    const diffDays = differenceInCalendarDays(startOfDay(today), startDate);
-    return diffDays >= 0 && diffDays % interval === 0;
-  });
+  const intervalHabits = habits.filter(h => 
+    ['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)
+  );
 
   const specificDayHabits = habits.filter(h => 
     h.frequency === 'specific_days' && h.customDays?.includes(dayOfWeek)

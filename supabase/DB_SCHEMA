@@ -1,6 +1,32 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.habit_completions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  habit_id uuid,
+  user_id uuid,
+  completed_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT habit_completions_pkey PRIMARY KEY (id),
+  CONSTRAINT habit_completions_habit_id_fkey FOREIGN KEY (habit_id) REFERENCES public.habits(id),
+  CONSTRAINT habit_completions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.habits (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  title text NOT NULL,
+  description text,
+  frequency text DEFAULT 'daily'::text,
+  current_streak integer DEFAULT 0,
+  best_streak integer DEFAULT 0,
+  color text,
+  icon text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  custom_days ARRAY,
+  CONSTRAINT habits_pkey PRIMARY KEY (id),
+  CONSTRAINT habits_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.projects (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
