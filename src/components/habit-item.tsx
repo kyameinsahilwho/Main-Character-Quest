@@ -28,31 +28,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
     end: endOfWeek(new Date(), { weekStartsOn: 0 }),
   });
 
-  const getCustomDays = () => {
-    const startDate = startOfDay(parseISO(habit.createdAt));
-    const today = startOfDay(new Date());
-    
-    let interval = 1;
-    if (habit.frequency === 'every_2_days') interval = 2;
-    else if (habit.frequency === 'every_3_days') interval = 3;
-    else if (habit.frequency === 'every_4_days') interval = 4;
-    else return currentWeek;
-
-    const diffDays = differenceInCalendarDays(today, startDate);
-    const currentOccurrenceIndex = Math.max(0, Math.floor(diffDays / interval));
-    
-    const occurrences: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const occurrenceDate = new Date(startDate);
-      occurrenceDate.setDate(startDate.getDate() + (currentOccurrenceIndex + i) * interval);
-      occurrences.push(occurrenceDate);
-    }
-    return occurrences;
-  };
-
-  const displayDays = ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency) 
-    ? getCustomDays() 
-    : currentWeek;
+  const displayDays = currentWeek;
 
   // Frequency-aware status
   const now = new Date();
@@ -66,8 +42,6 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
   const isCompletedToday = habit.completions.some(c => 
     isToday(parseISO(c.completedAt))
   );
-
-  const isPeriodTargetMet = periodCompletions >= habit.targetDays;
 
   const getFrequencyLabel = (freq: Habit['frequency']) => {
     switch (freq) {
@@ -94,9 +68,8 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
   const periods = (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? [] : Array.from({ length: 4 }).map((_, i) => {
     const date = habit.frequency === 'weekly' ? subWeeks(now, i) : subMonths(now, i);
     const completions = getCompletionsForPeriod(date, habit.frequency);
-    const isTargetMet = completions >= habit.targetDays;
     const label = habit.frequency === 'weekly' ? `W${4-i}` : format(date, 'MMM');
-    return { date, completions, isTargetMet, label, isCurrent: i === 0 };
+    return { date, completions, label, isCurrent: i === 0 };
   }).reverse();
 
   const getHabitCardAesthetics = (colorStr?: string) => {
@@ -260,16 +233,25 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
               const completed = isCompletedOnDate(date);
               const today = isToday(date);
               const isFuture = date > new Date();
-              const isDayEnabled = habit.frequency === 'specific_days' 
-                ? habit.customDays?.includes(date.getDay()) 
-                : true;
+              
+              let isDayEnabled = true;
+              if (habit.frequency === 'specific_days') {
+                isDayEnabled = habit.customDays?.includes(date.getDay()) ?? false;
+              } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+                const interval = parseInt(habit.frequency.split('_')[1]);
+                const startDate = startOfDay(parseISO(habit.createdAt));
+                const diffDays = differenceInCalendarDays(startOfDay(date), startDate);
+                isDayEnabled = diffDays >= 0 && diffDays % interval === 0;
+              }
 
               return (
-                <div key={i} className="flex flex-col items-center gap-1.5 min-w-[40px] md:min-w-[48px]">
+                <div key={i} className={cn(
+                  "flex flex-col items-center gap-1.5 min-w-[40px] md:min-w-[48px]",
+                  !isDayEnabled && "opacity-0 pointer-events-none"
+                )}>
                   <span className={cn(
                     "text-[10px] font-black uppercase tracking-tighter transition-colors",
-                    today ? themeColors.text : "text-gray-300",
-                    !isDayEnabled && "opacity-30"
+                    today ? themeColors.text : "text-gray-300"
                   )}>
                     {format(date, 'EEE')}
                   </span>
@@ -318,7 +300,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                     className={cn(
                       "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
                       !period.isCurrent && "opacity-40 cursor-default",
-                      period.isTargetMet 
+                      period.completions > 0 
                         ? `${aesthetics.checkbox} text-white`
                         : cn(
                             "bg-white",
@@ -328,10 +310,8 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                       period.isCurrent && "active:translate-y-0.5 cursor-pointer"
                     )}
                   >
-                    {period.isTargetMet ? (
+                    {period.completions > 0 ? (
                       <Check className="w-5 h-5 md:w-6 md:h-6 text-white stroke-[4]" />
-                    ) : period.completions > 0 ? (
-                      <Check className={cn("w-5 h-5 md:w-6 md:h-6 stroke-[4]", themeColors.text)} />
                     ) : period.isCurrent ? (
                       <div className={cn("w-2 h-2 rounded-full animate-pulse", themeColors.text.replace('text-', 'bg-'))} />
                     ) : null}

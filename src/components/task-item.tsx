@@ -62,7 +62,8 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         setTimeout(() => {
           setCelebrating(true);
           playBigCompletionSound();
-        }, 200);
+          setIsAnimating(false);
+        }, 600);
     }
   }, [task.id, onToggleSubtask, setCelebrating]);
 
@@ -82,7 +83,7 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         setCelebrating(true);
         onToggle(task.id);
         setIsAnimating(false);
-      }, 200);
+      }, 600);
     } else {
       onToggle(task.id);
     }

@@ -4,7 +4,8 @@ import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
 import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed } from "lucide-react";
 import { Calendar } from "./ui/calendar";
-import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth } from "date-fns";
+import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth, eachDayOfInterval, startOfYear, endOfYear, isSameDay, eachWeekOfInterval, eachMonthOfInterval, differenceInCalendarDays, format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface RitualStatsProps {
   habit: Habit;
@@ -15,23 +16,6 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
   // Calculate stats
   const completionDates = habit.completions.map(c => startOfDay(parseISO(c.completedAt)));
   
-  // Frequency-aware completion calculation
-  const getCompletionRate = () => {
-    if (habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
-      return Math.min(100, Math.round((habit.currentStreak / habit.targetDays) * 100));
-    }
-    
-    const now = new Date();
-    const currentPeriodCompletions = habit.completions.filter(c => {
-      const date = parseISO(c.completedAt);
-      return habit.frequency === 'weekly' 
-        ? isSameWeek(date, now, { weekStartsOn: 0 })
-        : isSameMonth(date, now);
-    }).length;
-
-    return Math.min(100, Math.round((currentPeriodCompletions / habit.targetDays) * 100));
-  };
-
   const getTotalCompletions = () => habit.completions.length;
 
   const getHabitAccentColorHex = (colorStr?: string) => {
@@ -89,13 +73,13 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           <div className="flex items-center gap-3 text-orange-500">
             <Flame className="w-6 h-6 fill-orange-500" />
             <span className="text-xs font-black uppercase tracking-widest">
-              {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? 'Current Streak' : `${habit.frequency} Progress`}
+              Current Streak
             </span>
           </div>
           <div className="text-5xl font-black text-[#1E293B]">
-            {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? habit.currentStreak : `${getCompletionRate()}%`}
+            {habit.currentStreak}
             <span className="text-xl text-gray-300 uppercase ml-2">
-              {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? 'Days' : 'Done'}
+              Days
             </span>
           </div>
         </div>
@@ -121,6 +105,102 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
              </div>
         </div>
       </div>
+
+      {/* Grid Section */}
+      {habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency) ? (
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
+          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+              <Trophy className="w-4 h-4 text-[#1E293B]" />
+            </div>
+            Yearly Progress
+          </h3>
+          <div className="flex flex-wrap gap-1 justify-center">
+            {eachDayOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }).map((day, i) => {
+              const isCompleted = completionDates.some(d => isSameDay(d, day));
+              let isScheduled = true;
+              if (habit.frequency === 'specific_days') {
+                isScheduled = habit.customDays?.includes(day.getDay()) ?? false;
+              } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+                const interval = parseInt(habit.frequency.split('_')[1]);
+                const startDate = startOfDay(parseISO(habit.createdAt));
+                const diffDays = differenceInCalendarDays(startOfDay(day), startDate);
+                isScheduled = diffDays >= 0 && diffDays % interval === 0;
+              }
+
+              return (
+                <div
+                  key={i}
+                  title={format(day, 'MMM d, yyyy')}
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-[2px] transition-all duration-200",
+                    isCompleted 
+                      ? "bg-[#58cc02] shadow-[0_0_8px_rgba(88,204,2,0.4)]" 
+                      : isScheduled 
+                        ? "bg-[#F1F4F9] border border-[#E2E8F0]" 
+                        : "bg-gray-100/20"
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : habit.frequency === 'weekly' ? (
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
+          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+              <Trophy className="w-4 h-4 text-[#1E293B]" />
+            </div>
+            Weekly Progress
+          </h3>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {eachWeekOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }, { weekStartsOn: 0 }).map((week, i) => {
+              const isCompleted = habit.completions.some(c => isSameWeek(parseISO(c.completedAt), week, { weekStartsOn: 0 }));
+              return (
+                <div
+                  key={i}
+                  title={`Week of ${format(week, 'MMM d')}`}
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all duration-200 border-2",
+                    isCompleted 
+                      ? "bg-[#58cc02] border-[#46a302] text-white shadow-md" 
+                      : "bg-[#F1F4F9] border-[#E2E8F0] text-gray-300"
+                  )}
+                >
+                  {i + 1}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : habit.frequency === 'monthly' ? (
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
+          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+              <Trophy className="w-4 h-4 text-[#1E293B]" />
+            </div>
+            Monthly Progress
+          </h3>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+            {eachMonthOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }).map((month, i) => {
+              const isCompleted = habit.completions.some(c => isSameMonth(parseISO(c.completedAt), month));
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200",
+                    isCompleted 
+                      ? "bg-[#58cc02] border-[#46a302] text-white shadow-md" 
+                      : "bg-[#F1F4F9] border-[#E2E8F0] text-gray-400"
+                  )}
+                >
+                  <span className="text-xs font-black uppercase tracking-widest">{format(month, 'MMM')}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* Calendar Section */}
       <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
@@ -153,6 +233,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
               day_selected: "rounded-full border-2 shadow-sm opacity-100 hover:opacity-100",
               head_cell: "text-[#64748B]/60 font-black uppercase tracking-widest text-[10px]",
               nav_button: "border-2 border-b-4 border-[#E2E8F0] hover:bg-[#F1F4F9] text-[#1E293B] rounded-xl transition-all",
+              cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-transparent",
             }}
             modifiers={modifiers}
             modifiersStyles={modifiersStyles}

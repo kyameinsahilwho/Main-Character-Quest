@@ -31,7 +31,6 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(habit.title);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days'>(habit.frequency);
-  const [targetDays, setTargetDays] = useState(habit.targetDays.toString());
   const [selectedColor, setSelectedColor] = useState(habit.color || COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState(habit.icon || "");
   const [customDays, setCustomDays] = useState<number[]>(habit.customDays || []);
@@ -40,7 +39,6 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
   useEffect(() => {
     setTitle(habit.title);
     setFrequency(habit.frequency);
-    setTargetDays(habit.targetDays.toString());
     setSelectedColor(habit.color || COLORS[0]);
     setSelectedIcon(habit.icon || "");
     setCustomDays(habit.customDays || []);
@@ -53,7 +51,6 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
     onUpdateHabit(habit.id, {
       title,
       frequency,
-      targetDays: frequency === 'specific_days' ? customDays.length : parseInt(targetDays),
       customDays: frequency === 'specific_days' ? customDays : undefined,
       color: selectedColor,
       icon: selectedIcon,
@@ -131,7 +128,7 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1">
               <div className="space-y-2">
                 <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Frequency</Label>
                 <Select value={frequency} onValueChange={(v: any) => setFrequency(v)}>
@@ -150,19 +147,6 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
                   </SelectContent>
                 </Select>
               </div>
-              {frequency !== 'specific_days' && (
-                <div className="space-y-2">
-                  <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Target Days</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
-                    value={targetDays}
-                    onChange={(e) => setTargetDays(e.target.value)}
-                    className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus-visible:border-[#CBD5E1] focus-visible:ring-0 w-full"
-                  />
-                </div>
-              )}
             </div>
 
             {frequency === 'specific_days' && (

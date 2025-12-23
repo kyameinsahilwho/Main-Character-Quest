@@ -32,7 +32,6 @@ export interface Habit {
   description?: string;
   frequency: 'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days';
   customDays?: number[];
-  targetDays: number;
   currentStreak: number;
   bestStreak: number;
   xp?: number;
@@ -61,7 +60,6 @@ export interface DbHabit {
   description?: string;
   frequency: 'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days';
   custom_days?: number[];
-  target_days: number;
   current_streak: number;
   best_streak: number;
   color?: string;

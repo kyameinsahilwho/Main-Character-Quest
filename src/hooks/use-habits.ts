@@ -109,7 +109,6 @@ export const useHabits = (user?: User | null) => {
               title: dbHabit.title,
               description: dbHabit.description,
               frequency: dbHabit.frequency,
-              targetDays: dbHabit.target_days,
               currentStreak: dbHabit.current_streak,
               bestStreak: dbHabit.best_streak,
               color: dbHabit.color,
@@ -196,7 +195,6 @@ export const useHabits = (user?: User | null) => {
             title: newHabit.title,
             description: newHabit.description,
             frequency: newHabit.frequency,
-            target_days: newHabit.targetDays,
             current_streak: newHabit.currentStreak,
             best_streak: newHabit.bestStreak,
             color: newHabit.color,
@@ -330,7 +328,6 @@ export const useHabits = (user?: User | null) => {
         if (updates.title !== undefined) dbUpdates.title = updates.title;
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
-        if (updates.targetDays !== undefined) dbUpdates.target_days = updates.targetDays;
         if (updates.color !== undefined) dbUpdates.color = updates.color;
         if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
         if (updates.customDays !== undefined) dbUpdates.custom_days = updates.customDays;

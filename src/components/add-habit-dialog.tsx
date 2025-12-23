@@ -30,7 +30,6 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days'>('daily');
-  const [targetDays, setTargetDays] = useState("7");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState("");
   const [customDays, setCustomDays] = useState<number[]>([]);
@@ -42,7 +41,6 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
     onAddHabit({
       title,
       frequency,
-      targetDays: frequency === 'specific_days' ? customDays.length : parseInt(targetDays),
       customDays: frequency === 'specific_days' ? customDays : undefined,
       color: selectedColor,
       icon: selectedIcon,
@@ -50,7 +48,6 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
 
     setTitle("");
     setFrequency('daily');
-    setTargetDays("7");
     setSelectedIcon("");
     setCustomDays([]);
     setOpen(false);
@@ -126,7 +123,7 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1">
               <div className="space-y-2">
                 <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Frequency</Label>
                 <Select value={frequency} onValueChange={(v: any) => setFrequency(v)}>
@@ -145,19 +142,6 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
                   </SelectContent>
                 </Select>
               </div>
-              {frequency !== 'specific_days' && (
-                <div className="space-y-2">
-                  <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Target Days</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
-                    value={targetDays}
-                    onChange={(e) => setTargetDays(e.target.value)}
-                    className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus-visible:border-[#CBD5E1] focus-visible:ring-0 w-full"
-                  />
-                </div>
-              )}
             </div>
 
             {frequency === 'specific_days' && (

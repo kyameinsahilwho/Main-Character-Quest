@@ -9,6 +9,7 @@ import { Plus, Flame, Target, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { RitualStats } from "./ritual-stats";
+import { startOfDay, parseISO, differenceInCalendarDays } from "date-fns";
 
 interface HabitTrackerProps {
   habits: Habit[];
@@ -27,11 +28,30 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
     return <RitualStats habit={selectedHabit} onBack={() => setSelectedHabitId(null)} />;
   }
 
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+
   const dailyHabits = habits.filter(h => h.frequency === 'daily');
   const weeklyHabits = habits.filter(h => h.frequency === 'weekly');
   const monthlyHabits = habits.filter(h => h.frequency === 'monthly');
-  const intervalHabits = habits.filter(h => ['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency));
-  const specificDayHabits = habits.filter(h => h.frequency === 'specific_days');
+  
+  const intervalHabits = habits.filter(h => {
+    if (!['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)) return false;
+    const interval = parseInt(h.frequency.split('_')[1]);
+    const startDate = startOfDay(parseISO(h.createdAt));
+    const diffDays = differenceInCalendarDays(startOfDay(today), startDate);
+    return diffDays >= 0 && diffDays % interval === 0;
+  });
+
+  const specificDayHabits = habits.filter(h => 
+    h.frequency === 'specific_days' && h.customDays?.includes(dayOfWeek)
+  );
+
+  const isAnyHabitVisible = dailyHabits.length > 0 || 
+                            specificDayHabits.length > 0 || 
+                            intervalHabits.length > 0 || 
+                            weeklyHabits.length > 0 || 
+                            monthlyHabits.length > 0;
 
   const renderHabitList = (title: string, habitsList: Habit[]) => {
     if (habitsList.length === 0) return null;
@@ -74,13 +94,29 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
 
       <div className="flex flex-col gap-12">
         {habits.length > 0 ? (
-          <>
-            {renderHabitList("Daily", dailyHabits)}
-            {renderHabitList("Custom Schedule", specificDayHabits)}
-            {renderHabitList("Interval", intervalHabits)}
-            {renderHabitList("Weekly", weeklyHabits)}
-            {renderHabitList("Monthly", monthlyHabits)}
-          </>
+          isAnyHabitVisible ? (
+            <>
+              {renderHabitList("Daily", dailyHabits)}
+              {renderHabitList("Custom Schedule", specificDayHabits)}
+              {renderHabitList("Interval", intervalHabits)}
+              {renderHabitList("Weekly", weeklyHabits)}
+              {renderHabitList("Monthly", monthlyHabits)}
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-20 max-w-md mx-auto flex flex-col items-center justify-center text-center gap-6 bg-[#F1F4F9]/30 rounded-[3rem] border-2 border-b-8 border-dashed border-[#E2E8F0]"
+            >
+              <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-b-4 border-[#E2E8F0] shadow-inner">
+                <Flame className="w-10 h-10 text-[#CBD5E1]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight">Rest Day!</h3>
+                <p className="text-[#64748B]/60 font-medium">No rituals scheduled for today. Enjoy your break!</p>
+              </div>
+            </motion.div>
+          )
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
