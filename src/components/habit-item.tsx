@@ -77,6 +77,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
       case 'every_2_days': return 'Every 2nd Day';
       case 'every_3_days': return 'Every 3rd Day';
       case 'every_4_days': return 'Every 4th Day';
+      case 'specific_days': return 'Custom Schedule';
       default: return freq;
     }
   };
@@ -90,7 +91,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
     }).length;
   };
 
-  const periods = (habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? [] : Array.from({ length: 4 }).map((_, i) => {
+  const periods = (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? [] : Array.from({ length: 4 }).map((_, i) => {
     const date = habit.frequency === 'weekly' ? subWeeks(now, i) : subMonths(now, i);
     const completions = getCompletionsForPeriod(date, habit.frequency);
     const isTargetMet = completions >= habit.targetDays;
@@ -254,29 +255,33 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
         </div>
 
         <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-          {(habit.frequency === 'daily' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? (
+          {(habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? (
             displayDays.map((date, i) => {
               const completed = isCompletedOnDate(date);
               const today = isToday(date);
               const isFuture = date > new Date();
+              const isDayEnabled = habit.frequency === 'specific_days' 
+                ? habit.customDays?.includes(date.getDay()) 
+                : true;
 
               return (
                 <div key={i} className="flex flex-col items-center gap-1.5 min-w-[40px] md:min-w-[48px]">
                   <span className={cn(
                     "text-[10px] font-black uppercase tracking-tighter transition-colors",
-                    today ? themeColors.text : "text-gray-300"
+                    today ? themeColors.text : "text-gray-300",
+                    !isDayEnabled && "opacity-30"
                   )}>
                     {format(date, 'EEE')}
                   </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isFuture) handleToggle(habit.id, date.toISOString(), e);
+                      if (!isFuture && isDayEnabled) handleToggle(habit.id, date.toISOString(), e);
                     }}
-                    disabled={isFuture}
+                    disabled={isFuture || !isDayEnabled}
                     className={cn(
                       "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
-                      isFuture ? "opacity-10 cursor-not-allowed border-gray-100" : "cursor-pointer active:translate-y-0.5",
+                      (isFuture || !isDayEnabled) ? "opacity-10 cursor-not-allowed border-gray-100" : "cursor-pointer active:translate-y-0.5",
                       completed 
                         ? `${aesthetics.checkbox} text-white`
                         : cn(
@@ -288,7 +293,7 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                   >
                     {completed ? (
                       <Check className="w-5 h-5 md:w-6 md:h-6 text-white stroke-[4]" />
-                    ) : today ? (
+                    ) : today && isDayEnabled ? (
                       <div className={cn("w-2 h-2 rounded-full animate-pulse", themeColors.text.replace('text-', 'bg-'))} />
                     ) : null}
                   </button>

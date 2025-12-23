@@ -10,7 +10,28 @@ import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-sy
 const HABITS_STORAGE_KEY = 'taskQuestHabits';
 const SAVE_DEBOUNCE_MS = 500;
 
-const calculateHabitXP = (completions: { completedAt: string }[], frequency: Habit['frequency'] = 'daily') => {
+const calculateMaxGap = (frequency: Habit['frequency'], customDays?: number[]) => {
+  if (frequency === 'every_2_days') return 2;
+  if (frequency === 'every_3_days') return 3;
+  if (frequency === 'every_4_days') return 4;
+  if (frequency === 'weekly') return 7;
+  if (frequency === 'monthly') return 31;
+  
+  if (frequency === 'specific_days' && customDays && customDays.length > 0) {
+    const sortedDays = [...customDays].sort((a, b) => a - b);
+    let maxGap = 0;
+    for (let i = 0; i < sortedDays.length - 1; i++) {
+      maxGap = Math.max(maxGap, sortedDays[i+1] - sortedDays[i]);
+    }
+    // Check wrap around (e.g. Fri(5) to Mon(1) next week)
+    maxGap = Math.max(maxGap, 7 - sortedDays[sortedDays.length - 1] + sortedDays[0]);
+    return maxGap;
+  }
+  
+  return 1; // daily
+};
+
+const calculateHabitXP = (completions: { completedAt: string }[], frequency: Habit['frequency'] = 'daily', customDays?: number[]) => {
   const sortedCompletions = [...completions]
     .map(c => startOfDay(parseISO(c.completedAt)))
     .sort((a, b) => a.getTime() - b.getTime());
@@ -20,9 +41,7 @@ const calculateHabitXP = (completions: { completedAt: string }[], frequency: Hab
   let streakBonusXP = 0;
   if (sortedCompletions.length > 0) {
     let tempStreak = 1;
-    const maxGap = frequency === 'every_2_days' ? 2 : 
-                   frequency === 'every_3_days' ? 3 : 
-                   frequency === 'every_4_days' ? 4 : 1;
+    const maxGap = calculateMaxGap(frequency, customDays);
 
     for (let i = 1; i < sortedCompletions.length; i++) {
       const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i-1]);
@@ -96,8 +115,9 @@ export const useHabits = (user?: User | null) => {
               color: dbHabit.color,
               icon: dbHabit.icon,
               createdAt: dbHabit.created_at,
+              customDays: dbHabit.custom_days,
               completions,
-              xp: calculateHabitXP(completions, dbHabit.frequency),
+              xp: calculateHabitXP(completions, dbHabit.frequency, dbHabit.custom_days),
             };
           });
 
@@ -110,7 +130,7 @@ export const useHabits = (user?: User | null) => {
             // Ensure XP is calculated for local habits too
             const habitsWithXP = parsedHabits.map(habit => ({
               ...habit,
-              xp: calculateHabitXP(habit.completions || [], habit.frequency)
+              xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
             }));
             setHabits(habitsWithXP);
           }
@@ -123,7 +143,7 @@ export const useHabits = (user?: User | null) => {
           const parsedHabits: Habit[] = JSON.parse(storedHabits);
           const habitsWithXP = parsedHabits.map(habit => ({
             ...habit,
-            xp: calculateHabitXP(habit.completions || [], habit.frequency)
+            xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
           }));
           setHabits(habitsWithXP);
         }
@@ -182,6 +202,7 @@ export const useHabits = (user?: User | null) => {
             color: newHabit.color,
             icon: newHabit.icon,
             created_at: newHabit.createdAt,
+            custom_days: newHabit.customDays,
           });
         if (error) throw error;
       } catch (error) {
@@ -244,9 +265,7 @@ export const useHabits = (user?: User | null) => {
 
         if (sortedCompletions.length > 0) {
           const lastCompletion = sortedCompletions[sortedCompletions.length - 1];
-          const maxGap = habit.frequency === 'every_2_days' ? 2 : 
-                         habit.frequency === 'every_3_days' ? 3 : 
-                         habit.frequency === 'every_4_days' ? 4 : 1;
+          const maxGap = calculateMaxGap(habit.frequency, habit.customDays);
           
           if (differenceInCalendarDays(new Date(), lastCompletion) <= maxGap) {
             currentStreak = 1;
@@ -264,7 +283,7 @@ export const useHabits = (user?: User | null) => {
         bestStreak = Math.max(bestStreak, currentStreak);
         
         // Calculate XP: Base reward + streak bonus
-        const finalXP = calculateHabitXP(newCompletions, habit.frequency);
+        const finalXP = calculateHabitXP(newCompletions, habit.frequency, habit.customDays);
 
         if (user) {
           supabase.from('habits')
@@ -314,6 +333,7 @@ export const useHabits = (user?: User | null) => {
         if (updates.targetDays !== undefined) dbUpdates.target_days = updates.targetDays;
         if (updates.color !== undefined) dbUpdates.color = updates.color;
         if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+        if (updates.customDays !== undefined) dbUpdates.custom_days = updates.customDays;
 
         const { error } = await supabase
           .from('habits')

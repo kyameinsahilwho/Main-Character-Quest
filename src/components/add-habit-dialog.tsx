@@ -29,10 +29,11 @@ const COLORS = [
 export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days'>('daily');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days'>('daily');
   const [targetDays, setTargetDays] = useState("7");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState("");
+  const [customDays, setCustomDays] = useState<number[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +42,8 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
     onAddHabit({
       title,
       frequency,
-      targetDays: parseInt(targetDays),
+      targetDays: frequency === 'specific_days' ? customDays.length : parseInt(targetDays),
+      customDays: frequency === 'specific_days' ? customDays : undefined,
       color: selectedColor,
       icon: selectedIcon,
     });
@@ -50,8 +52,19 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
     setFrequency('daily');
     setTargetDays("7");
     setSelectedIcon("");
+    setCustomDays([]);
     setOpen(false);
   };
+
+  const toggleDay = (day: number) => {
+    setCustomDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day].sort()
+    );
+  };
+
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -128,21 +141,47 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
                     <SelectItem value="every_2_days" className="font-bold text-xs">Every 2nd Day</SelectItem>
                     <SelectItem value="every_3_days" className="font-bold text-xs">Every 3rd Day</SelectItem>
                     <SelectItem value="every_4_days" className="font-bold text-xs">Every 4th Day</SelectItem>
+                    <SelectItem value="specific_days" className="font-bold text-xs">Specific Days</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Target Days</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
-                  value={targetDays}
-                  onChange={(e) => setTargetDays(e.target.value)}
-                  className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus-visible:border-[#CBD5E1] focus-visible:ring-0 w-full"
-                />
-              </div>
+              {frequency !== 'specific_days' && (
+                <div className="space-y-2">
+                  <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Target Days</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={frequency === 'daily' ? "7" : frequency === 'weekly' ? "7" : "31"}
+                    value={targetDays}
+                    onChange={(e) => setTargetDays(e.target.value)}
+                    className="bg-white border-2 border-b-4 border-[#E2E8F0] h-11 rounded-lg text-xs font-bold text-[#1E293B] focus-visible:border-[#CBD5E1] focus-visible:ring-0 w-full"
+                  />
+                </div>
+              )}
             </div>
+
+            {frequency === 'specific_days' && (
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Select Days</Label>
+                <div className="flex justify-between gap-1">
+                  {DAYS.map((day, index) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(index)}
+                      className={cn(
+                        "flex-1 h-10 rounded-lg text-xs font-bold border-2 border-b-4 transition-all active:translate-y-[1px] active:border-b-2",
+                        customDays.includes(index)
+                          ? "bg-[#6366f1] border-[#4f46e5] text-white"
+                          : "bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]"
+                      )}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
         </div>
 
