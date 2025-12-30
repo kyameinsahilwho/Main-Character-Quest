@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Folder, Plus, MoreVertical, Trash2, Edit2, ChevronRight } from 'lucide-react';
 import { Project, Task } from '@/lib/types';
 import { Button } from './ui/button';
@@ -51,6 +51,14 @@ export default function ProjectSection({
 }: ProjectSectionProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  // Reset scroll position when switching between project list and project details
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.scrollTop = 0;
+    }
+  }, [selectedProjectId]);
 
   const handleUpdateProject = () => {
     if (editingProject && editingProject.name.trim()) {

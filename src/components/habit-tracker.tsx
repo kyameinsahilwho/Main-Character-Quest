@@ -7,7 +7,7 @@ import { AddHabitDialog } from "./add-habit-dialog";
 import { Button } from "./ui/button";
 import { Plus, Flame, Target, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RitualStats } from "./ritual-stats";
 import { startOfDay, parseISO, differenceInCalendarDays } from "date-fns";
 
@@ -22,6 +22,14 @@ interface HabitTrackerProps {
 export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit, onDeleteHabit }: HabitTrackerProps) {
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+
+  // Reset scroll position when switching between list and stats
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.scrollTop = 0;
+    }
+  }, [selectedHabitId]);
 
   const selectedHabit = habits.find(h => h.id === selectedHabitId);
 

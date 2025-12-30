@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from 'react';
 import { Sword, CheckCircle2, Star, Bot, Clock, Flame, Plus, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/header';
@@ -85,6 +85,14 @@ export default function TaskQuestApp() {
   const [activeTab, setActiveTab] = useState('today');
   const [syncComplete, setSyncComplete] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position when switching tabs
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   // Clear selected project when switching tabs away from projects
   useEffect(() => {
@@ -247,7 +255,7 @@ export default function TaskQuestApp() {
 
 
   return (
-    <div className="flex h-screen w-full flex-col font-body transition-colors duration-500 bg-background">
+    <div className="flex h-[100dvh] w-full flex-col font-body transition-colors duration-500 bg-background">
       {isCelebrating && (
         <Suspense fallback={null}>
           <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />
@@ -388,8 +396,8 @@ export default function TaskQuestApp() {
               </aside>
 
               {/* Main Content Area */}
-              <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth pb-32 md:pb-8">
-                <div className="max-w-4xl mx-auto h-full">
+              <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth pb-40 md:pb-8">
+                <div className="max-w-4xl mx-auto">
                   {/* Action Bar */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <h2 className="text-2xl md:text-3xl font-black font-headline tracking-tight uppercase">
