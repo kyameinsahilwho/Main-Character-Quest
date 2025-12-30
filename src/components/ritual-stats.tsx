@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
 import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed } from "lucide-react";
@@ -14,9 +15,67 @@ interface RitualStatsProps {
 
 export function RitualStats({ habit, onBack }: RitualStatsProps) {
   // Calculate stats
-  const completionDates = habit.completions.map(c => startOfDay(parseISO(c.completedAt)));
+  const completionDates = useMemo(() => 
+    habit.completions.map(c => startOfDay(parseISO(c.completedAt))),
+    [habit.completions]
+  );
   
-  const getTotalCompletions = () => habit.completions.length;
+  const getTotalCompletions = () => habit.totalCompletions ?? habit.completions.length;
+
+  const yearlyStats = useMemo(() => {
+    if (habit.yearlyStats && habit.yearlyStats.year === new Date().getFullYear()) {
+      return habit.yearlyStats;
+    }
+    
+    // Fallback calculation if not stored or wrong year
+    const start = startOfYear(new Date());
+    const end = endOfYear(new Date());
+    
+    let totalExpected = 0;
+    let achieved = 0;
+
+    const completionDateTimes = new Set(completionDates.map(d => d.getTime()));
+
+    if (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+      const days = eachDayOfInterval({ start, end });
+      days.forEach(day => {
+        let isScheduled = true;
+        if (habit.frequency === 'specific_days') {
+          isScheduled = habit.customDays?.includes(day.getDay()) ?? false;
+        } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+          const interval = parseInt(habit.frequency.split('_')[1]);
+          const startDate = startOfDay(parseISO(habit.createdAt));
+          const diffDays = differenceInCalendarDays(startOfDay(day), startDate);
+          isScheduled = diffDays >= 0 && diffDays % interval === 0;
+        }
+        
+        if (isScheduled) {
+          totalExpected++;
+          if (completionDateTimes.has(day.getTime())) {
+            achieved++;
+          }
+        }
+      });
+    } else if (habit.frequency === 'weekly') {
+      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 0 });
+      totalExpected = weeks.length;
+      weeks.forEach(week => {
+        if (habit.completions.some(c => isSameWeek(parseISO(c.completedAt), week, { weekStartsOn: 0 }))) {
+          achieved++;
+        }
+      });
+    } else if (habit.frequency === 'monthly') {
+      const months = eachMonthOfInterval({ start, end });
+      totalExpected = months.length;
+      months.forEach(month => {
+        if (habit.completions.some(c => isSameMonth(parseISO(c.completedAt), month))) {
+          achieved++;
+        }
+      });
+    }
+
+    return { achieved, totalExpected };
+  }, [habit, completionDates]);
 
   const getHabitAccentColorHex = (colorStr?: string) => {
     // Duolingo Blue as default
@@ -77,7 +136,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Streak/Frequency Cards */}
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
           <div className="flex items-center gap-3 text-orange-500">
@@ -95,6 +154,33 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
         </div>
 
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center gap-3 text-yellow-500">
+            <Trophy className="w-6 h-6 fill-yellow-500" />
+            <span className="text-xs font-black uppercase tracking-widest">
+              Best Streak
+            </span>
+          </div>
+          <div className="text-5xl font-black text-[#1E293B]">
+            {habit.bestStreak}
+            <span className="text-xl text-gray-300 uppercase ml-2">
+              Days
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center gap-3 text-blue-500">
+            <Target className="w-6 h-6" />
+            <span className="text-xs font-black uppercase tracking-widest">Yearly Progress</span>
+          </div>
+          <div className="text-5xl font-black text-[#1E293B]">
+            {yearlyStats.achieved}
+            <span className="text-xl text-gray-300 uppercase mx-1">/</span>
+            <span className="text-3xl text-gray-400">{yearlyStats.totalExpected}</span>
+          </div>
+        </div>
+
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
           <div className="flex items-center gap-3 text-[#1E293B]">
             <CheckCircle2 className="w-6 h-6" />
             <span className="text-xs font-black uppercase tracking-widest">Total Achieved</span>
@@ -105,15 +191,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           </div>
         </div>
 
-        <div className="bg-[#F1F4F9] border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col justify-center items-center text-center gap-4 shadow-sm">
-             <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-b-4 border-[#E2E8F0]">
-                <Target className="w-10 h-10 text-[#1E293B]" />
-             </div>
-             <div>
-                <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight">Keep it up!</h3>
-                <p className="text-[#64748B]/60 font-medium mt-1 text-sm">Consistency is key to mastery.</p>
-             </div>
-        </div>
+        
       </div>
 
       {/* Grid Section */}

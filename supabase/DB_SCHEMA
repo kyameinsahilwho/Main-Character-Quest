@@ -24,6 +24,10 @@ CREATE TABLE public.habits (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   custom_days ARRAY,
+  total_completions integer DEFAULT 0,
+  yearly_achieved integer DEFAULT 0,
+  yearly_expected integer DEFAULT 0,
+  stats_year integer,
   CONSTRAINT habits_pkey PRIMARY KEY (id),
   CONSTRAINT habits_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -38,6 +42,22 @@ CREATE TABLE public.projects (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT projects_pkey PRIMARY KEY (id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.reminders (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  type text NOT NULL CHECK (type = ANY (ARRAY['one-time'::text, 'ongoing'::text])),
+  interval_unit text CHECK (interval_unit = ANY (ARRAY['hours'::text, 'days'::text, 'weeks'::text, 'months'::text])),
+  interval_value integer,
+  remind_at timestamp with time zone NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  icon text,
+  CONSTRAINT reminders_pkey PRIMARY KEY (id),
+  CONSTRAINT reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.subtasks (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

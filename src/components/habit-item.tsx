@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed } from "lucide-react";
@@ -32,16 +32,16 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
 
   // Frequency-aware status
   const now = new Date();
-  const periodCompletions = habit.completions.filter(c => {
+  const periodCompletions = useMemo(() => habit.completions.filter(c => {
     const date = parseISO(c.completedAt);
     return habit.frequency === 'weekly' 
       ? isSameWeek(date, now, { weekStartsOn: 0 })
       : isSameMonth(date, now);
-  }).length;
+  }).length, [habit.completions, habit.frequency]);
 
-  const isCompletedToday = habit.completions.some(c => 
+  const isCompletedToday = useMemo(() => habit.completions.some(c => 
     isToday(parseISO(c.completedAt))
-  );
+  ), [habit.completions]);
 
   const getFrequencyLabel = (freq: Habit['frequency']) => {
     switch (freq) {

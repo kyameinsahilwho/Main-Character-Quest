@@ -38,6 +38,12 @@ export interface Habit {
   icon?: string;
   createdAt: string;
   completions: HabitCompletion[];
+  totalCompletions?: number;
+  yearlyStats?: {
+    achieved: number;
+    totalExpected: number;
+    year: number;
+  };
 }
 
 export interface Reminder {
@@ -78,6 +84,10 @@ export interface DbHabit {
   icon?: string;
   created_at: string;
   updated_at: string;
+  total_completions?: number;
+  yearly_achieved?: number;
+  yearly_expected?: number;
+  stats_year?: number;
 }
 
 export interface DbHabitCompletion {

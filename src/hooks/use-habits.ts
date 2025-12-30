@@ -2,7 +2,21 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Habit } from '@/lib/types';
-import { startOfDay, parseISO, differenceInCalendarDays, isToday, isYesterday } from 'date-fns';
+import { 
+  startOfDay, 
+  parseISO, 
+  differenceInCalendarDays, 
+  isToday, 
+  isYesterday,
+  startOfYear,
+  endOfYear,
+  eachDayOfInterval,
+  isSameDay,
+  eachWeekOfInterval,
+  isSameWeek,
+  eachMonthOfInterval,
+  isSameMonth
+} from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-system';
@@ -58,6 +72,64 @@ const calculateHabitXP = (completions: { completedAt: string }[], frequency: Hab
   return totalXP + streakBonusXP;
 };
 
+const calculateYearlyStats = (
+  completions: { completedAt: string }[], 
+  frequency: Habit['frequency'], 
+  createdAt: string, 
+  customDays?: number[]
+) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const start = startOfYear(now);
+  const end = endOfYear(now);
+  
+  let totalExpected = 0;
+  let achieved = 0;
+
+  const completionDates = completions.map(c => startOfDay(parseISO(c.completedAt)));
+  const completionDateTimes = new Set(completionDates.map(d => d.getTime()));
+
+  if (frequency === 'daily' || frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(frequency)) {
+    const days = eachDayOfInterval({ start, end });
+    days.forEach(day => {
+      let isScheduled = true;
+      if (frequency === 'specific_days') {
+        isScheduled = customDays?.includes(day.getDay()) ?? false;
+      } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(frequency)) {
+        const interval = parseInt(frequency.split('_')[1]);
+        const startDate = startOfDay(parseISO(createdAt));
+        const diffDays = differenceInCalendarDays(startOfDay(day), startDate);
+        isScheduled = diffDays >= 0 && diffDays % interval === 0;
+      }
+      
+      if (isScheduled) {
+        totalExpected++;
+        if (completionDateTimes.has(day.getTime())) {
+          achieved++;
+        }
+      }
+    });
+  } else if (frequency === 'weekly') {
+    const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 0 });
+    totalExpected = weeks.length;
+    weeks.forEach(week => {
+      if (completions.some(c => isSameWeek(parseISO(c.completedAt), week, { weekStartsOn: 0 }))) {
+        achieved++;
+      }
+    });
+  } else if (frequency === 'monthly') {
+    const months = eachMonthOfInterval({ start, end });
+    totalExpected = months.length;
+    months.forEach(month => {
+      if (completions.some(c => isSameMonth(parseISO(c.completedAt), month))) {
+        achieved++;
+      }
+    });
+  }
+
+  return { achieved, totalExpected, year };
+};
+
 export const useHabits = (user?: User | null) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -104,6 +176,10 @@ export const useHabits = (user?: User | null) => {
                 completedAt: c.completed_at,
               }));
             
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const hasValidYearlyStats = dbHabit.stats_year === currentYear;
+
             return {
               id: dbHabit.id,
               title: dbHabit.title,
@@ -117,6 +193,10 @@ export const useHabits = (user?: User | null) => {
               customDays: dbHabit.custom_days,
               completions,
               xp: calculateHabitXP(completions, dbHabit.frequency, dbHabit.custom_days),
+              totalCompletions: dbHabit.total_completions ?? completions.length,
+              yearlyStats: hasValidYearlyStats && dbHabit.yearly_achieved !== undefined && dbHabit.yearly_expected !== undefined
+                ? { achieved: dbHabit.yearly_achieved, totalExpected: dbHabit.yearly_expected, year: dbHabit.stats_year! }
+                : calculateYearlyStats(completions, dbHabit.frequency, dbHabit.created_at, dbHabit.custom_days),
             };
           });
 
@@ -130,12 +210,20 @@ export const useHabits = (user?: User | null) => {
             const sortedHabits = [...parsedHabits].sort((a, b) => 
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
-            // Ensure XP is calculated for local habits too
-            const habitsWithXP = sortedHabits.map(habit => ({
-              ...habit,
-              xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
-            }));
-            setHabits(habitsWithXP);
+            // Ensure XP and stats are calculated/updated for local habits too
+            const habitsWithStats = sortedHabits.map(habit => {
+              const now = new Date();
+              const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
+              return {
+                ...habit,
+                xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
+                totalCompletions: habit.completions.length,
+                yearlyStats: needsYearlyUpdate 
+                  ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
+                  : habit.yearlyStats
+              };
+            });
+            setHabits(habitsWithStats);
           }
           hasLoadedRef.current = true;
         }
@@ -148,11 +236,19 @@ export const useHabits = (user?: User | null) => {
           const sortedHabits = [...parsedHabits].sort((a, b) => 
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
-          const habitsWithXP = sortedHabits.map(habit => ({
-            ...habit,
-            xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
-          }));
-          setHabits(habitsWithXP);
+          const habitsWithStats = sortedHabits.map(habit => {
+            const now = new Date();
+            const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
+            return {
+              ...habit,
+              xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
+              totalCompletions: habit.completions.length,
+              yearlyStats: needsYearlyUpdate 
+                ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
+                : habit.yearlyStats
+            };
+          });
+          setHabits(habitsWithStats);
         }
         hasLoadedRef.current = true;
       } finally {
@@ -182,13 +278,18 @@ export const useHabits = (user?: User | null) => {
   }, [habits, isInitialLoad]);
 
   const addHabit = useCallback(async (habitData: Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>) => {
+    const createdAt = new Date().toISOString();
+    const yearlyStats = calculateYearlyStats([], habitData.frequency, createdAt, habitData.customDays);
+    
     const newHabit: Habit = {
       ...habitData,
       id: crypto.randomUUID(),
       currentStreak: 0,
       bestStreak: 0,
-      createdAt: new Date().toISOString(),
+      createdAt,
       completions: [],
+      totalCompletions: 0,
+      yearlyStats,
     };
     
     setHabits(prev => [...prev, newHabit]);
@@ -209,6 +310,10 @@ export const useHabits = (user?: User | null) => {
             icon: newHabit.icon,
             created_at: newHabit.createdAt,
             custom_days: newHabit.customDays,
+            total_completions: 0,
+            yearly_achieved: yearlyStats.achieved,
+            yearly_expected: yearlyStats.totalExpected,
+            stats_year: yearlyStats.year,
           });
         if (error) throw error;
       } catch (error) {
@@ -290,12 +395,19 @@ export const useHabits = (user?: User | null) => {
         
         // Calculate XP: Base reward + streak bonus
         const finalXP = calculateHabitXP(newCompletions, habit.frequency, habit.customDays);
+        
+        // Calculate yearly stats
+        const yearlyStats = calculateYearlyStats(newCompletions, habit.frequency, habit.createdAt, habit.customDays);
 
         if (user) {
           supabase.from('habits')
             .update({ 
               current_streak: currentStreak, 
               best_streak: bestStreak,
+              total_completions: newCompletions.length,
+              yearly_achieved: yearlyStats.achieved,
+              yearly_expected: yearlyStats.totalExpected,
+              stats_year: yearlyStats.year,
             })
             .eq('id', habitId)
             .then(({ error }) => {
@@ -308,7 +420,9 @@ export const useHabits = (user?: User | null) => {
           completions: newCompletions, 
           currentStreak, 
           bestStreak,
-          xp: finalXP
+          xp: finalXP,
+          totalCompletions: newCompletions.length,
+          yearlyStats
         };
       }
       return habit;
@@ -328,7 +442,23 @@ export const useHabits = (user?: User | null) => {
   }, [user, supabase]);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Omit<Habit, 'id' | 'createdAt' | 'completions'>>) => {
-    setHabits(prev => prev.map(habit => habit.id === id ? { ...habit, ...updates } : habit));
+    setHabits(prev => prev.map(habit => {
+      if (habit.id === id) {
+        const updatedHabit = { ...habit, ...updates };
+        // If frequency or customDays changed, recalculate stats
+        if (updates.frequency !== undefined || updates.customDays !== undefined) {
+          updatedHabit.yearlyStats = calculateYearlyStats(
+            habit.completions, 
+            updatedHabit.frequency, 
+            habit.createdAt, 
+            updatedHabit.customDays
+          );
+          updatedHabit.xp = calculateHabitXP(habit.completions, updatedHabit.frequency, updatedHabit.customDays);
+        }
+        return updatedHabit;
+      }
+      return habit;
+    }));
 
     if (user) {
       try {
@@ -339,6 +469,22 @@ export const useHabits = (user?: User | null) => {
         if (updates.color !== undefined) dbUpdates.color = updates.color;
         if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
         if (updates.customDays !== undefined) dbUpdates.custom_days = updates.customDays;
+
+        // If frequency or customDays changed, sync the new stats to DB
+        if (updates.frequency !== undefined || updates.customDays !== undefined) {
+          const habit = habits.find(h => h.id === id);
+          if (habit) {
+            const newYearlyStats = calculateYearlyStats(
+              habit.completions, 
+              updates.frequency || habit.frequency, 
+              habit.createdAt, 
+              updates.customDays || habit.customDays
+            );
+            dbUpdates.yearly_achieved = newYearlyStats.achieved;
+            dbUpdates.yearly_expected = newYearlyStats.totalExpected;
+            dbUpdates.stats_year = newYearlyStats.year;
+          }
+        }
 
         const { error } = await supabase
           .from('habits')
