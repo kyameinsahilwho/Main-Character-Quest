@@ -76,7 +76,13 @@ export default function TaskQuestApp() {
     triggerReminder,
   } = useReminders(user);
 
-  useNotifications(tasks, habits, reminders, triggerReminder);
+  const { 
+    permission, 
+    isSupported, 
+    subscription, 
+    subscribeToPush, 
+    unsubscribeFromPush 
+  } = useNotifications(tasks, habits, reminders, triggerReminder);
 
   const [isCelebrating, setCelebrating] = useState(false);
   const [windowSize, setWindowSize] = useState<{ width: number, height: number }>({ width: 0, height: 0 });
@@ -268,6 +274,13 @@ export default function TaskQuestApp() {
         user={user}
         onSignOut={signOut}
         isSyncing={isSyncing}
+        notificationState={{
+          permission,
+          isSupported,
+          subscription,
+          subscribeToPush,
+          unsubscribeFromPush
+        }}
       />
       <div className="flex flex-1 overflow-hidden">
           {(isInitialLoad || authLoading) ? (

@@ -3,6 +3,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { Task, Habit, Reminder } from '@/lib/types';
 import { isSameDay, parseISO, isBefore, addMinutes, differenceInMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
+import { subscribeUser, unsubscribeUser } from '@/app/actions/notifications';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export function useNotifications(
   tasks: Task[], 
@@ -11,6 +23,8 @@ export function useNotifications(
   onTriggerReminder?: (id: string) => void
 ) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [isSupported, setIsSupported] = useState(false);
+  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const notifiedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -20,7 +34,49 @@ export function useNotifications(
         Notification.requestPermission().then(setPermission);
       }
     }
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      setIsSupported(true);
+      registerServiceWorker();
+    }
   }, []);
+
+  async function registerServiceWorker() {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none',
+      });
+      const sub = await registration.pushManager.getSubscription();
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  }
+
+  async function subscribeToPush() {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+        ),
+      });
+      setSubscription(sub);
+      await subscribeUser(sub as any);
+    } catch (error) {
+      console.error('Failed to subscribe to push:', error);
+    }
+  }
+
+  async function unsubscribeFromPush() {
+    if (subscription) {
+      await subscription.unsubscribe();
+      setSubscription(null);
+      await unsubscribeUser();
+    }
+  }
 
   useEffect(() => {
     if (permission !== 'granted') return;
@@ -30,7 +86,11 @@ export function useNotifications(
         // On Android/Chrome, we must use the Service Worker registration to show notifications
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification(title, options);
+          await registration.showNotification(title, {
+            ...options,
+            icon: options.icon || '/icon-192x192.png',
+            badge: options.badge || '/icon-192x192.png',
+          });
         } else {
           new Notification(title, options);
         }
@@ -66,7 +126,8 @@ export function useNotifications(
            if (diff <= 15 && diff >= 0 && !notifiedIds.current.has(notificationKey)) {
              showNotification(`Quest Due Soon: ${task.title}`, {
                body: `Your quest "${task.title}" is due in ${diff} minutes!`,
-               badge: '/favicon.ico'
+               icon: '/icon-192x192.png',
+               badge: '/icon-192x192.png'
              });
              notifiedIds.current.add(notificationKey);
            }
@@ -84,7 +145,8 @@ export function useNotifications(
         if (now >= remindAt && !notifiedIds.current.has(notificationKey)) {
           showNotification(`${reminder.icon || '🔔'} ${reminder.title}`, {
             body: reminder.description || "Time for your reminder!",
-            badge: '/favicon.ico'
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png'
           });
           notifiedIds.current.add(notificationKey);
           
@@ -104,7 +166,8 @@ export function useNotifications(
         if (incompleteDailyHabits.length > 0 && !notifiedIds.current.has('daily-habits-' + now.toDateString())) {
            showNotification("Daily Rituals Reminder", {
              body: `You have ${incompleteDailyHabits.length} rituals left to complete today!`,
-             badge: '/favicon.ico'
+             icon: '/icon-192x192.png',
+             badge: '/icon-192x192.png'
            });
            notifiedIds.current.add('daily-habits-' + now.toDateString());
         }
@@ -117,5 +180,11 @@ export function useNotifications(
     return () => clearInterval(interval);
   }, [tasks, habits, reminders, permission]);
 
-  return { permission };
+  return { 
+    permission, 
+    isSupported, 
+    subscription, 
+    subscribeToPush, 
+    unsubscribeFromPush 
+  };
 }

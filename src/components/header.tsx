@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
-import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star } from 'lucide-react';
+import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star, Bell, BellOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
@@ -34,6 +34,13 @@ interface HeaderProps {
   user?: User | null;
   onSignOut?: () => void;
   isSyncing?: boolean;
+  notificationState?: {
+    permission: NotificationPermission;
+    isSupported: boolean;
+    subscription: PushSubscription | null;
+    subscribeToPush: () => Promise<void>;
+    unsubscribeFromPush: () => Promise<void>;
+  };
 }
 
 const getStreakStyles = (streak: number) => {
@@ -64,7 +71,7 @@ const getStreakStyles = (streak: number) => {
   return { icon: "text-muted-foreground", bg: "bg-muted/30" };
 };
 
-function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: HeaderProps) {
+function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, notificationState }: HeaderProps) {
   const streakStyles = streaks ? getStreakStyles(streaks.current) : getStreakStyles(0);
   const [showXPAnimation, setShowXPAnimation] = useState(false);
   const [xpGained, setXpGained] = useState(0);
@@ -166,7 +173,33 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: H
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* Notification Bell */}
+          {notificationState?.isSupported && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-9 w-9 md:h-10 md:w-10 rounded-full border-2 border-border bg-card hover:bg-accent transition-all"
+              onClick={() => {
+                if (notificationState.subscription) {
+                  notificationState.unsubscribeFromPush();
+                } else {
+                  notificationState.subscribeToPush();
+                }
+              }}
+              title={notificationState.subscription ? "Disable Push Notifications" : "Enable Push Notifications"}
+            >
+              {notificationState.subscription ? (
+                <Bell className="h-5 w-5 text-primary fill-primary" />
+              ) : (
+                <BellOff className="h-5 w-5 text-muted-foreground" />
+              )}
+              {notificationState.permission === 'granted' && !notificationState.subscription && (
+                <span className="absolute top-0 right-0 h-2 w-2 bg-amber-500 rounded-full border border-background" />
+              )}
+            </Button>
+          )}
+
           {/* Auth Button/Menu */}
           {user ? (
             <DropdownMenu>

@@ -6,7 +6,6 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Pollytasks',
   description: 'Become the main character of your life and conquer your goals!',
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
