@@ -25,6 +25,26 @@ export function useNotifications(
   useEffect(() => {
     if (permission !== 'granted') return;
 
+    const showNotification = async (title: string, options: NotificationOptions) => {
+      try {
+        // On Android/Chrome, we must use the Service Worker registration to show notifications
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, options);
+        } else {
+          new Notification(title, options);
+        }
+      } catch (error) {
+        console.error('Error showing notification:', error);
+        // Fallback for browsers that don't support SW notifications but support the constructor
+        try {
+          new Notification(title, options);
+        } catch (e) {
+          console.error('Final fallback notification failed:', e);
+        }
+      }
+    };
+
     const checkReminders = () => {
       const now = new Date();
       
@@ -44,9 +64,9 @@ export function useNotifications(
            // Notify if due within 15 minutes and hasn't been notified yet
            const notificationKey = `task-${task.id}-${task.dueDate}`;
            if (diff <= 15 && diff >= 0 && !notifiedIds.current.has(notificationKey)) {
-             new Notification(`Quest Due Soon: ${task.title}`, {
+             showNotification(`Quest Due Soon: ${task.title}`, {
                body: `Your quest "${task.title}" is due in ${diff} minutes!`,
-               icon: '/icon-192x192.png'
+               badge: '/favicon.ico'
              });
              notifiedIds.current.add(notificationKey);
            }
@@ -62,9 +82,9 @@ export function useNotifications(
         // Notify if due now or passed, and hasn't been notified for this specific time yet
         const notificationKey = `reminder-${reminder.id}-${reminder.remindAt}`;
         if (now >= remindAt && !notifiedIds.current.has(notificationKey)) {
-          new Notification(`${reminder.icon || '🔔'} ${reminder.title}`, {
+          showNotification(`${reminder.icon || '🔔'} ${reminder.title}`, {
             body: reminder.description || "Time for your reminder!",
-            icon: '/icon-192x192.png'
+            badge: '/favicon.ico'
           });
           notifiedIds.current.add(notificationKey);
           
@@ -82,9 +102,9 @@ export function useNotifications(
         );
 
         if (incompleteDailyHabits.length > 0 && !notifiedIds.current.has('daily-habits-' + now.toDateString())) {
-           new Notification("Daily Rituals Reminder", {
+           showNotification("Daily Rituals Reminder", {
              body: `You have ${incompleteDailyHabits.length} rituals left to complete today!`,
-             icon: '/icon-192x192.png'
+             badge: '/favicon.ico'
            });
            notifiedIds.current.add('daily-habits-' + now.toDateString());
         }
