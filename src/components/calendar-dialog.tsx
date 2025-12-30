@@ -24,9 +24,9 @@ export function CalendarDialog({ children, tasks, habits, onToggleTask, onToggle
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">History</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="font-headline text-2xl sm:text-3xl">History</DialogTitle>
         </DialogHeader>
         <HistoryView 
           tasks={tasks} 

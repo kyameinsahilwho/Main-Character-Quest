@@ -21,6 +21,7 @@ interface HistoryViewProps {
 
 export function HistoryView({ tasks, habits, onToggleTask, onToggleHabit }: HistoryViewProps) {
   const [date, setDate] = useState<Date>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const completedTasks = tasks.filter(task => 
     task.isCompleted && 
@@ -89,36 +90,50 @@ export function HistoryView({ tasks, habits, onToggleTask, onToggleHabit }: Hist
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Date Switcher */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-card p-4 rounded-2xl border-2 border-border shadow-sm">
-        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-center">
-          <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))}>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-card p-3 sm:p-4 rounded-2xl border-2 border-border shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-center">
+          <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} className="h-10 w-10">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className={cn(
-                "min-w-[200px] justify-center font-bold text-lg",
+                "flex-1 sm:flex-none min-w-[140px] sm:min-w-[200px] justify-center font-bold text-base sm:text-lg px-2 sm:px-4 h-10 sm:h-11",
                 !date && "text-muted-foreground"
               )}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(date, "PPP")}
+                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{format(date, "PPP")}</span>
+                <span className="sm:hidden">{format(date, "MMM d, yyyy")}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <div className="w-[300px] sm:w-auto max-w-[90vw]">
+            <PopoverContent className="w-[calc(100vw-2rem)] sm:w-auto p-0" align="center" sideOffset={8}>
+              <div className="p-1 sm:p-0">
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(d) => d && setDate(d)}
+                  onSelect={(d) => {
+                    if (d) {
+                      setDate(d);
+                      setIsCalendarOpen(false);
+                    }
+                  }}
                   initialFocus
+                  className="w-full"
                   classNames={{
+                    months: "w-full",
+                    month: "w-full space-y-4",
+                    table: "w-full border-collapse",
+                    head_row: "flex w-full justify-between",
+                    head_cell: "text-muted-foreground rounded-xl w-10 sm:w-9 font-bold text-[0.7rem] sm:text-[0.8rem] uppercase flex-1",
+                    row: "flex w-full mt-2 justify-between",
+                    cell: "h-10 w-10 sm:h-9 sm:w-9 text-center text-sm p-0 relative flex-1 flex items-center justify-center",
+                    day: "h-10 w-10 sm:h-9 sm:w-9 p-0 font-bold rounded-xl aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex items-center justify-center",
                     day_today: "bg-transparent border-2 border-[#58cc02] text-foreground font-bold rounded-xl",
                     day_selected: "bg-[#58cc02] text-white hover:bg-[#46a302] hover:text-white focus:bg-[#58cc02] focus:text-white rounded-xl",
                     day_outside: "text-muted-foreground opacity-50",
-                    day: "h-9 w-9 p-0 font-bold rounded-xl aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                   }}
                   components={{
                     DayContent: ({ date }) => getDayContent(date)
@@ -128,14 +143,14 @@ export function HistoryView({ tasks, habits, onToggleTask, onToggleHabit }: Hist
             </PopoverContent>
           </Popover>
 
-          <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))}>
+          <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} className="h-10 w-10">
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         {/* Tasks Section */}
         <section className="space-y-3">
           <h3 className="text-sm font-black font-headline uppercase tracking-widest text-muted-foreground/80 px-1 flex items-center gap-2">
@@ -157,17 +172,17 @@ export function HistoryView({ tasks, habits, onToggleTask, onToggleHabit }: Hist
                     animate={{ opacity: 1, y: 0 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <Card className="transition-all duration-300 overflow-hidden flex flex-col border-2 rounded-[2rem] relative bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0">
-                      <div className="flex items-center p-5">
+                    <Card className="transition-all duration-300 overflow-hidden flex flex-col border-2 rounded-[1.5rem] sm:rounded-[2rem] relative bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0">
+                      <div className="flex items-center p-4 sm:p-5">
                         <div 
-                          className="h-9 w-9 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden bg-primary border-primary border-b-[#46a302] cursor-pointer active:translate-y-[2px] active:border-b-0 shrink-0 mr-4"
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl sm:rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden bg-primary border-primary border-b-[#46a302] cursor-pointer active:translate-y-[2px] active:border-b-0 shrink-0 mr-3 sm:mr-4"
                           onClick={() => onToggleTask?.(task.id)}
                         >
-                          <Check className="h-6 w-6 text-white stroke-[4px] z-10" />
+                          <Check className="h-5 w-5 sm:h-6 sm:w-6 text-white stroke-[4px] z-10" />
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-xl font-black leading-tight tracking-tight line-through text-muted-foreground/60 truncate">
+                          <CardTitle className="text-lg sm:text-xl font-black leading-tight tracking-tight line-through text-muted-foreground/60 truncate">
                             {task.title}
                           </CardTitle>
                           
