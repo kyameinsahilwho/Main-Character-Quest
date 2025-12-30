@@ -12,7 +12,6 @@ export interface Task {
   completedAt: string | null;
   subtasks: Subtask[];
   createdAt: string;
-  isTemplate?: boolean;
   xp?: number;
   projectId?: string | null;
 }
@@ -39,6 +38,19 @@ export interface Habit {
   icon?: string;
   createdAt: string;
   completions: HabitCompletion[];
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'one-time' | 'ongoing';
+  intervalUnit?: 'hours' | 'days' | 'weeks' | 'months';
+  intervalValue?: number;
+  remindAt: string;
+  isActive: boolean;
+  icon?: string;
+  createdAt: string;
 }
 
 export interface HabitCompletion {
@@ -96,6 +108,21 @@ export interface DbProject {
   updated_at: string;
 }
 
+export interface DbReminder {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  type: 'one-time' | 'ongoing';
+  interval_unit?: 'hours' | 'days' | 'weeks' | 'months';
+  interval_value?: number;
+  remind_at: string;
+  is_active: boolean;
+  icon?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DbTask {
   id: string;
   user_id: string;
@@ -135,7 +162,6 @@ export function dbTaskToTask(dbTask: DbTask, subtasks: DbSubtask[]): Task {
     completedAt: dbTask.completed_at || null,
     subtasks: subtasks.map(dbSubtaskToSubtask),
     createdAt: dbTask.created_at,
-    isTemplate: dbTask.is_template,
     projectId: dbTask.project_id,
   };
 }
@@ -165,7 +191,7 @@ export function dbHabitToHabit(dbHabit: DbHabit, completions: DbHabitCompletion[
     title: dbHabit.title,
     description: dbHabit.description,
     frequency: dbHabit.frequency,
-    targetDays: dbHabit.target_days,
+    customDays: dbHabit.custom_days,
     currentStreak: dbHabit.current_streak,
     bestStreak: dbHabit.best_streak,
     color: dbHabit.color,
@@ -179,13 +205,28 @@ export function dbHabitToHabit(dbHabit: DbHabit, completions: DbHabitCompletion[
   };
 }
 
+export function dbReminderToReminder(dbReminder: DbReminder): Reminder {
+  return {
+    id: dbReminder.id,
+    title: dbReminder.title,
+    description: dbReminder.description,
+    type: dbReminder.type,
+    intervalUnit: dbReminder.interval_unit,
+    intervalValue: dbReminder.interval_value,
+    remindAt: dbReminder.remind_at,
+    isActive: dbReminder.is_active,
+    icon: dbReminder.icon,
+    createdAt: dbReminder.created_at,
+  };
+}
+
 export function taskToDbTask(task: Omit<Task, 'subtasks'>, userId: string): Omit<DbTask, 'created_at' | 'updated_at'> {
   return {
     id: task.id,
     user_id: userId,
     title: task.title,
     is_completed: task.isCompleted,
-    is_template: task.isTemplate || false,
+    is_template: false,
     completed_at: task.completedAt,
     project_id: task.projectId,
   };

@@ -6,6 +6,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Pollytasks',
   description: 'Become the main character of your life and conquer your goals!',
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -13,6 +14,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#000000",
   // Prevents viewport from resizing when keyboard appears on some devices
   interactiveWidget: 'resizes-content',
 };

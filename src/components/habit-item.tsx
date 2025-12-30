@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed } from "lucide-react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { format, isToday, parseISO, eachDayOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays } from "date-fns";
 import { EditHabitDialog } from "./edit-habit-dialog";
 import confetti from 'canvas-confetti';
 import { playCompletionSound } from "@/lib/sounds";
@@ -65,16 +65,41 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
     }).length;
   };
 
-  const periods = (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? [] : Array.from({ length: 4 }).map((_, i) => {
-    const date = habit.frequency === 'weekly' ? subWeeks(now, i) : subMonths(now, i);
-    const completions = getCompletionsForPeriod(date, habit.frequency);
-    const label = habit.frequency === 'weekly' ? `W${4-i}` : format(date, 'MMM');
-    return { date, completions, label, isCurrent: i === 0 };
-  }).reverse();
+  const periods = (() => {
+    if (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+      return [];
+    }
+    
+    if (habit.frequency === 'weekly') {
+      // Show all weeks of the current month
+      const weeksInMonth = eachWeekOfInterval({
+        start: startOfMonth(now),
+        end: endOfMonth(now)
+      }, { weekStartsOn: 0 });
+      
+      return weeksInMonth.map((date, i) => {
+        const completions = getCompletionsForPeriod(date, 'weekly');
+        return { 
+          date, 
+          completions, 
+          label: `W${i + 1}`, 
+          isCurrent: isSameWeek(date, now, { weekStartsOn: 0 }) 
+        };
+      });
+    }
+    
+    // Default for monthly or other non-daily/weekly
+    return Array.from({ length: 4 }).map((_, i) => {
+      const date = subMonths(now, i);
+      const completions = getCompletionsForPeriod(date, habit.frequency);
+      const label = format(date, 'MMM');
+      return { date, completions, label, isCurrent: i === 0 };
+    }).reverse();
+  })();
 
   const getHabitCardAesthetics = (colorStr?: string) => {
     if (!colorStr) return {
-      card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+      card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
       checkbox: "bg-[#1E293B] border-[#0F172A]",
       iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
     };
@@ -113,16 +138,66 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
           checkbox: "bg-indigo-600 border-indigo-800",
           iconBg: "bg-indigo-100 border-indigo-200"
         },
+        emerald: {
+          card: "bg-emerald-50 border-emerald-200 hover:border-emerald-400",
+          checkbox: "bg-emerald-600 border-emerald-800",
+          iconBg: "bg-emerald-100 border-emerald-200"
+        },
+        orange: {
+          card: "bg-orange-50 border-orange-200 hover:border-orange-400",
+          checkbox: "bg-orange-600 border-orange-800",
+          iconBg: "bg-orange-100 border-orange-200"
+        },
+        pink: {
+          card: "bg-pink-50 border-pink-200 hover:border-pink-400",
+          checkbox: "bg-pink-600 border-pink-800",
+          iconBg: "bg-pink-100 border-pink-200"
+        },
+        violet: {
+          card: "bg-violet-50 border-violet-200 hover:border-violet-400",
+          checkbox: "bg-violet-600 border-violet-800",
+          iconBg: "bg-violet-100 border-violet-200"
+        },
+        teal: {
+          card: "bg-teal-50 border-teal-200 hover:border-teal-400",
+          checkbox: "bg-teal-600 border-teal-800",
+          iconBg: "bg-teal-100 border-teal-200"
+        },
+        sky: {
+          card: "bg-sky-50 border-sky-200 hover:border-sky-400",
+          checkbox: "bg-sky-600 border-sky-800",
+          iconBg: "bg-sky-100 border-sky-200"
+        },
+        lime: {
+          card: "bg-lime-50 border-lime-200 hover:border-lime-400",
+          checkbox: "bg-lime-600 border-lime-800",
+          iconBg: "bg-lime-100 border-lime-200"
+        },
+        yellow: {
+          card: "bg-yellow-50 border-yellow-200 hover:border-yellow-400",
+          checkbox: "bg-yellow-600 border-yellow-800",
+          iconBg: "bg-yellow-100 border-yellow-200"
+        },
+        fuchsia: {
+          card: "bg-fuchsia-50 border-fuchsia-200 hover:border-fuchsia-400",
+          checkbox: "bg-fuchsia-600 border-fuchsia-800",
+          iconBg: "bg-fuchsia-100 border-fuchsia-200"
+        },
+        slate: {
+          card: "bg-slate-50 border-slate-200 hover:border-slate-400",
+          checkbox: "bg-slate-600 border-slate-800",
+          iconBg: "bg-slate-100 border-slate-200"
+        },
       };
       return themes[color] || {
-        card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+        card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
         checkbox: "bg-[#1E293B] border-[#0F172A]",
         iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
       };
     }
 
     return {
-      card: "bg-white border-[#CBD5E1] hover:border-[#94A3B8]",
+      card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
       checkbox: "bg-[#1E293B] border-[#0F172A]",
       iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
     };

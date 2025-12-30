@@ -49,18 +49,8 @@ export default function ProjectSection({
   onSelectProject,
   setCelebrating,
 }: ProjectSectionProps) {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-
-  const handleAddProject = () => {
-    if (newProjectName.trim()) {
-      onAddProject({ name: newProjectName.trim() });
-      setNewProjectName('');
-      setIsAddDialogOpen(false);
-    }
-  };
 
   const handleUpdateProject = () => {
     if (editingProject && editingProject.name.trim()) {
@@ -75,18 +65,6 @@ export default function ProjectSection({
 
   return (
     <div className="flex flex-col h-full gap-6 overflow-y-auto w-full">
-      {!selectedProjectId && (
-        <div className="flex items-center justify-end mb-2">
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:translate-y-[2px] active:border-b-2"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-      )}
-
       {selectedProjectId ? (
         <div className="flex flex-col gap-4 w-full">
           <div className="flex items-center gap-2">
@@ -193,37 +171,6 @@ export default function ProjectSection({
         </div>
       )}
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="rounded-[2rem] border-4 border-border shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black font-headline">New Project</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder="Project Name"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              className="rounded-xl border-2 border-border h-12 font-bold"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-            />
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsAddDialogOpen(false)}
-              className="rounded-xl border-2 border-border font-bold"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddProject}
-              className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground font-bold"
-            >
-              Create Project
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="rounded-[2rem] border-4 border-border shadow-2xl">
           <DialogHeader>

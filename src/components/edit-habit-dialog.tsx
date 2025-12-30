@@ -25,6 +25,16 @@ const COLORS = [
   "bg-rose-600/20 border-rose-600/30",
   "bg-amber-600/20 border-amber-600/30",
   "bg-indigo-600/20 border-indigo-600/30",
+  "bg-emerald-600/20 border-emerald-600/30",
+  "bg-orange-600/20 border-orange-600/30",
+  "bg-pink-600/20 border-pink-600/30",
+  "bg-violet-600/20 border-violet-600/30",
+  "bg-teal-600/20 border-teal-600/30",
+  "bg-sky-600/20 border-sky-600/30",
+  "bg-lime-600/20 border-lime-600/30",
+  "bg-yellow-600/20 border-yellow-600/30",
+  "bg-fuchsia-600/20 border-fuchsia-600/30",
+  "bg-slate-600/20 border-slate-600/30",
 ];
 
 export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDialogProps) {

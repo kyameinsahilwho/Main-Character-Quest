@@ -27,6 +27,16 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
     if (colorStr.includes("rose")) return "hsl(341, 81%, 62%)";
     if (colorStr.includes("amber")) return "hsl(38, 92%, 50%)";
     if (colorStr.includes("indigo")) return "hsl(239, 84%, 67%)";
+    if (colorStr.includes("emerald")) return "hsl(160, 84%, 39%)";
+    if (colorStr.includes("orange")) return "hsl(24, 94%, 50%)";
+    if (colorStr.includes("pink")) return "hsl(327, 73%, 58%)";
+    if (colorStr.includes("violet")) return "hsl(258, 90%, 66%)";
+    if (colorStr.includes("teal")) return "hsl(173, 80%, 40%)";
+    if (colorStr.includes("sky")) return "hsl(199, 89%, 48%)";
+    if (colorStr.includes("lime")) return "hsl(84, 81%, 44%)";
+    if (colorStr.includes("yellow")) return "hsl(45, 93%, 47%)";
+    if (colorStr.includes("fuchsia")) return "hsl(292, 91%, 50%)";
+    if (colorStr.includes("slate")) return "hsl(215, 25%, 27%)";
     return "hsl(199, 92%, 54%)";
   };
 

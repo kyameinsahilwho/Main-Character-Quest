@@ -26,7 +26,7 @@ export function CalendarSection({ tasks }: CalendarSectionProps) {
   // Extract dates when tasks were completed
   const completedDates = useMemo(() => {
     return tasks
-      .filter(task => task.completedAt && !task.isTemplate)
+      .filter(task => task.completedAt)
       .map(task => startOfDay(parseISO(task.completedAt!)));
   }, [tasks]);
 
@@ -45,7 +45,6 @@ export function CalendarSection({ tasks }: CalendarSectionProps) {
   const getCompletedTasksForDate = (date: Date) => {
     return tasks.filter(task => 
       task.completedAt && 
-      !task.isTemplate && 
       isSameDay(startOfDay(parseISO(task.completedAt)), date)
     );
   };

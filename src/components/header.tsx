@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
-import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star, Sword, Repeat } from 'lucide-react';
+import { Flame, Trophy, TrendingUp, LogOut, User as UserIcon, LogIn, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 import type { Streaks } from '@/lib/types';
@@ -34,8 +34,6 @@ interface HeaderProps {
   user?: User | null;
   onSignOut?: () => void;
   isSyncing?: boolean;
-  currentApp: 'quests' | 'habits';
-  onAppChange: (app: 'quests' | 'habits') => void;
 }
 
 const getStreakStyles = (streak: number) => {
@@ -66,7 +64,7 @@ const getStreakStyles = (streak: number) => {
   return { icon: "text-muted-foreground", bg: "bg-muted/30" };
 };
 
-function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, currentApp, onAppChange }: HeaderProps) {
+function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing }: HeaderProps) {
   const streakStyles = streaks ? getStreakStyles(streaks.current) : getStreakStyles(0);
   const [showXPAnimation, setShowXPAnimation] = useState(false);
   const [xpGained, setXpGained] = useState(0);
@@ -104,55 +102,6 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
               Pollytasks
             </h1>
           </div>
-
-          {/* App Switcher Toggle Switch */}
-          <button
-            onClick={() => onAppChange(currentApp === 'quests' ? 'habits' : 'quests')}
-            className="relative hidden md:flex items-center p-1 bg-muted/50 rounded-full border-2 border-border shadow-inner overflow-hidden w-[80px] md:w-[90px] h-9 md:h-10 group transition-all active:scale-95"
-          >
-            {/* Track Labels */}
-            <div className="absolute inset-0 flex items-center justify-between px-3 md:px-3.5 pointer-events-none">
-              <Sword className={cn(
-                "h-4 w-4 md:h-5 md:w-5 transition-all duration-300",
-                currentApp === 'quests' ? "text-white opacity-0" : "text-muted-foreground/40"
-              )} />
-              <Repeat className={cn(
-                "h-4 w-4 md:h-5 md:w-5 transition-all duration-300",
-                currentApp === 'habits' ? "text-white opacity-0" : "text-muted-foreground/40"
-              )} />
-            </div>
-
-            {/* Sliding Switch Thumb */}
-            <motion.div
-              initial={false}
-              animate={{
-                x: currentApp === 'quests' ? 0 : '100%',
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full z-10 flex items-center justify-center shadow-lg"
-              style={{
-                backgroundColor: currentApp === 'quests' ? '#58cc02' : '#6366f1',
-                borderBottom: `2px solid ${currentApp === 'quests' ? '#46a302' : '#4f46e5'}`,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.3)'
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentApp}
-                  initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, scale: 0.5, rotate: 20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {currentApp === 'quests' ? (
-                    <Sword className="h-4 w-4 md:h-5 md:w-5 text-white" />
-                  ) : (
-                    <Repeat className="h-4 w-4 md:h-5 md:w-5 text-white" />
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </button>
 
           {isSyncing && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 border border-blue-200">
@@ -387,55 +336,6 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, cur
               <span className="text-base font-black font-headline leading-none mt-0.5">{streaks.longest}</span>
             </div>
           </div>
-
-          {/* App Switcher for mobile */}
-          <button
-            onClick={() => onAppChange(currentApp === 'quests' ? 'habits' : 'quests')}
-            className="relative flex md:hidden items-center p-1 bg-muted/50 rounded-full border-2 border-border shadow-inner overflow-hidden flex-1 h-9 group transition-all active:scale-95"
-          >
-            {/* Track Labels */}
-            <div className="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
-              <Sword className={cn(
-                "h-4 w-4 transition-all duration-300",
-                currentApp === 'quests' ? "text-white opacity-0" : "text-muted-foreground/40"
-              )} />
-              <Repeat className={cn(
-                "h-4 w-4 transition-all duration-300",
-                currentApp === 'habits' ? "text-white opacity-0" : "text-muted-foreground/40"
-              )} />
-            </div>
-
-            {/* Sliding Switch Thumb */}
-            <motion.div
-              initial={false}
-              animate={{
-                x: currentApp === 'quests' ? 0 : '100%',
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full z-10 flex items-center justify-center shadow-lg"
-              style={{
-                backgroundColor: currentApp === 'quests' ? '#58cc02' : '#6366f1',
-                borderBottom: `2px solid ${currentApp === 'quests' ? '#46a302' : '#4f46e5'}`,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.3)'
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentApp}
-                  initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, scale: 0.5, rotate: 20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {currentApp === 'quests' ? (
-                    <Sword className="h-4 w-4 text-white" />
-                  ) : (
-                    <Repeat className="h-4 w-4 text-white" />
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </button>
 
           {/* Level & XP - Hidden on mobile, shown on tablet */}
           {stats.levelInfo ? (

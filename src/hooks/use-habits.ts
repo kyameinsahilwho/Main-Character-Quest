@@ -84,7 +84,7 @@ export const useHabits = (user?: User | null) => {
             .from('habits')
             .select('*')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: true });
 
           if (habitsError) throw habitsError;
 
@@ -126,8 +126,12 @@ export const useHabits = (user?: User | null) => {
           const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
           if (storedHabits) {
             const parsedHabits: Habit[] = JSON.parse(storedHabits);
+            // Sort by createdAt ascending
+            const sortedHabits = [...parsedHabits].sort((a, b) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
             // Ensure XP is calculated for local habits too
-            const habitsWithXP = parsedHabits.map(habit => ({
+            const habitsWithXP = sortedHabits.map(habit => ({
               ...habit,
               xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
             }));
@@ -140,7 +144,11 @@ export const useHabits = (user?: User | null) => {
         const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
         if (storedHabits) {
           const parsedHabits: Habit[] = JSON.parse(storedHabits);
-          const habitsWithXP = parsedHabits.map(habit => ({
+          // Sort by createdAt ascending
+          const sortedHabits = [...parsedHabits].sort((a, b) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          const habitsWithXP = sortedHabits.map(habit => ({
             ...habit,
             xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays)
           }));
@@ -183,7 +191,7 @@ export const useHabits = (user?: User | null) => {
       completions: [],
     };
     
-    setHabits(prev => [newHabit, ...prev]);
+    setHabits(prev => [...prev, newHabit]);
 
     if (user) {
       try {

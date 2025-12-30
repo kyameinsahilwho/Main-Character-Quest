@@ -36,12 +36,12 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
     const prog = task.subtasks.length > 0 ? (completed / task.subtasks.length) * 100 : 0;
     const formatted = task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '';
     
-    const isOverdue = task.dueDate && !task.isCompleted && !task.isTemplate 
+    const isOverdue = task.dueDate && !task.isCompleted 
       ? isBefore(parseISO(task.dueDate), startOfToday()) 
       : false;
 
     return { completedSubtasks: completed, progress: prog, formattedDueDate: formatted, isPast: isOverdue };
-  }, [task.subtasks, task.dueDate, task.isCompleted, task.isTemplate]);
+  }, [task.subtasks, task.dueDate, task.isCompleted]);
 
   const handleAddSubtask = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +74,6 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
   
   const handleMainCheckboxClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if(task.isTemplate) return;
     
     if (!task.isCompleted) {
       setIsAnimating(true);
@@ -85,9 +84,10 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
         setIsAnimating(false);
       }, 600);
     } else {
+      // Allow undoing completion immediately
       onToggle(task.id);
     }
-  }, [task.isTemplate, task.isCompleted, task.id, onToggle, setCelebrating]);
+  }, [task.isCompleted, task.id, onToggle, setCelebrating]);
 
   const handleWrapperClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,10 +124,9 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
     >
     <Card className={cn(
         "transition-all duration-300 overflow-hidden flex flex-col border-2 border-b-[6px] border-muted-foreground/20 rounded-[2rem] relative", 
-        task.isCompleted && !task.isTemplate 
+        task.isCompleted 
           ? 'bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0' 
           : 'bg-card active:translate-y-[2px] active:border-b-[4px]', 
-        task.isTemplate && 'border-2 border-dashed border-primary/50 shadow-none',
         isAnimating && 'animate-green-flash'
     )}>
       <div className="flex flex-col">
@@ -137,14 +136,13 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
               className={cn(
                 "h-9 w-9 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[2px] active:border-b-0",
                 task.isCompleted ? "bg-primary border-primary border-b-[#46a302]" : "border-border bg-muted/20",
-                task.isTemplate && "cursor-not-allowed opacity-50"
               )}
             >
               {task.isCompleted && <Check className="h-6 w-6 text-white stroke-[4px] z-10" />}
             </div>
         </div>
         <div className="flex-1 min-w-0 py-2">
-          <CardTitle className={cn("text-xl font-black leading-tight tracking-tight", task.isCompleted && !task.isTemplate && 'line-through text-muted-foreground/60')}>
+          <CardTitle className={cn("text-xl font-black leading-tight tracking-tight", task.isCompleted && 'line-through text-muted-foreground/60')}>
             {task.title}
           </CardTitle>
           
@@ -214,7 +212,6 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
                       checked={subtask.isCompleted}
                       className="mr-4 h-6 w-6 rounded-lg border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       onClick={(e) => handleToggleSubtask(e, subtask.id)}
-                      disabled={task.isTemplate}
                     />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
@@ -242,14 +239,11 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
             <Separator className="h-0.5 bg-border/60"/>
             <div data-interactive-area className="flex justify-between items-center p-3 px-4 bg-muted/10">
                 <div className="text-xs font-black text-muted-foreground/60 flex items-center gap-2">
-                    {task.dueDate && !task.isTemplate && (
+                    {task.dueDate && (
                         <div className="flex items-center gap-2 bg-secondary/10 px-2.5 py-1 rounded-xl border border-secondary/20 text-secondary font-black">
                             <Calendar className="h-4 w-4 stroke-[3px]" />
                             <span className="uppercase tracking-tight text-[11px]">Due {formattedDueDate}</span>
                         </div>
-                    )}
-                    {task.isTemplate && (
-                        <span className='font-black text-primary uppercase tracking-widest text-[10px]'>Template</span>
                     )}
                 </div>
                 <div className='flex items-center gap-1'>

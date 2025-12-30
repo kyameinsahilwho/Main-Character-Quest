@@ -89,7 +89,7 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-24">
+    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black font-headline text-[#334155] uppercase tracking-[0.2em] flex items-center gap-4 flex-1">
           <span className="px-4 py-2 rounded-xl bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] text-[#1E293B]">My Rituals</span>

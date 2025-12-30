@@ -90,7 +90,9 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           console.log('Loaded', projectsData?.length || 0, 'projects from Supabase');
 
           // Convert DB format to app format
-          const loadedTasks: Task[] = (tasksData || []).map((dbTask) => ({
+          const loadedTasks: Task[] = (tasksData || [])
+            .filter((dbTask) => !dbTask.is_template)
+            .map((dbTask) => ({
             id: dbTask.id,
             title: dbTask.title,
             dueDate: dbTask.due_date || null,
@@ -104,7 +106,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
                 isCompleted: st.is_completed,
               })),
             createdAt: dbTask.created_at,
-            isTemplate: dbTask.is_template,
             xp: dbTask.reward_xp || 10,
             projectId: dbTask.project_id,
           }));
@@ -183,8 +184,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   }, [tasks, isInitialLoad, user]);
 
   const stats = useMemo(() => {
-    const totalTasks = tasks.filter(t => !t.isTemplate).length;
-    const completedTasks = tasks.filter(task => task.isCompleted && !task.isTemplate).length;
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(task => task.isCompleted).length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     return {
       totalTasks,
@@ -195,7 +196,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
   const streaks = useMemo<Streaks>(() => {
     const completedDates = tasks
-      .filter(task => task.completedAt && !task.isTemplate)
+      .filter(task => task.completedAt)
       .map(task => startOfDay(parseISO(task.completedAt!)))
       .sort((a, b) => a.getTime() - b.getTime());
 
@@ -272,7 +273,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             title: newTask.title,
             due_date: newTask.dueDate,
             is_completed: newTask.isCompleted,
-            is_template: newTask.isTemplate || false,
             completed_at: newTask.completedAt,
             created_at: newTask.createdAt,
             project_id: newTask.projectId,
@@ -301,54 +301,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     }
   }, [user, supabase]);
 
-  const addTemplatesToToday = useCallback(async (taskIds: string[]) => {
-    setTasks(prev => {
-        const tasksToAdd = prev.filter(task => taskIds.includes(task.id));
-        const newTasks = tasksToAdd.map(task => ({
-            ...task,
-            id: crypto.randomUUID(),
-            dueDate: new Date().toISOString(),
-            isTemplate: false, // Make it a regular task for today
-            isCompleted: false,
-            completedAt: null,
-            subtasks: task.subtasks.map(st => ({...st, isCompleted: false, id: crypto.randomUUID()}))
-        }));
-        
-        // Sync to Supabase if user is logged in
-        if (user) {
-          newTasks.forEach(async (newTask) => {
-            try {
-              await supabase.from('tasks').insert({
-                id: newTask.id,
-                user_id: user.id,
-                title: newTask.title,
-                due_date: newTask.dueDate,
-                is_completed: newTask.isCompleted,
-                is_template: newTask.isTemplate,
-                completed_at: newTask.completedAt,
-                created_at: newTask.createdAt,
-                project_id: newTask.projectId,
-              });
 
-              if (newTask.subtasks.length > 0) {
-                await supabase.from('subtasks').insert(
-                  newTask.subtasks.map((st) => ({
-                    id: st.id,
-                    task_id: newTask.id,
-                    title: st.text,
-                    is_completed: st.isCompleted,
-                  }))
-                );
-              }
-            } catch (error) {
-              console.error('Error syncing template task:', error);
-            }
-          });
-        }
-        
-        return [...prev, ...newTasks];
-    });
-  }, [user, supabase]);
 
   const updateTask = useCallback(async (taskId: string, updatedData: Partial<Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>>) => {
     setTasks(prev => prev.map(task => task.id === taskId ? { ...task, ...updatedData } : task));
@@ -594,13 +547,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
-        if (a.isTemplate && !b.isTemplate) return 1;
-        if (!a.isTemplate && b.isTemplate) return -1;
-
-        if (a.isTemplate && b.isTemplate) {
-          return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
-        }
-
         // Incompleted tasks come first
         if (a.isCompleted && !b.isCompleted) return 1;
         if (!a.isCompleted && b.isCompleted) return -1;
@@ -641,7 +587,9 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
       if (subtasksError) throw subtasksError;
 
-      const loadedTasks: Task[] = (tasksData || []).map((dbTask) => ({
+      const loadedTasks: Task[] = (tasksData || [])
+        .filter((dbTask) => !dbTask.is_template)
+        .map((dbTask) => ({
         id: dbTask.id,
         title: dbTask.title,
         dueDate: dbTask.due_date || null,
@@ -655,7 +603,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             isCompleted: st.is_completed,
           })),
         createdAt: dbTask.created_at,
-        isTemplate: dbTask.is_template,
         xp: dbTask.reward_xp || 10,
         projectId: dbTask.project_id,
       }));
@@ -765,7 +712,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     updateProject,
     deleteProject,
     isInitialLoad,
-    addTemplatesToToday,
     reloadFromSupabase,
   };
 };
