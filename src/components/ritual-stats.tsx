@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth, eachDayOfInterval, startOfYear, endOfYear, isSameDay, eachWeekOfInterval, eachMonthOfInterval, differenceInCalendarDays, format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -20,16 +20,22 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
     [habit.completions]
   );
   
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const creationYear = useMemo(() => {
+    return habit.createdAt ? parseISO(habit.createdAt).getFullYear() : new Date().getFullYear();
+  }, [habit.createdAt]);
+
   const getTotalCompletions = () => habit.totalCompletions ?? habit.completions.length;
 
   const yearlyStats = useMemo(() => {
-    if (habit.yearlyStats && habit.yearlyStats.year === new Date().getFullYear()) {
+    if (selectedYear === new Date().getFullYear() && habit.yearlyStats && habit.yearlyStats.year === new Date().getFullYear()) {
       return habit.yearlyStats;
     }
     
     // Fallback calculation if not stored or wrong year
-    const start = startOfYear(new Date());
-    const end = endOfYear(new Date());
+    const start = startOfYear(new Date(selectedYear, 0, 1));
+    const end = endOfYear(new Date(selectedYear, 0, 1));
     
     let totalExpected = 0;
     let achieved = 0;
@@ -38,14 +44,18 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
 
     if (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
       const days = eachDayOfInterval({ start, end });
+      const creationDate = startOfDay(parseISO(habit.createdAt));
+
       days.forEach(day => {
         let isScheduled = true;
-        if (habit.frequency === 'specific_days') {
+        
+        if (day < creationDate) {
+          isScheduled = false;
+        } else if (habit.frequency === 'specific_days') {
           isScheduled = habit.customDays?.includes(day.getDay()) ?? false;
         } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
           const interval = parseInt(habit.frequency.split('_')[1]);
-          const startDate = startOfDay(parseISO(habit.createdAt));
-          const diffDays = differenceInCalendarDays(startOfDay(day), startDate);
+          const diffDays = differenceInCalendarDays(startOfDay(day), creationDate);
           isScheduled = diffDays >= 0 && diffDays % interval === 0;
         }
         
@@ -75,7 +85,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
     }
 
     return { achieved, totalExpected };
-  }, [habit, completionDates]);
+  }, [habit, completionDates, selectedYear]);
 
   const getHabitAccentColorHex = (colorStr?: string) => {
     // Duolingo Blue as default
@@ -168,17 +178,7 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           </div>
         </div>
 
-        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
-          <div className="flex items-center gap-3 text-blue-500">
-            <Target className="w-6 h-6" />
-            <span className="text-xs font-black uppercase tracking-widest">Yearly Progress</span>
-          </div>
-          <div className="text-5xl font-black text-[#1E293B]">
-            {yearlyStats.achieved}
-            <span className="text-xl text-gray-300 uppercase mx-1">/</span>
-            <span className="text-3xl text-gray-400">{yearlyStats.totalExpected}</span>
-          </div>
-        </div>
+        
 
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
           <div className="flex items-center gap-3 text-[#1E293B]">
@@ -191,23 +191,63 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           </div>
         </div>
 
+        <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center gap-3 text-blue-500">
+            <Target className="w-6 h-6" />
+            <span className="text-xs font-black uppercase tracking-widest">Yearly Progress</span>
+          </div>
+          <div className="text-5xl font-black text-[#1E293B]">
+            {yearlyStats.achieved}
+            <span className="text-xl text-gray-300 uppercase mx-1">/</span>
+            <span className="text-3xl text-gray-400">{yearlyStats.totalExpected}</span>
+          </div>
+        </div>
+
         
       </div>
 
       {/* Grid Section */}
       {habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency) ? (
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
-          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-[#1E293B]" />
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-[#1E293B]" />
+              </div>
+              Yearly Progress
+            </h3>
+            <div className="flex items-center gap-2 bg-[#F1F4F9] p-1 rounded-xl border-2 border-[#E2E8F0]">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.max(creationYear, y - 1))}
+                disabled={selectedYear <= creationYear}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-black text-[#1E293B] min-w-[3rem] text-center">
+                {selectedYear}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.min(new Date().getFullYear(), y + 1))}
+                disabled={selectedYear >= new Date().getFullYear()}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
-            Yearly Progress
-          </h3>
+          </div>
           <div className="flex flex-wrap gap-1 justify-center">
-            {eachDayOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }).map((day, i) => {
+            {eachDayOfInterval({ start: startOfYear(new Date(selectedYear, 0, 1)), end: endOfYear(new Date(selectedYear, 0, 1)) }).map((day, i) => {
               const isCompleted = completionDates.some(d => isSameDay(d, day));
               let isScheduled = true;
-              if (habit.frequency === 'specific_days') {
+              
+              if (day < startOfDay(parseISO(habit.createdAt))) {
+                isScheduled = false;
+              } else if (habit.frequency === 'specific_days') {
                 isScheduled = habit.customDays?.includes(day.getDay()) ?? false;
               } else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
                 const interval = parseInt(habit.frequency.split('_')[1]);
@@ -235,14 +275,39 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
         </div>
       ) : habit.frequency === 'weekly' ? (
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
-          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-[#1E293B]" />
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-[#1E293B]" />
+              </div>
+              Weekly Progress
+            </h3>
+            <div className="flex items-center gap-2 bg-[#F1F4F9] p-1 rounded-xl border-2 border-[#E2E8F0]">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.max(creationYear, y - 1))}
+                disabled={selectedYear <= creationYear}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-black text-[#1E293B] min-w-[3rem] text-center">
+                {selectedYear}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.min(new Date().getFullYear(), y + 1))}
+                disabled={selectedYear >= new Date().getFullYear()}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
-            Weekly Progress
-          </h3>
+          </div>
           <div className="flex flex-wrap gap-2 justify-center">
-            {eachWeekOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }, { weekStartsOn: 0 }).map((week, i) => {
+            {eachWeekOfInterval({ start: startOfYear(new Date(selectedYear, 0, 1)), end: endOfYear(new Date(selectedYear, 0, 1)) }, { weekStartsOn: 0 }).map((week, i) => {
               const isCompleted = habit.completions.some(c => isSameWeek(parseISO(c.completedAt), week, { weekStartsOn: 0 }));
               return (
                 <div
@@ -263,14 +328,39 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
         </div>
       ) : habit.frequency === 'monthly' ? (
         <div className="bg-white border-2 border-b-8 border-[#E2E8F0] p-8 rounded-[3rem] shadow-sm">
-          <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-[#1E293B]" />
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#F1F4F9] border-2 border-b-4 border-[#E2E8F0] flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-[#1E293B]" />
+              </div>
+              Monthly Progress
+            </h3>
+            <div className="flex items-center gap-2 bg-[#F1F4F9] p-1 rounded-xl border-2 border-[#E2E8F0]">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.max(creationYear, y - 1))}
+                disabled={selectedYear <= creationYear}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-black text-[#1E293B] min-w-[3rem] text-center">
+                {selectedYear}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm"
+                onClick={() => setSelectedYear(y => Math.min(new Date().getFullYear(), y + 1))}
+                disabled={selectedYear >= new Date().getFullYear()}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
-            Monthly Progress
-          </h3>
+          </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-            {eachMonthOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) }).map((month, i) => {
+            {eachMonthOfInterval({ start: startOfYear(new Date(selectedYear, 0, 1)), end: endOfYear(new Date(selectedYear, 0, 1)) }).map((month, i) => {
               const isCompleted = habit.completions.some(c => isSameMonth(parseISO(c.completedAt), month));
               return (
                 <div
