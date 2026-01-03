@@ -42,11 +42,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   dueDate: z.date().optional(),
   projectId: z.string().optional(),
+  reminderEnabled: z.boolean().default(false),
+  reminderAt: z.string().optional(), // Using string for time input simplicity combined with date
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -127,6 +130,8 @@ export function AddTaskDialog({
       title: "",
       dueDate: new Date(),
       projectId: defaultProjectId || "none",
+      reminderEnabled: false,
+      reminderAt: "09:00",
     },
   })
 
@@ -137,6 +142,8 @@ export function AddTaskDialog({
         title: "",
         dueDate: new Date(),
         projectId: defaultProjectId || "none",
+        reminderEnabled: false,
+        reminderAt: "09:00",
       });
       setSubtasks([]);
     }
@@ -177,11 +184,21 @@ export function AddTaskDialog({
     playAddTaskSound();
 
     setTimeout(() => {
+      let reminderIso = null;
+      if (values.reminderEnabled && values.reminderAt && values.dueDate) {
+        const [hours, minutes] = values.reminderAt.split(':').map(Number);
+        const date = new Date(values.dueDate);
+        date.setHours(hours, minutes);
+        reminderIso = date.toISOString();
+      }
+
       onAddTask({
         title: values.title,
         dueDate: values.dueDate ? values.dueDate.toISOString() : null,
         subtasks: finalSubtasks,
-        projectId: values.projectId === "none" ? null : values.projectId
+        projectId: values.projectId === "none" ? null : values.projectId,
+        reminderEnabled: values.reminderEnabled,
+        reminderAt: reminderIso,
       })
       form.reset()
       setSubtasks([])
@@ -307,6 +324,39 @@ export function AddTaskDialog({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="reminderEnabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Reminder</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            {form.watch("reminderEnabled") && (
+              <FormField
+                control={form.control}
+                name="reminderAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div>
               <FormLabel>Sub-Quests</FormLabel>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from 'react';
-import { Sword, CheckCircle2, Star, Bot, Clock, Flame, Plus, Bell } from 'lucide-react';
+import { Sword, CheckCircle2, Star, Bot, Clock, Flame, Plus, Bell, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/header';
 import TaskList from '@/components/task-list';
@@ -32,6 +32,7 @@ import { EditReminderDialog } from './edit-reminder-dialog';
 import { HistoryView } from './history-view';
 import { useNotifications } from '@/hooks/use-notifications';
 import { UnifiedAddButton } from './unified-add-button';
+import { ArchiveView } from './archive-view';
 
 // Lazy load Confetti for better initial load performance
 const Confetti = lazy(() => import('react-confetti'));
@@ -314,13 +315,6 @@ export default function TaskQuestApp() {
                               <span className="font-black tracking-wide">New Project</span>
                             </Button>
                           </AddProjectDialog>
-                        ) : activeTab === 'reminders' ? (
-                          <AddReminderDialog onAddReminder={addReminder}>
-                            <Button className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-yellow-600 border-b-yellow-700 bg-yellow-500 text-white hover:bg-yellow-600 transition-all duration-200 group rounded-2xl shadow-lg active:translate-y-[2px] active:border-b-[4px] flex items-center">
-                              <Plus className="mr-3 h-6 w-6 stroke-[4px]" />
-                              <span className="font-black tracking-wide">New Reminder</span>
-                            </Button>
-                          </AddReminderDialog>
                         ) : (
                           <AddTaskDialog 
                             onAddTask={handleAddTask} 
@@ -355,9 +349,9 @@ export default function TaskQuestApp() {
                         <Folder className="mr-3 h-5 w-5 group-data-[state=active]:animate-bounce-subtle" />
                         <span className="font-black tracking-wide">Projects</span>
                       </TabsTrigger>
-                      <TabsTrigger value="reminders" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-yellow-500 data-[state=active]:text-white data-[state=active]:border-yellow-600 data-[state=active]:border-b-yellow-700 data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
-                        <Bell className="mr-3 h-5 w-5 group-data-[state=active]:animate-bounce-subtle" />
-                        <span className="font-black tracking-wide">Reminders</span>
+                      <TabsTrigger value="archive" className="w-full justify-start px-4 py-3 h-auto text-base border-2 border-b-[6px] border-border bg-card hover:bg-accent/5 transition-all duration-200 group rounded-2xl shadow-sm data-[state=active]:bg-gray-500 data-[state=active]:text-white data-[state=active]:border-gray-600 data-[state=active]:border-b-gray-700 data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] active:translate-y-[2px] active:border-b-[4px]">
+                        <Archive className="mr-3 h-5 w-5 group-data-[state=active]:animate-bounce-subtle" />
+                        <span className="font-black tracking-wide">Archive</span>
                       </TabsTrigger>
                     </TabsList>
                   </div>
@@ -414,7 +408,7 @@ export default function TaskQuestApp() {
                   {/* Action Bar */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <h2 className="text-2xl md:text-3xl font-black font-headline tracking-tight uppercase">
-                      {activeTab === 'today' ? "Quests" : activeTab === 'habits' ? 'Rituals' : activeTab === 'projects' ? 'Projects' : 'Reminders'}
+                      {activeTab === 'today' ? "Quests" : activeTab === 'habits' ? 'Rituals' : activeTab === 'projects' ? 'Projects' : 'Archive'}
                     </h2>
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                       <CalendarDialog 
@@ -474,24 +468,19 @@ export default function TaskQuestApp() {
                         setCelebrating={setCelebrating}
                       />
                     </TabsContent>
-                    <TabsContent value="reminders" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="p-4 md:p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <div>
-                            <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                              <Bell className="h-6 w-6 text-yellow-500" />
-                              Reminders
-                            </h2>
-                            <p className="text-muted-foreground">Stay on track with your journey.</p>
-                          </div>
-                        </div>
-                        <ReminderView 
-                          reminders={reminders}
-                          onDeleteReminder={deleteReminder}
-                          onToggleActive={toggleReminderActive}
-                          onEditReminder={handleEditReminder}
-                        />
-                      </div>
+                    <TabsContent value="archive" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <ArchiveView 
+                        habits={habits}
+                        tasks={tasks}
+                        onUnarchiveHabit={(id) => updateHabit(id, { archived: false })}
+                        onDeleteHabit={deleteHabit}
+                        onDeleteTask={deleteTask}
+                        onToggleTask={handleToggleTask}
+                        onEditTask={handleEditTask}
+                        onAddSubtask={addSubtask}
+                        onToggleSubtask={toggleSubtaskCompletion}
+                        setCelebrating={setCelebrating}
+                      />
                     </TabsContent>
                   </div>
                 </div>
@@ -520,12 +509,6 @@ export default function TaskQuestApp() {
                               <Plus className="h-6 w-6 stroke-[3px]" />
                             </Button>
                           </AddProjectDialog>
-                        ) : activeTab === 'reminders' ? (
-                          <AddReminderDialog onAddReminder={addReminder}>
-                            <Button size="icon" className="h-12 w-12 rounded-full bg-yellow-500 border-b-yellow-700 hover:bg-yellow-600 text-white shadow-md active:translate-y-0.5 transition-all">
-                              <Plus className="h-6 w-6 stroke-[3px]" />
-                            </Button>
-                          </AddReminderDialog>
                         ) : (
                           <AddTaskDialog 
                             onAddTask={handleAddTask} 
@@ -542,8 +525,8 @@ export default function TaskQuestApp() {
                     <TabsTrigger value="projects" className="rounded-xl data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
                       <Folder className="h-6 w-6"/>
                     </TabsTrigger>
-                    <TabsTrigger value="reminders" className="rounded-xl data-[state=active]:bg-yellow-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
-                      <Bell className="h-6 w-6"/>
+                    <TabsTrigger value="archive" className="rounded-xl data-[state=active]:bg-gray-500 data-[state=active]:text-white data-[state=active]:shadow-[inset_0_2px_0_0_rgba(255,255,255,0.3)] transition-all font-bold py-3 h-auto active:translate-y-[2px]">
+                      <Archive className="h-6 w-6"/>
                     </TabsTrigger>
                   </TabsList>
                 </div>

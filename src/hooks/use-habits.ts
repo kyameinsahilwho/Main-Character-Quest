@@ -149,6 +149,32 @@ export const useHabits = (user?: User | null) => {
     if (hasLoadedRef.current) return;
     
     const loadHabits = async () => {
+      // Always load from local storage first for immediate UI
+      const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
+      if (storedHabits) {
+        const parsedHabits: Habit[] = JSON.parse(storedHabits);
+        // Sort by createdAt ascending
+        const sortedHabits = [...parsedHabits].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        // Ensure XP and stats are calculated/updated for local habits too
+        const habitsWithStats = sortedHabits.map(habit => {
+          const now = new Date();
+          const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
+          return {
+            ...habit,
+            xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
+            totalCompletions: habit.completions.length,
+            yearlyStats: needsYearlyUpdate 
+              ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
+              : habit.yearlyStats
+          };
+        });
+        setHabits(habitsWithStats);
+      }
+      
+      setIsInitialLoad(false); // UI is ready
+
       try {
         if (user) {
           console.log('Loading habits from Supabase...');
@@ -197,59 +223,21 @@ export const useHabits = (user?: User | null) => {
               yearlyStats: hasValidYearlyStats && dbHabit.yearly_achieved !== undefined && dbHabit.yearly_expected !== undefined
                 ? { achieved: dbHabit.yearly_achieved, totalExpected: dbHabit.yearly_expected, year: dbHabit.stats_year! }
                 : calculateYearlyStats(completions, dbHabit.frequency, dbHabit.created_at, dbHabit.custom_days),
+              archived: dbHabit.archived,
+              reminderTime: dbHabit.reminder_time,
+              reminderEnabled: dbHabit.reminder_enabled,
             };
           });
 
           setHabits(loadedHabits);
           hasLoadedRef.current = true;
         } else {
-          const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
-          if (storedHabits) {
-            const parsedHabits: Habit[] = JSON.parse(storedHabits);
-            // Sort by createdAt ascending
-            const sortedHabits = [...parsedHabits].sort((a, b) => 
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            // Ensure XP and stats are calculated/updated for local habits too
-            const habitsWithStats = sortedHabits.map(habit => {
-              const now = new Date();
-              const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
-              return {
-                ...habit,
-                xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
-                totalCompletions: habit.completions.length,
-                yearlyStats: needsYearlyUpdate 
-                  ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
-                  : habit.yearlyStats
-              };
-            });
-            setHabits(habitsWithStats);
-          }
+          // Already loaded from localStorage
           hasLoadedRef.current = true;
         }
       } catch (error) {
         console.error("Failed to load habits", error);
-        const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
-        if (storedHabits) {
-          const parsedHabits: Habit[] = JSON.parse(storedHabits);
-          // Sort by createdAt ascending
-          const sortedHabits = [...parsedHabits].sort((a, b) => 
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          const habitsWithStats = sortedHabits.map(habit => {
-            const now = new Date();
-            const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
-            return {
-              ...habit,
-              xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
-              totalCompletions: habit.completions.length,
-              yearlyStats: needsYearlyUpdate 
-                ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
-                : habit.yearlyStats
-            };
-          });
-          setHabits(habitsWithStats);
-        }
+        // Fallback to localStorage - already loaded
         hasLoadedRef.current = true;
       } finally {
         setIsInitialLoad(false);
@@ -314,6 +302,9 @@ export const useHabits = (user?: User | null) => {
             yearly_achieved: yearlyStats.achieved,
             yearly_expected: yearlyStats.totalExpected,
             stats_year: yearlyStats.year,
+            archived: newHabit.archived || false,
+            reminder_time: newHabit.reminderTime,
+            reminder_enabled: newHabit.reminderEnabled,
           });
         if (error) throw error;
       } catch (error) {
@@ -469,6 +460,9 @@ export const useHabits = (user?: User | null) => {
         if (updates.color !== undefined) dbUpdates.color = updates.color;
         if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
         if (updates.customDays !== undefined) dbUpdates.custom_days = updates.customDays;
+        if (updates.archived !== undefined) dbUpdates.archived = updates.archived;
+        if (updates.reminderTime !== undefined) dbUpdates.reminder_time = updates.reminderTime;
+        if (updates.reminderEnabled !== undefined) dbUpdates.reminder_enabled = updates.reminderEnabled;
 
         // If frequency or customDays changed, sync the new stats to DB
         if (updates.frequency !== undefined || updates.customDays !== undefined) {

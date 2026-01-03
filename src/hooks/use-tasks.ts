@@ -38,6 +38,19 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     if (hasLoadedRef.current) return;
     
     const loadTasks = async () => {
+      // Always load from local storage first for immediate UI
+      const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
+      const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      
+      if (storedTasks) {
+        setTasks(JSON.parse(storedTasks));
+      }
+      if (storedProjects) {
+        setProjects(JSON.parse(storedProjects));
+      }
+      
+      setIsInitialLoad(false); // UI is ready
+
       try {
         if (user) {
           // Check if this is first login by looking at sync status
@@ -50,15 +63,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           // If user just logged in and hasn't synced yet, keep local tasks
           if (syncStatus !== 'synced' && localTasks) {
             console.log('First login detected - loading from localStorage, will sync after');
-            const parsedTasks = JSON.parse(localTasks);
-            const localProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-            if (localProjects) {
-              setProjects(JSON.parse(localProjects));
-            }
-            console.log('Loaded', parsedTasks.length, 'tasks from localStorage');
-            setTasks(parsedTasks);
+            // Already loaded above
             hasLoadedRef.current = true;
-            setIsInitialLoad(false);
             return;
           }
           
@@ -108,6 +114,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             createdAt: dbTask.created_at,
             xp: dbTask.reward_xp || 10,
             projectId: dbTask.project_id,
+            reminderAt: dbTask.reminder_at,
+            reminderEnabled: dbTask.reminder_enabled,
           }));
 
           const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
@@ -123,26 +131,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           setProjects(loadedProjects);
           hasLoadedRef.current = true;
         } else {
-          // No user - load from localStorage
-          const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-          if (storedTasks) {
-            const parsedTasks = JSON.parse(storedTasks);
-            console.log('Not logged in - loaded', parsedTasks.length, 'tasks from localStorage');
-            setTasks(parsedTasks);
-          }
-          const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-          if (storedProjects) {
-            setProjects(JSON.parse(storedProjects));
-          }
+          // No user - already loaded from localStorage
           hasLoadedRef.current = true;
         }
       } catch (error) {
         console.error("Failed to load tasks", error);
-        // Fallback to localStorage
-        const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-        if (storedTasks) {
-          setTasks(JSON.parse(storedTasks));
-        }
+        // Fallback to localStorage - already loaded
         hasLoadedRef.current = true;
       } finally {
         setIsInitialLoad(false);
@@ -276,6 +270,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             completed_at: newTask.completedAt,
             created_at: newTask.createdAt,
             project_id: newTask.projectId,
+            reminder_at: newTask.reminderAt,
+            reminder_enabled: newTask.reminderEnabled,
           });
 
         if (error) throw error;
@@ -313,6 +309,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         if (updatedData.title !== undefined) updatePayload.title = updatedData.title;
         if (updatedData.dueDate !== undefined) updatePayload.due_date = updatedData.dueDate;
         if (updatedData.projectId !== undefined) updatePayload.project_id = updatedData.projectId;
+        if (updatedData.reminderAt !== undefined) updatePayload.reminder_at = updatedData.reminderAt;
+        if (updatedData.reminderEnabled !== undefined) updatePayload.reminder_enabled = updatedData.reminderEnabled;
         
         const { error } = await supabase
           .from('tasks')

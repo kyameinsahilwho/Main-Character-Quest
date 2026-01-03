@@ -14,6 +14,8 @@ export interface Task {
   createdAt: string;
   xp?: number;
   projectId?: string | null;
+  reminderAt?: string | null;
+  reminderEnabled?: boolean;
 }
 
 export interface Project {
@@ -39,6 +41,9 @@ export interface Habit {
   createdAt: string;
   completions: HabitCompletion[];
   totalCompletions?: number;
+  archived?: boolean;
+  reminderTime?: string | null;
+  reminderEnabled?: boolean;
   yearlyStats?: {
     achieved: number;
     totalExpected: number;
@@ -88,6 +93,9 @@ export interface DbHabit {
   yearly_achieved?: number;
   yearly_expected?: number;
   stats_year?: number;
+  archived?: boolean;
+  reminder_time?: string | null;
+  reminder_enabled?: boolean;
 }
 
 export interface DbHabitCompletion {
@@ -148,6 +156,8 @@ export interface DbTask {
   created_at: string;
   updated_at: string;
   project_id?: string | null;
+  reminder_at?: string | null;
+  reminder_enabled?: boolean;
 }
 
 export interface DbUserSettings {

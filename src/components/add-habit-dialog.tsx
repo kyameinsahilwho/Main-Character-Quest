@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 import { CompactIconPicker } from "./icon-picker";
 
@@ -43,6 +44,8 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState("");
   const [customDays, setCustomDays] = useState<number[]>([]);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState("09:00");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,12 +57,16 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
       customDays: frequency === 'specific_days' ? customDays : undefined,
       color: selectedColor,
       icon: selectedIcon,
+      reminderEnabled,
+      reminderTime: reminderEnabled ? reminderTime : null,
     });
 
     setTitle("");
     setFrequency('daily');
     setSelectedIcon("");
     setCustomDays([]);
+    setReminderEnabled(false);
+    setReminderTime("09:00");
     setOpen(false);
   };
 
@@ -176,6 +183,21 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
                 </div>
               </div>
             )}
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Reminder</Label>
+                <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} />
+              </div>
+              {reminderEnabled && (
+                <Input
+                  type="time"
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.target.value)}
+                  className="h-12 bg-[#F1F4F9] border-2 border-[#CBD5E1] rounded-xl font-bold"
+                />
+              )}
+            </div>
           </form>
         </div>
 

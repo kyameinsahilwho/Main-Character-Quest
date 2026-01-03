@@ -110,68 +110,62 @@ export function useNotifications(
       
       // Check tasks
       tasks.forEach(task => {
-        if (task.isCompleted || !task.dueDate) return;
+        if (task.isCompleted) return;
         
-        const dueDate = parseISO(task.dueDate);
-        
-        // Only check if it's today
-        if (!isSameDay(dueDate, now)) return;
-
-        // If it has a time component (simple check: ISO string length > 10)
-        if (task.dueDate.length > 10) {
-           const diff = differenceInMinutes(dueDate, now);
-           
-           // Notify if due within 15 minutes and hasn't been notified yet
-           const notificationKey = `task-${task.id}-${task.dueDate}`;
-           if (diff <= 15 && diff >= 0 && !notifiedIds.current.has(notificationKey)) {
-             showNotification(`Quest Due Soon: ${task.title}`, {
-               body: `Your quest "${task.title}" is due in ${diff} minutes!`,
+        // Check explicit reminder
+        if (task.reminderEnabled && task.reminderAt) {
+          const reminderTime = parseISO(task.reminderAt);
+          const diff = differenceInMinutes(reminderTime, now);
+          const notificationKey = `task-reminder-${task.id}-${task.reminderAt}`;
+          
+          if (diff <= 0 && diff > -5 && !notifiedIds.current.has(notificationKey)) {
+             showNotification(`Quest Reminder: ${task.title}`, {
+               body: `It's time for your quest "${task.title}"!`,
                icon: '/icon-192x192.png',
                badge: '/icon-192x192.png'
              });
              notifiedIds.current.add(notificationKey);
-           }
-        }
-      });
-
-      // Check custom reminders
-      reminders.forEach(reminder => {
-        if (!reminder.isActive) return;
-
-        const remindAt = parseISO(reminder.remindAt);
-        
-        // Notify if due now or passed, and hasn't been notified for this specific time yet
-        const notificationKey = `reminder-${reminder.id}-${reminder.remindAt}`;
-        if (now >= remindAt && !notifiedIds.current.has(notificationKey)) {
-          showNotification(`${reminder.icon || '🔔'} ${reminder.title}`, {
-            body: reminder.description || "Time for your reminder!",
-            icon: '/icon-192x192.png',
-            badge: '/icon-192x192.png'
-          });
-          notifiedIds.current.add(notificationKey);
-          
-          if (onTriggerReminder) {
-            onTriggerReminder(reminder.id);
           }
         }
       });
 
-      // Check habits (Generic reminder at 8 PM if not all daily habits are done)
-      if (now.getHours() === 20 && now.getMinutes() === 0) {
-        const incompleteDailyHabits = habits.filter(h => 
-          h.frequency === 'daily' && 
-          !h.completions.some(c => isSameDay(parseISO(c.completedAt), now))
-        );
-
-        if (incompleteDailyHabits.length > 0 && !notifiedIds.current.has('daily-habits-' + now.toDateString())) {
-           showNotification("Daily Rituals Reminder", {
-             body: `You have ${incompleteDailyHabits.length} rituals left to complete today!`,
-             icon: '/icon-192x192.png',
-             badge: '/icon-192x192.png'
-           });
-           notifiedIds.current.add('daily-habits-' + now.toDateString());
+      // Check habits
+      habits.forEach(habit => {
+        if (habit.reminderEnabled && habit.reminderTime) {
+           const [hours, minutes] = habit.reminderTime.split(':').map(Number);
+           const reminderTime = new Date(now);
+           reminderTime.setHours(hours, minutes, 0, 0);
+           
+           const diff = differenceInMinutes(reminderTime, now);
+           const notificationKey = `habit-reminder-${habit.id}-${now.toDateString()}`;
+           
+           // Check if habit is already completed today
+           const isCompletedToday = habit.completions.some(c => isSameDay(parseISO(c.completedAt), now));
+           
+           if (!isCompletedToday && diff <= 0 && diff > -5 && !notifiedIds.current.has(notificationKey)) {
+              // Check frequency
+              let isScheduled = false;
+              if (habit.frequency === 'daily') isScheduled = true;
+              else if (habit.frequency === 'specific_days' && habit.customDays?.includes(now.getDay())) isScheduled = true;
+              else if (habit.frequency === 'weekly') isScheduled = true; // Simplify for now, or check if start of week?
+              else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+                 const interval = parseInt(habit.frequency.split('_')[1]);
+                 const startDate = parseISO(habit.createdAt);
+                 const diffDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                 if (diffDays >= 0 && diffDays % interval === 0) isScheduled = true;
+              }
+              
+              if (isScheduled) {
+                 showNotification(`Ritual Reminder: ${habit.title}`, {
+                   body: `Time for your ritual "${habit.title}"!`,
+                   icon: '/icon-192x192.png',
+                   badge: '/icon-192x192.png'
+                 });
+                 notifiedIds.current.add(notificationKey);
+              }
+           }
         }
-      }
+      });
     };
 
     // Run check immediately and then every 30 seconds

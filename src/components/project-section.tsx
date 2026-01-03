@@ -15,6 +15,8 @@ import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import TaskList from './task-list';
 import { AddTaskDialog } from './add-task-dialog';
+import { CompactIconPicker } from './icon-picker';
+import { cn } from '@/lib/utils';
 
 interface ProjectSectionProps {
   projects: Project[];
@@ -52,6 +54,12 @@ export default function ProjectSection({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+  const colors = [
+    "#ef4444", "#f97316", "#f59e0b", "#84cc16", "#10b981",
+    "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef",
+    "#f43f5e", "#64748b"
+  ];
+
   // Reset scroll position when switching between project list and project details
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -62,7 +70,11 @@ export default function ProjectSection({
 
   const handleUpdateProject = () => {
     if (editingProject && editingProject.name.trim()) {
-      onUpdateProject(editingProject.id, { name: editingProject.name.trim() });
+      onUpdateProject(editingProject.id, { 
+        name: editingProject.name.trim(),
+        color: editingProject.color,
+        icon: editingProject.icon
+      });
       setEditingProject(null);
       setIsEditDialogOpen(false);
     }
@@ -84,6 +96,9 @@ export default function ProjectSection({
               Projects
             </Button>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary" style={{ backgroundColor: selectedProject?.color ? selectedProject.color + '20' : undefined, color: selectedProject?.color }}>
+               {selectedProject?.icon ? <span className="text-lg">{selectedProject.icon}</span> : <Folder className="h-4 w-4" />}
+            </div>
             <span className="font-black text-xl">{selectedProject?.name}</span>
           </div>
           
@@ -121,8 +136,8 @@ export default function ProjectSection({
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                          <Folder className="h-5 w-5" />
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary" style={{ backgroundColor: project.color ? project.color + '20' : undefined, color: project.color }}>
+                          {project.icon ? <span className="text-xl">{project.icon}</span> : <Folder className="h-5 w-5" />}
                         </div>
                         <CardTitle className="text-lg font-black">{project.name}</CardTitle>
                       </div>
@@ -167,7 +182,7 @@ export default function ProjectSection({
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-primary transition-all duration-500" 
-                          style={{ width: `${progress}%` }}
+                          style={{ width: `${progress}%`, backgroundColor: project.color }}
                         />
                       </div>
                     </div>
@@ -184,7 +199,30 @@ export default function ProjectSection({
           <DialogHeader>
             <DialogTitle className="text-2xl font-black font-headline">Edit Project</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            <div className="flex gap-4 items-start">
+                <CompactIconPicker
+                  selectedIcon={editingProject?.icon || "📁"}
+                  onSelectIcon={(icon) => setEditingProject(prev => prev ? { ...prev, icon } : null)}
+                  selectedColor={editingProject?.color || "#3b82f6"}
+                  onSelectColor={(color) => setEditingProject(prev => prev ? { ...prev, color } : null)}
+                  colors={colors}
+                />
+                <div className="flex-1 grid grid-cols-6 gap-2">
+                  {colors.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setEditingProject(prev => prev ? { ...prev, color: c } : null)}
+                      className={cn(
+                        "w-8 h-8 rounded-full border-2 transition-all",
+                        editingProject?.color === c ? "border-[#1E293B] scale-110" : "border-transparent hover:scale-105"
+                      )}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+            </div>
             <Input
               placeholder="Project Name"
               value={editingProject?.name || ''}

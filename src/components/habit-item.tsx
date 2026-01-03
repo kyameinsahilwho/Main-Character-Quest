@@ -1,31 +1,42 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed } from "lucide-react";
+import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed, Archive, History } from "lucide-react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { format, isToday, parseISO, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays, addWeeks } from "date-fns";
 import { EditHabitDialog } from "./edit-habit-dialog";
 import confetti from 'canvas-confetti';
 import { playCompletionSound } from "@/lib/sounds";
 
 interface HabitItemProps {
   habit: Habit;
+  currentDate?: Date;
   onToggle: (habitId: string, date: string) => void;
   onUpdate: (id: string, habitData: Partial<Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>>) => void;
   onDelete: (id: string) => void;
   onViewStats: (habitId: string) => void;
 }
 
-export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: HabitItemProps) {
+export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate, onDelete, onViewStats }: HabitItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [viewOffset, setViewOffset] = useState(0);
+
+  // Reset view offset when collapsed
+  useEffect(() => {
+    if (!isExpanded) {
+      setViewOffset(0);
+    }
+  }, [isExpanded]);
   
+  const viewDate = addWeeks(currentDate, viewOffset);
+
   // Daily view
   const currentWeek = eachDayOfInterval({
-    start: startOfWeek(new Date(), { weekStartsOn: 0 }),
-    end: endOfWeek(new Date(), { weekStartsOn: 0 }),
+    start: startOfWeek(viewDate, { weekStartsOn: 0 }),
+    end: endOfWeek(viewDate, { weekStartsOn: 0 }),
   });
 
   const displayDays = currentWeek;
@@ -302,7 +313,15 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
           </div>
         </div>
 
-        <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+        <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar relative">
+          {viewOffset !== 0 && (
+            <div className={cn(
+              "absolute -top-4 right-0 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse",
+              aesthetics.checkbox.split(' ')[0]
+            )}>
+              History Mode
+            </div>
+          )}
           {(habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) ? (
             displayDays.map((date, i) => {
               const completed = isCompletedOnDate(date);
@@ -411,7 +430,23 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
             transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 pt-4 mt-2 border-t-2 border-[#F1F4F9]">
+            <div className="flex items-center gap-2 pt-4 mt-2 border-t-2 border-[#F1F4F9] flex-wrap">
+              {habit.frequency !== 'weekly' && habit.frequency !== 'monthly' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewOffset(prev => prev === 0 ? -1 : 0)}
+                  className={cn(
+                    "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
+                    viewOffset !== 0 
+                      ? `${aesthetics.checkbox} text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]` 
+                      : "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
+                  )}
+                >
+                  <History className={cn("w-4 h-4 mr-2", viewOffset !== 0 ? "text-white/80" : "text-indigo-500")} />
+                  {viewOffset === 0 ? "Last Week" : "Back to Today"}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -437,6 +472,18 @@ export function HabitItem({ habit, onToggle, onUpdate, onDelete, onViewStats }: 
                   Edit
                 </Button>
               </EditHabitDialog>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onUpdate(habit.id, { archived: true })}
+                className={cn(
+                  "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
+                  "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
+                )}
+              >
+                <Archive className="w-4 h-4 mr-2" />
+                Archive
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
