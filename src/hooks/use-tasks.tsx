@@ -5,6 +5,8 @@ import { Task, Subtask, Streaks, Project } from '@/lib/types';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO, format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 const TASKS_STORAGE_KEY = 'taskQuestTasks';
 const PROJECTS_STORAGE_KEY = 'taskQuestProjects';
@@ -97,16 +99,16 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
           // Convert DB format to app format
           const loadedTasks: Task[] = (tasksData || [])
-            .filter((dbTask) => !dbTask.is_template)
-            .map((dbTask) => ({
+            .filter((dbTask: any) => !dbTask.is_template)
+            .map((dbTask: any) => ({
             id: dbTask.id,
             title: dbTask.title,
             dueDate: dbTask.due_date || null,
             isCompleted: dbTask.is_completed,
             completedAt: dbTask.completed_at || null,
             subtasks: (subtasksData || [])
-              .filter((st) => st.task_id === dbTask.id)
-              .map((st) => ({
+              .filter((st: any) => st.task_id === dbTask.id)
+              .map((st: any) => ({
                 id: st.id,
                 text: st.title,
                 isCompleted: st.is_completed,
@@ -118,7 +120,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             reminderEnabled: dbTask.reminder_enabled,
           }));
 
-          const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
+          const loadedProjects: Project[] = (projectsData || []).map((dbProject: any) => ({
             id: dbProject.id,
             name: dbProject.name,
             description: dbProject.description,
@@ -350,8 +352,54 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       }
     }
   }, [user, supabase]);
-  
+
+  const restoreTask = useCallback(async (task: Task) => {
+    setTasks(prev => [task, ...prev]);
+
+    if (user) {
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .insert({
+                    id: task.id,
+                    user_id: user.id,
+                    title: task.title,
+                    due_date: task.dueDate,
+                    is_completed: task.isCompleted,
+                    completed_at: task.completedAt,
+                    created_at: task.createdAt,
+                    project_id: task.projectId,
+                    reminder_at: task.reminderAt,
+                    reminder_enabled: task.reminderEnabled,
+                    reward_xp: task.xp
+                });
+
+            if (error) throw error;
+
+            if (task.subtasks.length > 0) {
+                const { error: subtasksError } = await supabase
+                    .from('subtasks')
+                    .insert(
+                        task.subtasks.map((st) => ({
+                            id: st.id,
+                            task_id: task.id,
+                            title: st.text,
+                            is_completed: st.isCompleted,
+                        }))
+                    );
+
+                if (subtasksError) throw subtasksError;
+            }
+        } catch (error) {
+            console.error('Error restoring task to Supabase:', error);
+        }
+    }
+  }, [user, supabase]);
+
   const deleteTask = useCallback(async (taskId: string) => {
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) return;
+
     setTasks(prev => prev.filter(task => task.id !== taskId));
     
     // Delete from Supabase
@@ -362,7 +410,17 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         console.error('Error deleting task from Supabase:', error);
       }
     }
-  }, [user, supabase, tasks]);
+
+    toast({
+        title: "Quest Deleted",
+        description: `"${taskToDelete.title}" has been removed.`,
+        action: (
+            <ToastAction altText="Undo" onClick={() => restoreTask(taskToDelete)}>
+                Undo
+            </ToastAction>
+        ),
+    });
+  }, [user, supabase, tasks, restoreTask]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     // First, get the current task to determine new state
@@ -586,16 +644,16 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       if (subtasksError) throw subtasksError;
 
       const loadedTasks: Task[] = (tasksData || [])
-        .filter((dbTask) => !dbTask.is_template)
-        .map((dbTask) => ({
+        .filter((dbTask: any) => !dbTask.is_template)
+        .map((dbTask: any) => ({
         id: dbTask.id,
         title: dbTask.title,
         dueDate: dbTask.due_date || null,
         isCompleted: dbTask.is_completed,
         completedAt: dbTask.completed_at || null,
         subtasks: (subtasksData || [])
-          .filter((st) => st.task_id === dbTask.id)
-          .map((st) => ({
+          .filter((st: any) => st.task_id === dbTask.id)
+          .map((st: any) => ({
             id: st.id,
             text: st.title,
             isCompleted: st.is_completed,
@@ -612,7 +670,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         .order('created_at', { ascending: false });
 
       if (projectsData) {
-        const loadedProjects: Project[] = projectsData.map((dbProject) => ({
+        const loadedProjects: Project[] = projectsData.map((dbProject: any) => ({
           id: dbProject.id,
           name: dbProject.name,
           description: dbProject.description,
@@ -680,7 +738,48 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     }
   }, [user, supabase, projects]);
 
+  const restoreProject = useCallback(async (project: Project, affectedTaskIds: string[]) => {
+    setProjects(prev => [project, ...prev]);
+    // Restore projectId on tasks
+    setTasks(prev => prev.map(task => affectedTaskIds.includes(task.id) ? { ...task, projectId: project.id } : task));
+
+    if (user) {
+        try {
+            const { error } = await supabase
+                .from('projects')
+                .insert({
+                    id: project.id,
+                    user_id: user.id,
+                    name: project.name,
+                    description: project.description,
+                    color: project.color,
+                    icon: project.icon,
+                    created_at: project.createdAt,
+                });
+
+            if (error) throw error;
+
+            // Restore projectId on tasks in DB
+            // Note: Tasks in DB should currently have NULL projectId due to ON DELETE SET NULL
+            if (affectedTaskIds.length > 0) {
+                 await supabase
+                    .from('tasks')
+                    .update({ project_id: project.id })
+                    .in('id', affectedTaskIds);
+            }
+
+        } catch (error) {
+            console.error('Error restoring project to Supabase:', error);
+        }
+    }
+  }, [user, supabase]);
+
   const deleteProject = useCallback(async (projectId: string) => {
+    const projectToDelete = projects.find(p => p.id === projectId);
+    const affectedTaskIds = tasks.filter(t => t.projectId === projectId).map(t => t.id);
+
+    if (!projectToDelete) return;
+
     setProjects(prev => prev.filter(project => project.id !== projectId));
     // Also clear project_id from tasks
     setTasks(prev => prev.map(task => task.projectId === projectId ? { ...task, projectId: null } : task));
@@ -693,7 +792,17 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         console.error('Error deleting project from Supabase:', error);
       }
     }
-  }, [user, supabase, projects]);
+
+    toast({
+        title: "Project Deleted",
+        description: `"${projectToDelete.name}" has been removed.`,
+        action: (
+            <ToastAction altText="Undo" onClick={() => restoreProject(projectToDelete, affectedTaskIds)}>
+                Undo
+            </ToastAction>
+        ),
+    });
+  }, [user, supabase, projects, tasks, restoreProject]);
 
   return {
     tasks: sortedTasks,
