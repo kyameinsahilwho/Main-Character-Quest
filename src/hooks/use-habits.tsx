@@ -20,6 +20,8 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-system';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 const HABITS_STORAGE_KEY = 'taskQuestHabits';
 const SAVE_DEBOUNCE_MS = 500;
@@ -193,10 +195,10 @@ export const useHabits = (user?: User | null) => {
 
           if (completionsError) throw completionsError;
 
-          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit) => {
+          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit: any) => {
             const completions = (completionsData || [])
-              .filter((c) => c.habit_id === dbHabit.id)
-              .map((c) => ({
+              .filter((c: any) => c.habit_id === dbHabit.id)
+              .map((c: any) => ({
                 id: c.id,
                 habitId: c.habit_id,
                 completedAt: c.completed_at,
@@ -331,7 +333,7 @@ export const useHabits = (user?: User | null) => {
             supabase.from('habit_completions')
               .delete()
               .eq('id', completionToRemove.id)
-              .then(({ error }) => {
+              .then(({ error }: any) => {
                 if (error) console.error('Error removing habit completion:', error);
               });
           }
@@ -351,7 +353,7 @@ export const useHabits = (user?: User | null) => {
                 user_id: user.id,
                 completed_at: targetDate,
               })
-              .then(({ error }) => {
+              .then(({ error }: any) => {
                 if (error) console.error('Error adding habit completion:', error);
               });
           }
@@ -401,7 +403,7 @@ export const useHabits = (user?: User | null) => {
               stats_year: yearlyStats.year,
             })
             .eq('id', habitId)
-            .then(({ error }) => {
+            .then(({ error }: any) => {
               if (error) console.error('Error updating habit streak:', error);
             });
         }
@@ -420,7 +422,60 @@ export const useHabits = (user?: User | null) => {
     }));
   }, [user, supabase]);
 
+  const restoreHabit = useCallback(async (habit: Habit) => {
+    setHabits(prev => [...prev, habit]);
+
+    if (user) {
+        try {
+            const { error } = await supabase
+                .from('habits')
+                .insert({
+                    id: habit.id,
+                    user_id: user.id,
+                    title: habit.title,
+                    description: habit.description,
+                    frequency: habit.frequency,
+                    current_streak: habit.currentStreak,
+                    best_streak: habit.bestStreak,
+                    color: habit.color,
+                    icon: habit.icon,
+                    created_at: habit.createdAt,
+                    custom_days: habit.customDays,
+                    total_completions: habit.totalCompletions,
+                    yearly_achieved: habit.yearlyStats?.achieved,
+                    yearly_expected: habit.yearlyStats?.totalExpected,
+                    stats_year: habit.yearlyStats?.year,
+                    archived: habit.archived || false,
+                    reminder_time: habit.reminderTime,
+                    reminder_enabled: habit.reminderEnabled,
+                });
+
+            if (error) throw error;
+
+            // Restore completions
+            if (habit.completions && habit.completions.length > 0) {
+                 const { error: completionsError } = await supabase
+                    .from('habit_completions')
+                    .insert(habit.completions.map(c => ({
+                        id: c.id,
+                        habit_id: habit.id,
+                        user_id: user.id,
+                        completed_at: c.completedAt
+                    })));
+
+                 if (completionsError) throw completionsError;
+            }
+
+        } catch (error) {
+            console.error('Error restoring habit to Supabase:', error);
+        }
+    }
+  }, [user, supabase]);
+
   const deleteHabit = useCallback(async (id: string) => {
+    const habitToDelete = habits.find(h => h.id === id);
+    if (!habitToDelete) return;
+
     setHabits(prev => prev.filter(h => h.id !== id));
     if (user) {
       try {
@@ -430,7 +485,17 @@ export const useHabits = (user?: User | null) => {
         console.error('Error deleting habit from Supabase:', error);
       }
     }
-  }, [user, supabase]);
+
+    toast({
+        title: "Ritual Deleted",
+        description: `"${habitToDelete.title}" has been removed.`,
+        action: (
+            <ToastAction altText="Undo" onClick={() => restoreHabit(habitToDelete)}>
+                Undo
+            </ToastAction>
+        ),
+    });
+  }, [user, supabase, habits, restoreHabit]);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Omit<Habit, 'id' | 'createdAt' | 'completions'>>) => {
     setHabits(prev => prev.map(habit => {

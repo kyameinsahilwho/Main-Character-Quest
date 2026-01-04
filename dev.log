@@ -1,9 +1,171 @@
 
-> nextn@0.1.0 dev
+> pollytasks@0.1.0 dev
 > next dev --turbopack -p 9002
 
-   ▲ Next.js 15.3.3 (Turbopack)
+   ▲ Next.js 15.5.9 (Turbopack)
    - Local:        http://localhost:9002
    - Network:      http://192.168.0.2:9002
 
  ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 727ms
+ ✓ Ready in 2.3s
+ ○ Compiling / ...
+ ✓ Compiled / in 19.5s
+ ⨯ Error: No key set vapidDetails.publicKey
+    at __TURBOPACK__module__evaluation__ (src/app/actions/notifications.ts:5:9)
+    at __TURBOPACK__module__evaluation__ (.next-internal/server/app/page/actions.js (server actions loader):1:1)
+    at __TURBOPACK__module__evaluation__ (.next/server/chunks/ssr/[root-of-the-server]__6f9b41c3._.js:149:369)
+    at Object.<anonymous> (.next/server/app/page.js:12:3)
+  3 | import webpush from 'web-push'
+  4 |
+> 5 | webpush.setVapidDetails(
+    |         ^
+  6 |   'mailto:admin@pollytasks.com',
+  7 |   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+  8 |   process.env.VAPID_PRIVATE_KEY! {
+  page: '/'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 3.1s
+ GET / 500 in 23860ms
+ ✓ Compiled in 450ms
+ ✓ Compiled / in 41ms
+VAPID keys not set. Push notifications will not work.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:4:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  2 |
+  3 | export function createClient() {
+> 4 |   return createBrowserClient(
+    |                             ^
+  5 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  6 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  7 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 1089ms
+VAPID keys not set. Push notifications will not work.
+Supabase env vars missing. Using mock client or potentially failing.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:32:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  30 |   }
+  31 |
+> 32 |   return createBrowserClient(
+     |                             ^
+  33 |     url!,
+  34 |     key!
+  35 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 586ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 2.1s
+ GET /favicon.ico 200 in 2503ms
+VAPID keys not set. Push notifications will not work.
+Supabase env vars missing. Using mock client.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:43:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  41 |   }
+  42 |
+> 43 |   return createBrowserClient(
+     |                             ^
+  44 |     url!,
+  45 |     key!
+  46 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 1631ms
+Supabase env vars missing. Using mock client.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:43:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  41 |   }
+  42 |
+> 43 |   return createBrowserClient(
+     |                             ^
+  44 |     url!,
+  45 |     key!
+  46 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 309ms
+ GET /favicon.ico 200 in 1552ms
+Supabase env vars missing. Using mock client.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:43:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  41 |   }
+  42 |
+> 43 |   return createBrowserClient(
+     |                             ^
+  44 |     url!,
+  45 |     key!
+  46 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 241ms
+Supabase env vars missing. Using mock client.
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at createBrowserClient (../../src/createBrowserClient.ts:111:11)
+    at createClient (src/lib/supabase/client.ts:43:29)
+    at useSupabaseSync (src/hooks/use-supabase-sync.ts:25:32)
+    at TaskQuestApp (src/components/task-quest-app.tsx:42:110)
+  41 |   }
+  42 |
+> 43 |   return createBrowserClient(
+     |                             ^
+  44 |     url!,
+  45 |     key!
+  46 |   ) {
+  digest: '1812656395'
+}
+ GET / 500 in 187ms
+ GET /favicon.ico 200 in 1436ms

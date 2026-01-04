@@ -2,11 +2,19 @@
 
 import webpush from 'web-push'
 
-webpush.setVapidDetails(
-  'mailto:admin@pollytasks.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+try {
+    if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(
+        'mailto:admin@pollytasks.com',
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        process.env.VAPID_PRIVATE_KEY!
+        )
+    } else {
+        console.warn("VAPID keys not set. Push notifications will not work.")
+    }
+} catch (e) {
+    console.error("Failed to set VAPID details", e)
+}
 
 let subscription: webpush.PushSubscription | null = null
 
@@ -29,15 +37,20 @@ export async function sendNotification(message: string) {
   }
 
   try {
-    await webpush.sendNotification(
-      subscription,
-      JSON.stringify({
-        title: 'Task Quest',
-        body: message,
-        icon: '/icon-192x192.png',
-      })
-    )
-    return { success: true }
+    if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        await webpush.sendNotification(
+        subscription,
+        JSON.stringify({
+            title: 'Task Quest',
+            body: message,
+            icon: '/icon-192x192.png',
+        })
+        )
+        return { success: true }
+    } else {
+        console.warn("Cannot send notification: VAPID keys missing");
+        return { success: false, error: 'VAPID keys missing' }
+    }
   } catch (error) {
     console.error('Error sending push notification:', error)
     return { success: false, error: 'Failed to send notification' }
