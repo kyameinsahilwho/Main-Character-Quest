@@ -156,6 +156,7 @@ export interface DbTask {
   created_at: string;
   updated_at: string;
   project_id?: string | null;
+  due_date?: string | null;
   reminder_at?: string | null;
   reminder_enabled?: boolean;
 }
@@ -177,7 +178,7 @@ export function dbTaskToTask(dbTask: DbTask, subtasks: DbSubtask[]): Task {
   return {
     id: dbTask.id,
     title: dbTask.title,
-    dueDate: null, // Can be extended later
+    dueDate: dbTask.due_date || null,
     isCompleted: dbTask.is_completed,
     completedAt: dbTask.completed_at || null,
     subtasks: subtasks.map(dbSubtaskToSubtask),
@@ -249,6 +250,7 @@ export function taskToDbTask(task: Omit<Task, 'subtasks'>, userId: string): Omit
     is_template: false,
     completed_at: task.completedAt,
     project_id: task.projectId,
+    due_date: task.dueDate,
   };
 }
 
