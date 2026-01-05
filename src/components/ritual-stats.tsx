@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight, Share2, Download } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth, eachDayOfInterval, startOfYear, endOfYear, isSameDay, eachWeekOfInterval, eachMonthOfInterval, differenceInCalendarDays, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
 
 interface RitualStatsProps {
   habit: Habit;
@@ -16,6 +17,8 @@ interface RitualStatsProps {
 
 export function RitualStats({ habit, onBack }: RitualStatsProps) {
   const { toast } = useToast();
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Calculate stats
   const completionDates = useMemo(() => 
@@ -128,41 +131,81 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
   };
 
   const handleShare = async () => {
-    const shareText = `I'm crushing my goals with TaskQuest! 🚀\n\nChecking off "${habit.title}"\n🔥 Current Streak: ${habit.currentStreak} days\n🏆 Best Streak: ${habit.bestStreak} days\n\n#TaskQuest #HabitTracker`;
+    if (!statsRef.current) return;
+    setIsSharing(true);
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'TaskQuest Stats',
-          text: shareText,
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing:', error);
+    try {
+      const canvas = await html2canvas(statsRef.current, {
+        scale: 2, // Higher quality
+        backgroundColor: "#ffffff",
+        ignoreElements: (element) => element.getAttribute("data-html2canvas-ignore") === "true"
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsSharing(false);
+          return;
         }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareText);
-        toast({
-          title: "Stats copied!",
-          description: "Share your progress with friends.",
+
+        const file = new File([blob], `taskquest-stats-${habit.title.toLowerCase().replace(/\s+/g, '-')}.png`, {
+          type: "image/png",
         });
-      } catch (err) {
-        console.error('Failed to copy:', err);
-        toast({
-          title: "Failed to copy",
-          description: "Could not copy stats to clipboard.",
-          variant: "destructive",
-        });
-      }
+
+        // Try using Web Share API with file support
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "TaskQuest Stats",
+              text: `Check out my progress on ${habit.title}! #TaskQuest`,
+            });
+            toast({
+              title: "Shared successfully!",
+              description: "Your stats have been shared.",
+            });
+          } catch (error) {
+            if ((error as Error).name !== "AbortError") {
+              console.error("Error sharing:", error);
+              // Fallback to download
+              downloadImage(blob);
+            }
+          }
+        } else {
+          // Fallback for browsers that don't support file sharing
+          downloadImage(blob);
+        }
+        setIsSharing(false);
+      }, "image/png");
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate stats image.",
+        variant: "destructive",
+      });
+      setIsSharing(false);
     }
+  };
+
+  const downloadImage = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `taskquest-stats-${habit.title.toLowerCase().replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Image downloaded!",
+      description: "Stats image saved to your device.",
+    });
   };
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-24 animate-in fade-in slide-in-from-right duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - Not Captured in Share */}
+      <div className="flex items-center justify-between" data-html2canvas-ignore="true">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -180,6 +223,17 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
           </div>
         </div>
       </div>
+
+      {/* Stats Container to Capture */}
+      <div ref={statsRef} className="flex flex-col gap-8 p-4 bg-white/50 rounded-[3rem]">
+        {/* Title for Shared Image (Visible only in capture if needed, or we can just capture the existing structure) */}
+        {/* We reuse the header structure but make it visible inside capture area if we want the title in the image */}
+        <div className="flex items-center justify-center pb-4 border-b-2 border-dashed border-gray-200">
+             <h2 className="text-3xl font-black text-[#1E293B] uppercase tracking-tight flex items-center gap-3">
+              <span className="text-4xl">{habit.icon || <CircleDashed className="w-10 h-10 text-gray-300" />}</span>
+              {habit.title}
+            </h2>
+        </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Streak/Frequency Cards */}
@@ -454,15 +508,27 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
         </div>
       </div>
 
-      {/* Share Button */}
-      <div className="flex justify-center pt-4">
+      </div>
+
+      {/* Share Button - Not Captured */}
+      <div className="flex justify-center pt-4" data-html2canvas-ignore="true">
         <Button
           size="lg"
           onClick={handleShare}
-          className="w-full sm:w-auto min-w-[240px] h-16 text-lg font-black uppercase tracking-wider gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 border-b-[6px] border-blue-700 hover:border-blue-600"
+          disabled={isSharing}
+          className="w-full sm:w-auto min-w-[240px] h-16 text-lg font-black uppercase tracking-wider gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 border-b-[6px] border-blue-700 hover:border-blue-600 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          <Share2 className="w-6 h-6" />
-          Share Stats
+          {isSharing ? (
+            <>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+              Generating...
+            </>
+          ) : (
+            <>
+              <Share2 className="w-6 h-6" />
+              Share Stats Image
+            </>
+          )}
         </Button>
       </div>
     </div>
