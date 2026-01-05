@@ -99,36 +99,13 @@ export function TaskView({
         </section>
       )}
 
-      {/* Tasks Section */}
-      <section className="space-y-4">
-         
-          {todaysTasks.length > 0 ? (
-            <TaskList
-              tasks={todaysTasks}
-              listType="active"
-              onToggleTask={onToggleTask}
-              onDeleteTask={onDeleteTask}
-              onEditTask={onEditTask}
-              onAddSubtask={onAddSubtask}
-              onToggleSubtask={onToggleSubtask}
-              setCelebrating={setCelebrating}
-            />
-          ) : (
-            <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-3xl border-2 border-dashed border-muted">
-              <p className="font-bold">No quests due today.</p>
-              <p className="text-sm opacity-70">Check your backlog or add a new quest!</p>
-            </div>
-          )}
-      </section>
+      <div className="space-y-4">
+        {/* Tasks Section */}
+        <section className="space-y-4">
 
-      {/* Upcoming Quests Section */}
-      {sortedDates.length > 0 && (
-        <section className="space-y-6 pt-4">
-          {sortedDates.map(date => (
-            <div key={date} className="space-y-2">
-              
+            {todaysTasks.length > 0 ? (
               <TaskList
-                tasks={upcomingTasksByDate[date]}
+                tasks={todaysTasks}
                 listType="active"
                 onToggleTask={onToggleTask}
                 onDeleteTask={onDeleteTask}
@@ -137,10 +114,35 @@ export function TaskView({
                 onToggleSubtask={onToggleSubtask}
                 setCelebrating={setCelebrating}
               />
-            </div>
-          ))}
+            ) : (
+              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-3xl border-2 border-dashed border-muted">
+                <p className="font-bold">No quests due today.</p>
+                <p className="text-sm opacity-70">Check your backlog or add a new quest!</p>
+              </div>
+            )}
         </section>
-      )}
+
+        {/* Upcoming Quests Section */}
+        {sortedDates.length > 0 && (
+          <section className="space-y-4">
+            {sortedDates.map(date => (
+              <div key={date} className="space-y-2">
+
+                <TaskList
+                  tasks={upcomingTasksByDate[date]}
+                  listType="active"
+                  onToggleTask={onToggleTask}
+                  onDeleteTask={onDeleteTask}
+                  onEditTask={onEditTask}
+                  onAddSubtask={onAddSubtask}
+                  onToggleSubtask={onToggleSubtask}
+                  setCelebrating={setCelebrating}
+                />
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
