@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,8 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
   const [selectedColor, setSelectedColor] = useState(habit.color || COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState(habit.icon || "");
   const [customDays, setCustomDays] = useState<number[]>(habit.customDays || []);
+  const [reminderEnabled, setReminderEnabled] = useState(habit.reminderEnabled || false);
+  const [reminderTime, setReminderTime] = useState(habit.reminderTime || "09:00");
 
   // Update local state when habit prop changes
   useEffect(() => {
@@ -52,6 +55,8 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
     setSelectedColor(habit.color || COLORS[0]);
     setSelectedIcon(habit.icon || "");
     setCustomDays(habit.customDays || []);
+    setReminderEnabled(habit.reminderEnabled || false);
+    setReminderTime(habit.reminderTime || "09:00");
   }, [habit]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,6 +69,8 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
       customDays: frequency === 'specific_days' ? customDays : undefined,
       color: selectedColor,
       icon: selectedIcon,
+      reminderEnabled,
+      reminderTime: reminderEnabled ? reminderTime : null,
     });
 
     setOpen(false);
@@ -138,7 +145,7 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
               </div>
             </div>
 
-            <div className="grid grid-cols-1">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Frequency</Label>
                 <Select value={frequency} onValueChange={(v: any) => setFrequency(v)}>
@@ -156,6 +163,29 @@ export function EditHabitDialog({ children, habit, onUpdateHabit }: EditHabitDia
                     <SelectItem value="specific_days" className="font-bold text-xs">Specific Days</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-[#64748B]">Reminder</Label>
+                <div className="flex items-center gap-4 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
+                  <div className="flex items-center gap-2 flex-1">
+                    <Switch
+                      checked={reminderEnabled}
+                      onCheckedChange={setReminderEnabled}
+                      className="data-[state=checked]:bg-[#6366f1]"
+                    />
+                    <span className="text-xs font-bold text-[#1E293B]">{reminderEnabled ? "On" : "Off"}</span>
+                  </div>
+
+                  {reminderEnabled && (
+                    <Input
+                      type="time"
+                      value={reminderTime}
+                      onChange={(e) => setReminderTime(e.target.value)}
+                      className="w-32 h-9 bg-white border-[#E2E8F0] text-xs font-bold text-[#1E293B]"
+                    />
+                  )}
+                </div>
               </div>
             </div>
 

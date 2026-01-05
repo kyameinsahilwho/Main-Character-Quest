@@ -8,6 +8,7 @@ import { CalendarIcon, Plus, Trash2, X, Pencil } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
@@ -45,6 +46,8 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   dueDate: z.date().optional(),
   projectId: z.string().optional(),
+  reminderEnabled: z.boolean().default(false),
+  reminderAt: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -100,15 +103,28 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [
     defaultValues: {
       title: "",
       dueDate: undefined,
+      reminderEnabled: false,
+      reminderAt: "09:00",
     },
   })
 
   useEffect(() => {
     if (task) {
+      let reminderTime = "09:00";
+      if (task.reminderAt) {
+        try {
+          reminderTime = format(new Date(task.reminderAt), "HH:mm");
+        } catch (e) {
+          console.error("Invalid reminder time", e);
+        }
+      }
+
       form.reset({
         title: task.title,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         projectId: task.projectId || "none",
+        reminderEnabled: task.reminderEnabled || false,
+        reminderAt: reminderTime,
       });
       setSubtasks(task.subtasks);
     }
@@ -149,11 +165,21 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [
 
 
   function onSubmit(values: FormValues) {
+    let reminderIso = null;
+    if (values.reminderEnabled && values.reminderAt && values.dueDate) {
+      const [hours, minutes] = values.reminderAt.split(':').map(Number);
+      const date = new Date(values.dueDate);
+      date.setHours(hours, minutes);
+      reminderIso = date.toISOString();
+    }
+
     onEditTask({
       title: values.title,
       dueDate: values.dueDate ? values.dueDate.toISOString() : null,
       subtasks: subtasks,
       projectId: values.projectId === "none" ? null : values.projectId,
+      reminderEnabled: values.reminderEnabled,
+      reminderAt: reminderIso,
     })
     onClose();
   }
@@ -274,6 +300,39 @@ export function EditTaskDialog({ isOpen, onClose, task, onEditTask, projects = [
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="reminderEnabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Reminder</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            {form.watch("reminderEnabled") && (
+              <FormField
+                control={form.control}
+                name="reminderAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div>
               <FormLabel>Sub-Quests</FormLabel>

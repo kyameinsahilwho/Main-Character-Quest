@@ -120,29 +120,29 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
       exit={{ opacity: 0, x: -100 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="mb-3"
+      className="mb-2"
     >
     <Card className={cn(
-        "transition-all duration-300 overflow-hidden flex flex-col border-2 border-b-[6px] border-muted-foreground/20 rounded-[2rem] relative", 
+        "transition-all duration-300 overflow-hidden flex flex-col border-2 border-b-[4px] border-muted-foreground/20 rounded-[1.5rem] relative",
         task.isCompleted 
-          ? 'bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[4px] border-b-0' 
-          : 'bg-card active:translate-y-[2px] active:border-b-[4px]', 
+          ? 'bg-muted/30 opacity-70 shadow-none border-transparent translate-y-[2px] border-b-0'
+          : 'bg-card active:translate-y-[2px] active:border-b-[2px]',
         isAnimating && 'animate-green-flash'
     )}>
       <div className="flex flex-col">
-      <div className="flex items-center p-5 cursor-pointer" onClick={handleWrapperClick}>
-        <div data-interactive-area className='flex items-center mr-4 shrink-0' onClick={handleMainCheckboxClick}>
+      <div className="flex items-center p-3 cursor-pointer" onClick={handleWrapperClick}>
+        <div data-interactive-area className='flex items-center mr-3 shrink-0' onClick={handleMainCheckboxClick}>
             <div 
               className={cn(
-                "h-9 w-9 rounded-2xl border-2 border-b-[4px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[2px] active:border-b-0",
+                "h-7 w-7 rounded-xl border-2 border-b-[3px] flex items-center justify-center transition-all duration-200 relative overflow-hidden active:translate-y-[1px] active:border-b-0",
                 task.isCompleted ? "bg-primary border-primary border-b-[#46a302]" : "border-border bg-muted/20",
               )}
             >
-              {task.isCompleted && <Check className="h-6 w-6 text-white stroke-[4px] z-10" />}
+              {task.isCompleted && <Check className="h-4 w-4 text-white stroke-[3px] z-10" />}
             </div>
         </div>
-        <div className="flex-1 min-w-0 py-2">
-          <CardTitle className={cn("text-xl font-black leading-tight tracking-tight", task.isCompleted && 'line-through text-muted-foreground/60')}>
+        <div className="flex-1 min-w-0 py-1">
+          <CardTitle className={cn("text-base font-black leading-tight tracking-tight", task.isCompleted && 'line-through text-muted-foreground/60')}>
             {task.title}
           </CardTitle>
           
@@ -161,24 +161,23 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
           )}
 
         </div>
-        <div data-interactive-area className="flex items-center gap-2 ml-2">
+        <div data-interactive-area className="flex items-center gap-1 ml-2">
           {isPast && !isExpanded ? (
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 px-3 text-[10px] font-black uppercase tracking-tight border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl flex items-center gap-2 active:translate-y-[1px]"
+              className="h-8 px-2 text-[10px] font-black uppercase tracking-tight border-destructive/30 text-destructive hover:bg-destructive/10 rounded-lg flex items-center gap-2 active:translate-y-[1px]"
               onClick={handleEdit}
             >
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Assign New Date</span>
-              <span className="sm:hidden">Reschedule</span>
+              <Calendar className="h-3 w-3" />
+              <span className="hidden sm:inline">Reschedule</span>
             </Button>
           ) : task.subtasks.length > 0 ? (
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-accent/50 rounded-xl border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleCollapsibleToggle}>
-              <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50 rounded-lg border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleCollapsibleToggle}>
+              <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-accent/50 rounded-xl text-muted-foreground/40 hover:text-primary transition-all border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleEdit}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50 rounded-lg text-muted-foreground/40 hover:text-primary transition-all border-2 border-transparent active:border-b-2 active:border-border active:translate-y-[1px]" onClick={handleEdit}>
               <Pencil className="h-4 w-4" />
             </Button>
           )}
