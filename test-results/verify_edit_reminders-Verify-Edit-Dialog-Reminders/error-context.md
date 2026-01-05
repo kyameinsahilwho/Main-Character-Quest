@@ -1,0 +1,89 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e6]:
+          - img "Pollytasks Logo" [ref=e7]
+          - heading "Pollytasks" [level=1] [ref=e8]
+        - generic [ref=e9]:
+          - button "Enable Push Notifications" [ref=e10] [cursor=pointer]:
+            - img
+          - link "Sign In" [ref=e11] [cursor=pointer]:
+            - /url: /login
+            - button "Sign In" [ref=e12]:
+              - img
+              - generic [ref=e13]: Sign In
+          - generic [ref=e14]:
+            - generic [ref=e16]:
+              - img [ref=e17]
+              - generic [ref=e19]:
+                - generic [ref=e20]: Streak
+                - generic [ref=e21]: "0"
+            - generic [ref=e22]:
+              - img [ref=e24]
+              - generic [ref=e30]:
+                - generic [ref=e31]: Best
+                - generic [ref=e32]: "0"
+            - generic [ref=e34]:
+              - img [ref=e36]
+              - generic [ref=e38]:
+                - generic [ref=e39]: Level 1
+                - generic [ref=e40]:
+                  - text: "0"
+                  - generic [ref=e41]: / 100 XP
+    - generic [ref=e43]:
+      - complementary [ref=e44]:
+        - generic [ref=e45]:
+          - paragraph [ref=e46]: Navigation
+          - tablist [ref=e48]:
+            - button "New Quest" [active] [ref=e50] [cursor=pointer]:
+              - img
+              - generic [ref=e51]: New Quest
+            - tab "Quests" [selected] [ref=e52] [cursor=pointer]:
+              - img [ref=e53]
+              - generic [ref=e58]: Quests
+            - tab "Rituals" [ref=e59] [cursor=pointer]:
+              - img [ref=e60]
+              - generic [ref=e62]: Rituals
+            - tab "Projects" [ref=e63] [cursor=pointer]:
+              - img [ref=e64]
+              - generic [ref=e66]: Projects
+            - tab "Archive" [ref=e67] [cursor=pointer]:
+              - img [ref=e68]
+              - generic [ref=e71]: Archive
+        - generic [ref=e72]:
+          - img [ref=e74]
+          - paragraph [ref=e81]: Hero Stats
+          - generic [ref=e82]:
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - img [ref=e86]
+                - text: Level 1
+              - generic [ref=e88]: 0 / 100 XP
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - img [ref=e93]
+                - text: Progress
+              - generic [ref=e96]: 0%
+      - main [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - heading "Quests" [level=2] [ref=e101]
+            - button "Calendar" [ref=e103] [cursor=pointer]:
+              - img
+              - text: Calendar
+          - tabpanel "Quests" [ref=e105]:
+            - generic [ref=e108]:
+              - paragraph [ref=e109]: No quests due today.
+              - paragraph [ref=e110]: Check your backlog or add a new quest!
+    - button [ref=e111] [cursor=pointer]:
+      - img
+  - region "Notifications (F8)":
+    - list
+  - button "Open Next.js Dev Tools" [ref=e117] [cursor=pointer]:
+    - img [ref=e118]
+  - alert [ref=e121]
+```
