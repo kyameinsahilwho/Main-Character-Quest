@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth, eachDayOfInterval, startOfYear, endOfYear, isSameDay, eachWeekOfInterval, eachMonthOfInterval, differenceInCalendarDays, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface RitualStatsProps {
   habit: Habit;
@@ -14,6 +15,8 @@ interface RitualStatsProps {
 }
 
 export function RitualStats({ habit, onBack }: RitualStatsProps) {
+  const { toast } = useToast();
+
   // Calculate stats
   const completionDates = useMemo(() => 
     habit.completions.map(c => startOfDay(parseISO(c.completedAt))),
@@ -121,6 +124,38 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
       color: "white",
       fontWeight: "bold",
       borderRadius: "50%"
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = `I'm crushing my goals with TaskQuest! 🚀\n\nChecking off "${habit.title}"\n🔥 Current Streak: ${habit.currentStreak} days\n🏆 Best Streak: ${habit.bestStreak} days\n\n#TaskQuest #HabitTracker`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'TaskQuest Stats',
+          text: shareText,
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Stats copied!",
+          description: "Share your progress with friends.",
+        });
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        toast({
+          title: "Failed to copy",
+          description: "Could not copy stats to clipboard.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -417,6 +452,18 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
             modifiersStyles={modifiersStyles}
           />
         </div>
+      </div>
+
+      {/* Share Button */}
+      <div className="flex justify-center pt-4">
+        <Button
+          size="lg"
+          onClick={handleShare}
+          className="w-full sm:w-auto min-w-[240px] h-16 text-lg font-black uppercase tracking-wider gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 border-b-[6px] border-blue-700 hover:border-blue-600"
+        >
+          <Share2 className="w-6 h-6" />
+          Share Stats
+        </Button>
       </div>
     </div>
   );
