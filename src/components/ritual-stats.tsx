@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Habit } from "@/lib/types";
 import { Button } from "./ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Calendar as CalendarIcon, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { parseISO, startOfDay, isSameWeek, isSameMonth, subDays, startOfWeek, startOfMonth, eachDayOfInterval, startOfYear, endOfYear, isSameDay, eachWeekOfInterval, eachMonthOfInterval, differenceInCalendarDays, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
 
 interface RitualStatsProps {
   habit: Habit;
@@ -14,6 +16,9 @@ interface RitualStatsProps {
 }
 
 export function RitualStats({ habit, onBack }: RitualStatsProps) {
+  const { toast } = useToast();
+  const statsRef = useRef<HTMLDivElement>(null);
+
   // Calculate stats
   const completionDates = useMemo(() => 
     habit.completions.map(c => startOfDay(parseISO(c.completedAt))),
@@ -124,14 +129,68 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
     }
   };
 
+  const handleShare = async () => {
+    if (!statsRef.current) return;
+
+    try {
+      const canvas = await html2canvas(statsRef.current, {
+        backgroundColor: null, // Transparent background to respect current theme
+        scale: 2, // Better quality
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+
+      if (!blob) {
+        throw new Error("Failed to generate image");
+      }
+
+      const file = new File([blob], `taskquest-${habit.title}-stats.png`, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'TaskQuest Stats',
+          text: `Check out my progress on "${habit.title}"! #TaskQuest`,
+        });
+      } else {
+        // Fallback: Download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `taskquest-${habit.title}-stats.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Image saved!",
+          description: "Stats image has been downloaded.",
+        });
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error sharing:', error);
+        toast({
+          title: "Share failed",
+          description: "Could not generate or share image.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-24 animate-in fade-in slide-in-from-right duration-300">
+    <div ref={statsRef} className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-24 animate-in fade-in slide-in-from-right duration-300 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             onClick={onBack}
+            data-html2canvas-ignore="true"
             className="w-12 h-12 rounded-2xl border-2 border-b-4 border-[#E2E8F0] hover:bg-[#F1F4F9] text-[#1E293B] active:border-b-0 active:translate-y-1 transition-all"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -417,6 +476,18 @@ export function RitualStats({ habit, onBack }: RitualStatsProps) {
             modifiersStyles={modifiersStyles}
           />
         </div>
+      </div>
+
+      {/* Share Button */}
+      <div className="flex justify-center pt-4" data-html2canvas-ignore="true">
+        <Button
+          size="lg"
+          onClick={handleShare}
+          className="w-full sm:w-auto min-w-[240px] h-16 text-lg font-black uppercase tracking-wider gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 border-b-[6px] border-blue-700 hover:border-blue-600"
+        >
+          <Share2 className="w-6 h-6" />
+          Share Stats
+        </Button>
       </div>
     </div>
   );
