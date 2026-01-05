@@ -17,15 +17,20 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const tasksRef = useRef<Task[]>([]);
+  const projectsRef = useRef<Project[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
   const supabase = createClient();
 
-  // Keep tasksRef in sync with tasks state
+  // Keep refs in sync with state
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
+
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
 
   // Load tasks from localStorage or Supabase
   useEffect(() => {
@@ -238,6 +243,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     return { current: currentStreak, longest };
   }, [tasks]);
 
+  const streaksRef = useRef<Streaks>({ current: 0, longest: 0 });
+  useEffect(() => {
+    streaksRef.current = streaks;
+  }, [streaks]);
+
   // Sync streaks to Supabase whenever they change
   useEffect(() => {
     if (!isInitialLoad && user && streaks) {
@@ -397,7 +407,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   }, [user, supabase]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    const taskToDelete = tasks.find(t => t.id === taskId);
+    const taskToDelete = tasksRef.current.find(t => t.id === taskId);
     if (!taskToDelete) return;
 
     setTasks(prev => prev.filter(task => task.id !== taskId));
@@ -420,11 +430,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             </ToastAction>
         ),
     });
-  }, [user, supabase, tasks, restoreTask]);
+  }, [user, supabase, restoreTask]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     // First, get the current task to determine new state
-    const currentTask = tasks.find(t => t.id === taskId);
+    const currentTask = tasksRef.current.find(t => t.id === taskId);
     if (!currentTask) return;
     
     const isCompleted = !currentTask.isCompleted;
@@ -434,14 +444,14 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     let newXP = currentTask.xp || 10;
     if (isCompleted) {
       // Check if any other task was completed today to determine if streak increments
-      const hasCompletedTaskToday = tasks.some(t => 
+      const hasCompletedTaskToday = tasksRef.current.some(t =>
         t.id !== taskId && 
         t.isCompleted && 
         t.completedAt && 
         isToday(parseISO(t.completedAt))
       );
       
-      const effectiveStreak = hasCompletedTaskToday ? streaks.current : streaks.current + 1;
+      const effectiveStreak = hasCompletedTaskToday ? streaksRef.current.current : streaksRef.current.current + 1;
       const multiplier = Math.min(1 + (effectiveStreak * 0.1), 5);
       newXP = Math.round(10 * multiplier);
     } else {
@@ -488,7 +498,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         console.error('Error toggling task completion in Supabase:', error);
       }
     }
-  }, [user, supabase, tasks, streaks.current]);
+  }, [user, supabase]);
   
   const addSubtask = useCallback(async (taskId: string, text: string) => {
     const newSubtask: Subtask = {
@@ -521,7 +531,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         });
 
         // Update task if it was completed
-        const task = tasks.find(t => t.id === taskId);
+        const task = tasksRef.current.find(t => t.id === taskId);
         if (task?.isCompleted) {
           await supabase
             .from('tasks')
@@ -532,11 +542,11 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         console.error('Error adding subtask to Supabase:', error);
       }
     }
-  }, [user, supabase, tasks]);
+  }, [user, supabase]);
 
   const toggleSubtaskCompletion = useCallback(async (taskId: string, subtaskId: string): Promise<'subtask' | 'main' | 'none'> => {
     // Get current task to determine changes
-    const currentTask = tasks.find(t => t.id === taskId);
+    const currentTask = tasksRef.current.find(t => t.id === taskId);
     if (!currentTask) return 'none';
     
     const subtask = currentTask.subtasks.find(st => st.id === subtaskId);
@@ -599,7 +609,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     }
 
     return changeType;
-  }, [user, supabase, tasks]);
+  }, [user, supabase]);
 
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
@@ -736,7 +746,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         console.error('Error updating project in Supabase:', error);
       }
     }
-  }, [user, supabase, projects]);
+  }, [user, supabase]);
 
   const restoreProject = useCallback(async (project: Project, affectedTaskIds: string[]) => {
     setProjects(prev => [project, ...prev]);
@@ -775,8 +785,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
   }, [user, supabase]);
 
   const deleteProject = useCallback(async (projectId: string) => {
-    const projectToDelete = projects.find(p => p.id === projectId);
-    const affectedTaskIds = tasks.filter(t => t.projectId === projectId).map(t => t.id);
+    const projectToDelete = projectsRef.current.find(p => p.id === projectId);
+    const affectedTaskIds = tasksRef.current.filter(t => t.projectId === projectId).map(t => t.id);
 
     if (!projectToDelete) return;
 
@@ -802,7 +812,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             </ToastAction>
         ),
     });
-  }, [user, supabase, projects, tasks, restoreProject]);
+  }, [user, supabase, restoreProject]);
 
   return {
     tasks: sortedTasks,
