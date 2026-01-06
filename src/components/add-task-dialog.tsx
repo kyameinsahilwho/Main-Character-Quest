@@ -128,6 +128,7 @@ export function AddTaskDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
+      dueDate: new Date(),
       projectId: defaultProjectId || "none",
       reminderEnabled: false,
       reminderAt: "09:00",
@@ -139,6 +140,7 @@ export function AddTaskDialog({
     if (open) {
       form.reset({
         title: "",
+        dueDate: new Date(),
         projectId: defaultProjectId || "none",
         reminderEnabled: false,
         reminderAt: "09:00",

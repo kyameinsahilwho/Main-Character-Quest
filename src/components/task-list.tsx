@@ -175,9 +175,9 @@ function TaskList({
     const order = [];
     if (groupedTasks['Past']) order.push('Past');
     if (groupedTasks['Today']) order.push('Today');
+    if (groupedTasks['No Due Date']) order.push('No Due Date');
     if (groupedTasks['Tomorrow']) order.push('Tomorrow');
     order.push(...otherSections);
-    if (groupedTasks['No Due Date']) order.push('No Due Date');
     
     return order;
   }, [groupedTasks, listType]);
