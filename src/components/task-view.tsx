@@ -5,7 +5,6 @@ import { Habit, Task } from "@/lib/types";
 import { HabitItem } from "./habit-item";
 import TaskList from "./task-list";
 import { isHabitDueToday } from "@/lib/utils";
-import { isBefore, isSameDay, startOfDay, parseISO, format } from "date-fns";
 import { AnimatePresence } from "framer-motion";
 import { RitualStats } from "./ritual-stats";
 
@@ -46,33 +45,7 @@ export function TaskView({
   
   const todaysHabits = habits.filter(isHabitDueToday);
   
-  const today = startOfDay(new Date());
-  
   const activeTasks = tasks.filter(task => !task.isCompleted);
-
-  const todaysTasks = activeTasks.filter(task => {
-    if (!task.dueDate) return false; // No due date = backlog
-    const due = startOfDay(parseISO(task.dueDate));
-    return isSameDay(due, today) || isBefore(due, today); // Today or Overdue
-  });
-
-  const upcomingTasks = activeTasks.filter(task => {
-    if (!task.dueDate) return false;
-    const due = startOfDay(parseISO(task.dueDate));
-    return !isSameDay(due, today) && !isBefore(due, today);
-  });
-
-  // Group upcoming tasks by date
-  const upcomingTasksByDate = upcomingTasks.reduce((acc, task) => {
-    const dateKey = task.dueDate!;
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
-
-  const sortedDates = Object.keys(upcomingTasksByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   return (
     <div className="space-y-8 pb-20">
@@ -99,50 +72,19 @@ export function TaskView({
         </section>
       )}
 
-      <div className="space-y-4">
-        {/* Tasks Section */}
-        <section className="space-y-4">
-
-            {todaysTasks.length > 0 ? (
-              <TaskList
-                tasks={todaysTasks}
-                listType="active"
-                onToggleTask={onToggleTask}
-                onDeleteTask={onDeleteTask}
-                onEditTask={onEditTask}
-                onAddSubtask={onAddSubtask}
-                onToggleSubtask={onToggleSubtask}
-                setCelebrating={setCelebrating}
-              />
-            ) : (
-              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-3xl border-2 border-dashed border-muted">
-                <p className="font-bold">No quests due today.</p>
-                <p className="text-sm opacity-70">Check your backlog or add a new quest!</p>
-              </div>
-            )}
-        </section>
-
-        {/* Upcoming Quests Section */}
-        {sortedDates.length > 0 && (
-          <section className="space-y-4">
-            {sortedDates.map(date => (
-              <div key={date} className="space-y-2">
-
-                <TaskList
-                  tasks={upcomingTasksByDate[date]}
-                  listType="active"
-                  onToggleTask={onToggleTask}
-                  onDeleteTask={onDeleteTask}
-                  onEditTask={onEditTask}
-                  onAddSubtask={onAddSubtask}
-                  onToggleSubtask={onToggleSubtask}
-                  setCelebrating={setCelebrating}
-                />
-              </div>
-            ))}
-          </section>
-        )}
-      </div>
+      {/* Tasks Section */}
+      <section className="space-y-4">
+        <TaskList
+          tasks={activeTasks}
+          listType="active"
+          onToggleTask={onToggleTask}
+          onDeleteTask={onDeleteTask}
+          onEditTask={onEditTask}
+          onAddSubtask={onAddSubtask}
+          onToggleSubtask={onToggleSubtask}
+          setCelebrating={setCelebrating}
+        />
+      </section>
     </div>
   );
 }
