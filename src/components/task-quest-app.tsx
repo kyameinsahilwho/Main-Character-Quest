@@ -42,6 +42,14 @@ export default function TaskQuestApp() {
   const { user, isLoading: authLoading, isSyncing, syncLocalToSupabase, signOut, supabase } = useSupabaseSync();
   const { toast } = useToast();
 
+  const [isCelebrating, setCelebrating] = useState(false);
+  const [windowSize, setWindowSize] = useState<{ width: number, height: number }>({ width: 0, height: 0 });
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [reminderToEdit, setReminderToEdit] = useState<Reminder | null>(null);
+  const [activeTab, setActiveTab] = useState('today');
+  const [syncComplete, setSyncComplete] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
   const {
     tasks,
     projects,
@@ -58,7 +66,7 @@ export default function TaskQuestApp() {
     deleteProject,
     isInitialLoad,
     reloadFromSupabase,
-  } = useTasks(user);
+  } = useTasks(user, syncComplete);
 
   const {
     habits,
@@ -84,14 +92,6 @@ export default function TaskQuestApp() {
     subscribeToPush, 
     unsubscribeFromPush 
   } = useNotifications(tasks, habits, reminders, triggerReminder);
-
-  const [isCelebrating, setCelebrating] = useState(false);
-  const [windowSize, setWindowSize] = useState<{ width: number, height: number }>({ width: 0, height: 0 });
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [reminderToEdit, setReminderToEdit] = useState<Reminder | null>(null);
-  const [activeTab, setActiveTab] = useState('today');
-  const [syncComplete, setSyncComplete] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
   // Reset scroll position when switching tabs
