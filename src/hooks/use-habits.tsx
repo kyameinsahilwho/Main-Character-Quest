@@ -22,6 +22,7 @@ import { User } from '@supabase/supabase-js';
 import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-system';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import useSWR from 'swr';
 
 const HABITS_STORAGE_KEY = 'taskQuestHabits';
 const SAVE_DEBOUNCE_MS = 500;
@@ -140,7 +141,82 @@ export const useHabits = (user?: User | null) => {
   const lastUserIdRef = useRef<string | null>(null);
   const supabase = createClient();
 
-  // Load habits from localStorage or Supabase
+  // Define fetcher
+  const fetcher = useCallback(async () => {
+    if (!user) return [];
+
+    console.log('Loading habits from Supabase...');
+    const { data: habitsData, error: habitsError } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
+
+    if (habitsError) throw habitsError;
+
+    const { data: completionsData, error: completionsError } = await supabase
+      .from('habit_completions')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (completionsError) throw completionsError;
+
+    const loadedHabits: Habit[] = (habitsData || []).map((dbHabit: any) => {
+      const completions = (completionsData || [])
+        .filter((c: any) => c.habit_id === dbHabit.id)
+        .map((c: any) => ({
+          id: c.id,
+          habitId: c.habit_id,
+          completedAt: c.completed_at,
+        }));
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const hasValidYearlyStats = dbHabit.stats_year === currentYear;
+
+      return {
+        id: dbHabit.id,
+        title: dbHabit.title,
+        description: dbHabit.description,
+        frequency: dbHabit.frequency,
+        currentStreak: dbHabit.current_streak,
+        bestStreak: dbHabit.best_streak,
+        color: dbHabit.color,
+        icon: dbHabit.icon,
+        createdAt: dbHabit.created_at,
+        customDays: dbHabit.custom_days,
+        completions,
+        xp: calculateHabitXP(completions, dbHabit.frequency, dbHabit.custom_days),
+        totalCompletions: dbHabit.total_completions ?? completions.length,
+        yearlyStats: hasValidYearlyStats && dbHabit.yearly_achieved !== undefined && dbHabit.yearly_expected !== undefined
+          ? { achieved: dbHabit.yearly_achieved, totalExpected: dbHabit.yearly_expected, year: dbHabit.stats_year! }
+          : calculateYearlyStats(completions, dbHabit.frequency, dbHabit.created_at, dbHabit.custom_days),
+        archived: dbHabit.archived,
+        reminderTime: dbHabit.reminder_time,
+        reminderEnabled: dbHabit.reminder_enabled,
+      };
+    });
+
+    return loadedHabits;
+  }, [user, supabase]);
+
+  const { data: swrHabits, mutate } = useSWR(
+    user ? ['habits-data', user.id] : null,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      onSuccess: (data) => {
+        if (data) {
+          setHabits(data);
+          setIsInitialLoad(false);
+          hasLoadedRef.current = true;
+        }
+      }
+    }
+  );
+
+  // Load habits from localStorage (and handle initial load / no user)
   useEffect(() => {
     const currentUserId = user?.id || null;
     if (lastUserIdRef.current !== currentUserId) {
@@ -148,10 +224,11 @@ export const useHabits = (user?: User | null) => {
       lastUserIdRef.current = currentUserId;
     }
     
-    if (hasLoadedRef.current) return;
-    
-    const loadHabits = async () => {
-      // Always load from local storage first for immediate UI
+    // Only load from LS if not already loaded, or no user
+    if (hasLoadedRef.current && user && swrHabits) return;
+    if (hasLoadedRef.current && !user) return;
+
+    const loadLocalHabits = () => {
       const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
       if (storedHabits) {
         const parsedHabits: Habit[] = JSON.parse(storedHabits);
@@ -174,80 +251,16 @@ export const useHabits = (user?: User | null) => {
         });
         setHabits(habitsWithStats);
       }
-      
-      setIsInitialLoad(false); // UI is ready
-
-      try {
-        if (user) {
-          console.log('Loading habits from Supabase...');
-          const { data: habitsData, error: habitsError } = await supabase
-            .from('habits')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true });
-
-          if (habitsError) throw habitsError;
-
-          const { data: completionsData, error: completionsError } = await supabase
-            .from('habit_completions')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (completionsError) throw completionsError;
-
-          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit: any) => {
-            const completions = (completionsData || [])
-              .filter((c: any) => c.habit_id === dbHabit.id)
-              .map((c: any) => ({
-                id: c.id,
-                habitId: c.habit_id,
-                completedAt: c.completed_at,
-              }));
-            
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const hasValidYearlyStats = dbHabit.stats_year === currentYear;
-
-            return {
-              id: dbHabit.id,
-              title: dbHabit.title,
-              description: dbHabit.description,
-              frequency: dbHabit.frequency,
-              currentStreak: dbHabit.current_streak,
-              bestStreak: dbHabit.best_streak,
-              color: dbHabit.color,
-              icon: dbHabit.icon,
-              createdAt: dbHabit.created_at,
-              customDays: dbHabit.custom_days,
-              completions,
-              xp: calculateHabitXP(completions, dbHabit.frequency, dbHabit.custom_days),
-              totalCompletions: dbHabit.total_completions ?? completions.length,
-              yearlyStats: hasValidYearlyStats && dbHabit.yearly_achieved !== undefined && dbHabit.yearly_expected !== undefined
-                ? { achieved: dbHabit.yearly_achieved, totalExpected: dbHabit.yearly_expected, year: dbHabit.stats_year! }
-                : calculateYearlyStats(completions, dbHabit.frequency, dbHabit.created_at, dbHabit.custom_days),
-              archived: dbHabit.archived,
-              reminderTime: dbHabit.reminder_time,
-              reminderEnabled: dbHabit.reminder_enabled,
-            };
-          });
-
-          setHabits(loadedHabits);
-          hasLoadedRef.current = true;
-        } else {
-          // Already loaded from localStorage
-          hasLoadedRef.current = true;
-        }
-      } catch (error) {
-        console.error("Failed to load habits", error);
-        // Fallback to localStorage - already loaded
-        hasLoadedRef.current = true;
-      } finally {
-        setIsInitialLoad(false);
-      }
+      setIsInitialLoad(false);
     };
 
-    loadHabits();
-  }, [user, supabase]);
+    if (!hasLoadedRef.current) {
+      loadLocalHabits();
+      if (!user) {
+        hasLoadedRef.current = true;
+      }
+    }
+  }, [user, swrHabits]);
 
   // Save habits to localStorage
   useEffect(() => {
@@ -309,11 +322,12 @@ export const useHabits = (user?: User | null) => {
             reminder_enabled: newHabit.reminderEnabled,
           });
         if (error) throw error;
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error syncing habit to Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const toggleHabitCompletion = useCallback(async (habitId: string, date: string) => {
     const targetDate = startOfDay(parseISO(date)).toISOString();
@@ -334,7 +348,11 @@ export const useHabits = (user?: User | null) => {
               .delete()
               .eq('id', completionToRemove.id)
               .then(({ error }: any) => {
-                if (error) console.error('Error removing habit completion:', error);
+                if (error) {
+                  console.error('Error removing habit completion:', error);
+                } else {
+                  mutate(); // Revalidate
+                }
               });
           }
         } else {
@@ -354,7 +372,11 @@ export const useHabits = (user?: User | null) => {
                 completed_at: targetDate,
               })
               .then(({ error }: any) => {
-                if (error) console.error('Error adding habit completion:', error);
+                if (error) {
+                  console.error('Error adding habit completion:', error);
+                } else {
+                  mutate(); // Revalidate
+                }
               });
           }
         }
@@ -420,7 +442,7 @@ export const useHabits = (user?: User | null) => {
       }
       return habit;
     }));
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const restoreHabit = useCallback(async (habit: Habit) => {
     setHabits(prev => [...prev, habit]);
@@ -465,12 +487,12 @@ export const useHabits = (user?: User | null) => {
 
                  if (completionsError) throw completionsError;
             }
-
+            mutate(); // Revalidate
         } catch (error) {
             console.error('Error restoring habit to Supabase:', error);
         }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const deleteHabit = useCallback(async (id: string) => {
     const habitToDelete = habits.find(h => h.id === id);
@@ -481,6 +503,7 @@ export const useHabits = (user?: User | null) => {
       try {
         const { error } = await supabase.from('habits').delete().eq('id', id);
         if (error) throw error;
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error deleting habit from Supabase:', error);
       }
@@ -495,7 +518,7 @@ export const useHabits = (user?: User | null) => {
             </ToastAction>
         ),
     });
-  }, [user, supabase, habits, restoreHabit]);
+  }, [user, supabase, habits, restoreHabit, mutate]);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Omit<Habit, 'id' | 'createdAt' | 'completions'>>) => {
     setHabits(prev => prev.map(habit => {
@@ -550,11 +573,12 @@ export const useHabits = (user?: User | null) => {
           .update(dbUpdates)
           .eq('id', id);
         if (error) throw error;
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error updating habit in Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, habits, mutate]);
 
   return {
     habits,

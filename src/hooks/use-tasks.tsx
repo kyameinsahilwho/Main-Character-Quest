@@ -7,12 +7,18 @@ import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import useSWR from 'swr';
 
 const TASKS_STORAGE_KEY = 'taskQuestTasks';
 const PROJECTS_STORAGE_KEY = 'taskQuestProjects';
 const SAVE_DEBOUNCE_MS = 500; // Debounce localStorage saves
 
-export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
+interface FetcherData {
+  tasks: Task[];
+  projects: Project[];
+}
+
+export const useTasks = (user?: User | null, hasSyncedToSupabase: boolean = true) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -32,19 +38,135 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     projectsRef.current = projects;
   }, [projects]);
 
-  // Load tasks from localStorage or Supabase
+  // Fetcher for SWR
+  const fetcher = useCallback(async (): Promise<FetcherData> => {
+    if (!user) {
+      return { tasks: [], projects: [] };
+    }
+
+    // Check if this is first login by looking at sync status
+    const syncStatus = localStorage.getItem('task-quest-sync-status');
+    const localTasks = localStorage.getItem(TASKS_STORAGE_KEY);
+
+    // If user just logged in and hasn't synced yet, we shouldn't overwrite local tasks with empty server tasks
+    if (syncStatus !== 'synced' && localTasks) {
+      console.log('First login detected inside fetcher - aborting server fetch to allow sync');
+      // Return null to indicate "do not use this data"
+      // However, fetcher returns Promise<FetcherData>.
+      // We should probably throw an error or return empty, BUT we need the SWR consumer to know not to use this.
+      // Or better, we should have prevented the fetch in useSWR key.
+      return { tasks: [], projects: [] };
+    }
+
+    console.log('Loading tasks from Supabase...');
+    const { data: tasksData, error: tasksError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (tasksError) throw tasksError;
+
+    const { data: projectsData, error: projectsError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (projectsError) throw projectsError;
+
+    const { data: subtasksData, error: subtasksError } = await supabase
+      .from('subtasks')
+      .select('*');
+
+    if (subtasksError) throw subtasksError;
+
+    // Convert DB format to app format
+    const loadedTasks: Task[] = (tasksData || [])
+      .filter((dbTask: any) => !dbTask.is_template)
+      .map((dbTask: any) => ({
+      id: dbTask.id,
+      title: dbTask.title,
+      dueDate: dbTask.due_date || null,
+      isCompleted: dbTask.is_completed,
+      completedAt: dbTask.completed_at || null,
+      subtasks: (subtasksData || [])
+        .filter((st: any) => st.task_id === dbTask.id)
+        .map((st: any) => ({
+          id: st.id,
+          text: st.title,
+          isCompleted: st.is_completed,
+        })),
+      createdAt: dbTask.created_at,
+      xp: dbTask.reward_xp || 10,
+      projectId: dbTask.project_id,
+      reminderAt: dbTask.reminder_at,
+      reminderEnabled: dbTask.reminder_enabled,
+    }));
+
+    const loadedProjects: Project[] = (projectsData || []).map((dbProject: any) => ({
+      id: dbProject.id,
+      name: dbProject.name,
+      description: dbProject.description,
+      color: dbProject.color,
+      icon: dbProject.icon,
+      createdAt: dbProject.created_at,
+    }));
+
+    return { tasks: loadedTasks, projects: loadedProjects };
+  }, [user, supabase]);
+
+  const shouldFetch = useMemo(() => {
+    if (!user) return false;
+    // Don't fetch if we have local data pending sync
+    // We rely on the hasSyncedToSupabase prop which should be passed from the parent
+    // managing the sync process.
+    return hasSyncedToSupabase;
+  }, [user, hasSyncedToSupabase]);
+
+  const { data: swrData, mutate } = useSWR(
+    shouldFetch ? ['tasks-data', user!.id] : null,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      onSuccess: (data) => {
+        // Only update state if we have data.
+        // This handles the case where we want to prioritize Supabase data.
+        if (data) {
+          // Double check sync status to be safe (in case it changed during fetch)
+          const syncStatus = localStorage.getItem('task-quest-sync-status');
+          const localTasks = localStorage.getItem(TASKS_STORAGE_KEY);
+          if (syncStatus !== 'synced' && localTasks) {
+             console.log('Skipping SWR state update due to pending sync');
+             return;
+          }
+
+          setTasks(data.tasks);
+          setProjects(data.projects);
+          setIsInitialLoad(false);
+          hasLoadedRef.current = true;
+        }
+      }
+    }
+  );
+
+  // Load from localStorage initially (and handle no-user case)
   useEffect(() => {
     // Reset hasLoaded if user changed (login/logout)
     const currentUserId = user?.id || null;
     if (lastUserIdRef.current !== currentUserId) {
       hasLoadedRef.current = false;
       lastUserIdRef.current = currentUserId;
+      // If user logs out, we might want to clear tasks or load from LS again?
+      // For now, existing logic keeps current state or reloads.
     }
     
     // Only load once per user session
-    if (hasLoadedRef.current) return;
-    
-    const loadTasks = async () => {
+    if (hasLoadedRef.current && !user) return;
+    if (hasLoadedRef.current && user && swrData) return; // Already loaded from SWR
+
+    const loadLocalTasks = () => {
       // Always load from local storage first for immediate UI
       const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
       const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
@@ -57,101 +179,16 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       }
       
       setIsInitialLoad(false); // UI is ready
-
-      try {
-        if (user) {
-          // Check if this is first login by looking at sync status
-          const syncStatus = localStorage.getItem('task-quest-sync-status');
-          const localTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-          
-          console.log('Loading tasks - sync status:', syncStatus);
-          console.log('Has local tasks:', !!localTasks);
-          
-          // If user just logged in and hasn't synced yet, keep local tasks
-          if (syncStatus !== 'synced' && localTasks) {
-            console.log('First login detected - loading from localStorage, will sync after');
-            // Already loaded above
-            hasLoadedRef.current = true;
-            return;
-          }
-          
-          console.log('Loading tasks from Supabase...');
-          // User has synced before or no local data - load from Supabase
-          const { data: tasksData, error: tasksError } = await supabase
-            .from('tasks')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-          if (tasksError) throw tasksError;
-
-          const { data: projectsData, error: projectsError } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-          if (projectsError) throw projectsError;
-
-          const { data: subtasksData, error: subtasksError } = await supabase
-            .from('subtasks')
-            .select('*');
-
-          if (subtasksError) throw subtasksError;
-
-          console.log('Loaded', tasksData?.length || 0, 'tasks from Supabase');
-          console.log('Loaded', projectsData?.length || 0, 'projects from Supabase');
-
-          // Convert DB format to app format
-          const loadedTasks: Task[] = (tasksData || [])
-            .filter((dbTask: any) => !dbTask.is_template)
-            .map((dbTask: any) => ({
-            id: dbTask.id,
-            title: dbTask.title,
-            dueDate: dbTask.due_date || null,
-            isCompleted: dbTask.is_completed,
-            completedAt: dbTask.completed_at || null,
-            subtasks: (subtasksData || [])
-              .filter((st: any) => st.task_id === dbTask.id)
-              .map((st: any) => ({
-                id: st.id,
-                text: st.title,
-                isCompleted: st.is_completed,
-              })),
-            createdAt: dbTask.created_at,
-            xp: dbTask.reward_xp || 10,
-            projectId: dbTask.project_id,
-            reminderAt: dbTask.reminder_at,
-            reminderEnabled: dbTask.reminder_enabled,
-          }));
-
-          const loadedProjects: Project[] = (projectsData || []).map((dbProject: any) => ({
-            id: dbProject.id,
-            name: dbProject.name,
-            description: dbProject.description,
-            color: dbProject.color,
-            icon: dbProject.icon,
-            createdAt: dbProject.created_at,
-          }));
-
-          setTasks(loadedTasks);
-          setProjects(loadedProjects);
-          hasLoadedRef.current = true;
-        } else {
-          // No user - already loaded from localStorage
-          hasLoadedRef.current = true;
-        }
-      } catch (error) {
-        console.error("Failed to load tasks", error);
-        // Fallback to localStorage - already loaded
-        hasLoadedRef.current = true;
-      } finally {
-        setIsInitialLoad(false);
-      }
     };
 
-    loadTasks();
-  }, [user, supabase]);
+    if (!hasLoadedRef.current) {
+      loadLocalTasks();
+      // If no user, mark as loaded. If user, SWR will handle the rest.
+      if (!user) {
+        hasLoadedRef.current = true;
+      }
+    }
+  }, [user, swrData]);
 
   // Save tasks to localStorage or Supabase
   useEffect(() => {
@@ -165,12 +202,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           // Always save to localStorage as backup
           localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
           localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-
-          // If user is logged in, also save to Supabase
-          if (user) {
-            // Note: Real-time sync is handled by individual operations
-            // This is just a backup/safety mechanism
-          }
         } catch (error) {
           console.error("Failed to save tasks", error);
         }
@@ -182,7 +213,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
         }
       };
     }
-  }, [tasks, isInitialLoad, user]);
+  }, [tasks, projects, isInitialLoad]);
 
   const stats = useMemo(() => {
     const totalTasks = tasks.length;
@@ -248,13 +279,6 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     streaksRef.current = streaks;
   }, [streaks]);
 
-  // Sync streaks to Supabase whenever they change
-  useEffect(() => {
-    if (!isInitialLoad && user && streaks) {
-      // This is now handled in TaskQuestApp to include habit XP
-    }
-  }, [streaks, user, isInitialLoad, supabase, stats.completedTasks]);
-
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
     const newTask: Task = {
       ...taskData,
@@ -303,11 +327,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
           if (subtasksError) throw subtasksError;
         }
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error syncing task to Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
 
 
@@ -357,11 +382,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             if (insertError) throw insertError;
           }
         }
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error updating task in Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const restoreTask = useCallback(async (task: Task) => {
     setTasks(prev => [task, ...prev]);
@@ -400,11 +426,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
                 if (subtasksError) throw subtasksError;
             }
+            mutate(); // Revalidate
         } catch (error) {
             console.error('Error restoring task to Supabase:', error);
         }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const deleteTask = useCallback(async (taskId: string) => {
     const taskToDelete = tasksRef.current.find(t => t.id === taskId);
@@ -416,6 +443,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
     if (user) {
       try {
         await supabase.from('tasks').delete().eq('id', taskId);
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error deleting task from Supabase:', error);
       }
@@ -430,7 +458,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             </ToastAction>
         ),
     });
-  }, [user, supabase, restoreTask]);
+  }, [user, supabase, restoreTask, mutate]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     // First, get the current task to determine new state
@@ -494,11 +522,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
               .eq('id', subtask.id);
           }
         }
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error toggling task completion in Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
   
   const addSubtask = useCallback(async (taskId: string, text: string) => {
     const newSubtask: Subtask = {
@@ -538,11 +567,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             .update({ is_completed: false, completed_at: null })
             .eq('id', taskId);
         }
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error adding subtask to Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const toggleSubtaskCompletion = useCallback(async (taskId: string, subtaskId: string): Promise<'subtask' | 'main' | 'none'> => {
     // Get current task to determine changes
@@ -603,13 +633,15 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             completed_at: newTaskCompletedAt,
           })
           .eq('id', taskId);
+
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error toggling subtask in Supabase:', error);
       }
     }
 
     return changeType;
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
@@ -636,66 +668,8 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
 
   // Function to reload tasks from Supabase after sync
   const reloadFromSupabase = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (tasksError) throw tasksError;
-
-      const { data: subtasksData, error: subtasksError } = await supabase
-        .from('subtasks')
-        .select('*');
-
-      if (subtasksError) throw subtasksError;
-
-      const loadedTasks: Task[] = (tasksData || [])
-        .filter((dbTask: any) => !dbTask.is_template)
-        .map((dbTask: any) => ({
-        id: dbTask.id,
-        title: dbTask.title,
-        dueDate: dbTask.due_date || null,
-        isCompleted: dbTask.is_completed,
-        completedAt: dbTask.completed_at || null,
-        subtasks: (subtasksData || [])
-          .filter((st: any) => st.task_id === dbTask.id)
-          .map((st: any) => ({
-            id: st.id,
-            text: st.title,
-            isCompleted: st.is_completed,
-          })),
-        createdAt: dbTask.created_at,
-        xp: dbTask.reward_xp || 10,
-        projectId: dbTask.project_id,
-      }));
-
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (projectsData) {
-        const loadedProjects: Project[] = projectsData.map((dbProject: any) => ({
-          id: dbProject.id,
-          name: dbProject.name,
-          description: dbProject.description,
-          color: dbProject.color,
-          icon: dbProject.icon,
-          createdAt: dbProject.created_at,
-        }));
-        setProjects(loadedProjects);
-      }
-
-      setTasks(loadedTasks);
-    } catch (error) {
-      console.error('Error reloading from Supabase:', error);
-    }
-  }, [user, supabase]);
+    await mutate();
+  }, [mutate]);
 
   const addProject = useCallback(async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     const newProject: Project = {
@@ -721,11 +695,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           });
 
         if (error) throw error;
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error syncing project to Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const updateProject = useCallback(async (projectId: string, updatedData: Partial<Omit<Project, 'id' | 'createdAt'>>) => {
     setProjects(prev => prev.map(project => project.id === projectId ? { ...project, ...updatedData } : project));
@@ -742,11 +717,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
           .from('projects')
           .update(updatePayload)
           .eq('id', projectId);
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error updating project in Supabase:', error);
       }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const restoreProject = useCallback(async (project: Project, affectedTaskIds: string[]) => {
     setProjects(prev => [project, ...prev]);
@@ -777,12 +753,12 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
                     .update({ project_id: project.id })
                     .in('id', affectedTaskIds);
             }
-
+            mutate(); // Revalidate
         } catch (error) {
             console.error('Error restoring project to Supabase:', error);
         }
     }
-  }, [user, supabase]);
+  }, [user, supabase, mutate]);
 
   const deleteProject = useCallback(async (projectId: string) => {
     const projectToDelete = projectsRef.current.find(p => p.id === projectId);
@@ -798,6 +774,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
       try {
         await supabase.from('projects').delete().eq('id', projectId);
         // Tasks will have project_id set to NULL due to ON DELETE SET NULL in DB
+        mutate(); // Revalidate
       } catch (error) {
         console.error('Error deleting project from Supabase:', error);
       }
@@ -812,7 +789,7 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
             </ToastAction>
         ),
     });
-  }, [user, supabase, restoreProject]);
+  }, [user, supabase, restoreProject, mutate]);
 
   return {
     tasks: sortedTasks,
