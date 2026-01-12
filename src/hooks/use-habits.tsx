@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Habit } from '@/lib/types';
+import { getDefaultHabits } from '@/lib/defaults';
 import { 
   startOfDay, 
   parseISO, 
@@ -250,6 +251,16 @@ export const useHabits = (user?: User | null) => {
           };
         });
         setHabits(habitsWithStats);
+      } else {
+        const defaultHabits = getDefaultHabits().map(habit => {
+           // Calculate stats for defaults just in case, though they are new
+           const stats = calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays);
+           return {
+             ...habit,
+             yearlyStats: stats
+           }
+        });
+        setHabits(defaultHabits);
       }
       setIsInitialLoad(false);
     };

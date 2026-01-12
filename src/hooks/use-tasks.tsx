@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Task, Subtask, Streaks, Project } from '@/lib/types';
+import { getDefaultTasks } from '@/lib/defaults';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO, format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -173,7 +174,10 @@ export const useTasks = (user?: User | null, hasSyncedToSupabase: boolean = true
       
       if (storedTasks) {
         setTasks(JSON.parse(storedTasks));
+      } else {
+        setTasks(getDefaultTasks());
       }
+
       if (storedProjects) {
         setProjects(JSON.parse(storedProjects));
       }
