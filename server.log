@@ -1,0 +1,41 @@
+
+> pollytasks@0.1.0 dev
+> next dev --turbopack -p 9002
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Local:        http://localhost:9002
+   - Network:      http://192.168.0.2:9002
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 705ms
+ ✓ Ready in 2.2s
+ ○ Compiling / ...
+ ✓ Compiled / in 17.4s
+VAPID keys not set. Push notifications will not work.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+ GET / 200 in 19354ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1062ms
+ GET /favicon.ico 200 in 1530ms
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+ GET / 200 in 204ms
+ GET /favicon.ico 200 in 294ms
+VAPID keys not set. Push notifications will not work.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+Supabase env vars missing. Using mock client.
+ GET / 200 in 560ms
+ GET /favicon.ico 200 in 263ms
