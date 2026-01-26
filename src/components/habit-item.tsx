@@ -110,9 +110,9 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
 
   const getHabitCardAesthetics = (colorStr?: string) => {
     const aesthetic = {
-      card: "bg-card border-border hover:border-slate-300",
-      checkbox: "bg-slate-700 border-slate-800",
-      iconBg: "bg-slate-100 border-slate-200 text-slate-500"
+      card: "bg-card border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600",
+      checkbox: "bg-zinc-600 border-zinc-700",
+      iconBg: "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500"
     };
 
     if (colorStr) {
@@ -120,22 +120,22 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
       if (match && match[1]) {
         const color = match[1];
         const themes: Record<string, { card: string; checkbox: string; iconBg: string }> = {
-          blue: { card: "bg-blue-50 border-blue-200 border-b-blue-300 hover:border-blue-300", checkbox: "bg-blue-500 border-blue-600", iconBg: "bg-blue-500 border-blue-600 text-white" },
-          purple: { card: "bg-purple-50 border-purple-200 border-b-purple-300 hover:border-purple-300", checkbox: "bg-purple-500 border-purple-600", iconBg: "bg-purple-500 border-purple-600 text-white" },
-          cyan: { card: "bg-cyan-50 border-cyan-200 border-b-cyan-300 hover:border-cyan-300", checkbox: "bg-cyan-500 border-cyan-600", iconBg: "bg-cyan-500 border-cyan-600 text-white" },
-          rose: { card: "bg-rose-50 border-rose-200 border-b-rose-300 hover:border-rose-300", checkbox: "bg-rose-500 border-rose-600", iconBg: "bg-rose-500 border-rose-600 text-white" },
-          amber: { card: "bg-amber-50 border-amber-200 border-b-amber-300 hover:border-amber-300", checkbox: "bg-amber-500 border-amber-600", iconBg: "bg-amber-500 border-amber-600 text-white" },
-          indigo: { card: "bg-indigo-50 border-indigo-200 border-b-indigo-300 hover:border-indigo-300", checkbox: "bg-indigo-500 border-indigo-600", iconBg: "bg-indigo-500 border-indigo-600 text-white" },
-          emerald: { card: "bg-emerald-50 border-emerald-200 border-b-emerald-300 hover:border-emerald-300", checkbox: "bg-emerald-500 border-emerald-600", iconBg: "bg-emerald-500 border-emerald-600 text-white" },
-          orange: { card: "bg-orange-50 border-orange-200 border-b-orange-300 hover:border-orange-300", checkbox: "bg-orange-500 border-orange-600", iconBg: "bg-orange-500 border-orange-600 text-white" },
-          pink: { card: "bg-pink-50 border-pink-200 border-b-pink-300 hover:border-pink-300", checkbox: "bg-pink-500 border-pink-600", iconBg: "bg-pink-500 border-pink-600 text-white" },
-          violet: { card: "bg-violet-50 border-violet-200 border-b-violet-300 hover:border-violet-300", checkbox: "bg-violet-500 border-violet-600", iconBg: "bg-violet-500 border-violet-600 text-white" },
-          teal: { card: "bg-teal-50 border-teal-200 border-b-teal-300 hover:border-teal-300", checkbox: "bg-teal-500 border-teal-600", iconBg: "bg-teal-500 border-teal-600 text-white" },
-          sky: { card: "bg-sky-50 border-sky-200 border-b-sky-300 hover:border-sky-300", checkbox: "bg-sky-500 border-sky-600", iconBg: "bg-sky-500 border-sky-600 text-white" },
-          lime: { card: "bg-lime-50 border-lime-200 border-b-lime-300 hover:border-lime-300", checkbox: "bg-lime-500 border-lime-600", iconBg: "bg-lime-500 border-lime-600 text-white" },
-          yellow: { card: "bg-yellow-50 border-yellow-200 border-b-yellow-300 hover:border-yellow-300", checkbox: "bg-yellow-500 border-yellow-600", iconBg: "bg-yellow-500 border-yellow-600 text-white" },
-          fuchsia: { card: "bg-fuchsia-50 border-fuchsia-200 border-b-fuchsia-300 hover:border-fuchsia-300", checkbox: "bg-fuchsia-500 border-fuchsia-600", iconBg: "bg-fuchsia-500 border-fuchsia-600 text-white" },
-          slate: { card: "bg-slate-50 border-slate-200 border-b-slate-300 hover:border-slate-300", checkbox: "bg-slate-500 border-slate-600", iconBg: "bg-slate-500 border-slate-600 text-white" },
+          blue: { card: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 hover:border-blue-300", checkbox: "bg-blue-500 border-blue-600", iconBg: "bg-blue-100 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800 text-blue-600" },
+          purple: { card: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:border-purple-300", checkbox: "bg-purple-500 border-purple-600", iconBg: "bg-purple-100 dark:bg-purple-900/50 border-purple-200 dark:border-purple-800 text-purple-600" },
+          cyan: { card: "bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800 hover:border-cyan-300", checkbox: "bg-cyan-500 border-cyan-600", iconBg: "bg-cyan-100 dark:bg-cyan-900/50 border-cyan-200 dark:border-cyan-800 text-cyan-600" },
+          rose: { card: "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 hover:border-rose-300", checkbox: "bg-rose-500 border-rose-600", iconBg: "bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600" },
+          amber: { card: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 hover:border-amber-300", checkbox: "bg-amber-500 border-amber-600", iconBg: "bg-amber-100 dark:bg-amber-900/50 border-amber-200 dark:border-amber-800 text-amber-600" },
+          indigo: { card: "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 hover:border-indigo-300", checkbox: "bg-indigo-500 border-indigo-600", iconBg: "bg-indigo-100 dark:bg-indigo-900/50 border-indigo-200 dark:border-indigo-800 text-indigo-600" },
+          emerald: { card: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 hover:border-emerald-300", checkbox: "bg-emerald-500 border-emerald-600", iconBg: "bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-600" },
+          orange: { card: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 hover:border-orange-300", checkbox: "bg-orange-500 border-orange-600", iconBg: "bg-orange-100 dark:bg-orange-900/50 border-orange-200 dark:border-orange-800 text-orange-600" },
+          pink: { card: "bg-pink-50 dark:bg-pink-950/40 border-pink-200 dark:border-pink-800 hover:border-pink-300", checkbox: "bg-pink-500 border-pink-600", iconBg: "bg-pink-100 dark:bg-pink-900/50 border-pink-200 dark:border-pink-800 text-pink-600" },
+          violet: { card: "bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800 hover:border-violet-300", checkbox: "bg-violet-500 border-violet-600", iconBg: "bg-violet-100 dark:bg-violet-900/50 border-violet-200 dark:border-violet-800 text-violet-600" },
+          teal: { card: "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 hover:border-teal-300", checkbox: "bg-teal-500 border-teal-600", iconBg: "bg-teal-100 dark:bg-teal-900/50 border-teal-200 dark:border-teal-800 text-teal-600" },
+          sky: { card: "bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 hover:border-sky-300", checkbox: "bg-sky-500 border-sky-600", iconBg: "bg-sky-100 dark:bg-sky-900/50 border-sky-200 dark:border-sky-800 text-sky-600" },
+          lime: { card: "bg-lime-50 dark:bg-lime-950/40 border-lime-200 dark:border-lime-800 hover:border-lime-300", checkbox: "bg-lime-500 border-lime-600", iconBg: "bg-lime-100 dark:bg-lime-900/50 border-lime-200 dark:border-lime-800 text-lime-600" },
+          yellow: { card: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800 hover:border-yellow-300", checkbox: "bg-yellow-500 border-yellow-600", iconBg: "bg-yellow-100 dark:bg-yellow-900/50 border-yellow-200 dark:border-yellow-800 text-yellow-600" },
+          fuchsia: { card: "bg-fuchsia-50 dark:bg-fuchsia-950/40 border-fuchsia-200 dark:border-fuchsia-800 hover:border-fuchsia-300", checkbox: "bg-fuchsia-500 border-fuchsia-600", iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/50 border-fuchsia-200 dark:border-fuchsia-800 text-fuchsia-600" },
+          slate: { card: "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 hover:border-slate-300", checkbox: "bg-slate-500 border-slate-600", iconBg: "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600" },
         };
         const theme = themes[color];
         if (theme) {
@@ -366,20 +366,19 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
           >
             <div className="flex items-center gap-2 pt-4 mt-2 border-t-2 border-[#F1F4F9] flex-wrap">
               {habit.frequency !== 'weekly' && habit.frequency !== 'monthly' && (
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => setViewOffset(prev => prev === 0 ? -1 : 0)}
                   className={cn(
-                    "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
+                    "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all flex items-center justify-center",
                     viewOffset !== 0
                       ? `${aesthetics.checkbox} text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]`
-                      : "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
+                      : "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-slate-50"
                   )}
                 >
                   <History className={cn("w-4 h-4 mr-2", viewOffset !== 0 ? "text-white/80" : "text-indigo-500")} />
                   {viewOffset === 0 ? "Last Week" : "Back to Today"}
-                </Button>
+                </button>
               )}
               <Button
                 variant="outline"

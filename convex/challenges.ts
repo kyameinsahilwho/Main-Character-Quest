@@ -370,6 +370,14 @@ export const leaveChallenge = mutation({
 
 // ==================== MILESTONES ====================
 
+// Milestone thresholds for automatic creation
+const MILESTONE_THRESHOLDS = {
+    tasks_completed: [10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+    streak_achieved: [7, 14, 30, 60, 100, 200, 365],
+    habit_streak: [7, 14, 30, 60, 100],
+    level_up: [5, 10, 15, 20, 25, 30, 40, 50, 75, 100],
+};
+
 export const createMilestone = mutation({
     args: {
         type: v.string(),
@@ -379,6 +387,20 @@ export const createMilestone = mutation({
     handler: async (ctx, args) => {
         const userId = await getUserId(ctx);
         if (!userId) throw new Error("Unauthenticated");
+
+        // Check for duplicate milestone (same type and value)
+        const existingMilestones = await ctx.db
+            .query("milestones")
+            .withIndex("by_user_and_type", (q) =>
+                q.eq("userId", userId).eq("type", args.type)
+            )
+            .collect();
+
+        const isDuplicate = existingMilestones.some(m => m.value === args.value);
+        if (isDuplicate) {
+            // Already have this milestone, skip creation
+            return { milestoneId: null, duplicate: true };
+        }
 
         const now = new Date().toISOString();
 
@@ -423,7 +445,106 @@ export const createMilestone = mutation({
             }
         }
 
-        return { milestoneId };
+        return { milestoneId, duplicate: false };
+    },
+});
+
+// Auto-check and create milestones based on user stats
+export const autoCheckMilestones = mutation({
+    args: {
+        tasksCompleted: v.optional(v.number()),
+        currentStreak: v.optional(v.number()),
+        level: v.optional(v.number()),
+        habitStreak: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getUserId(ctx);
+        if (!userId) return { created: [] };
+
+        const createdMilestones: string[] = [];
+        const now = new Date().toISOString();
+
+        // Helper to check and create a milestone
+        const checkAndCreate = async (type: string, value: number) => {
+            const thresholds = MILESTONE_THRESHOLDS[type as keyof typeof MILESTONE_THRESHOLDS] || [];
+
+            // Find achieved thresholds
+            const achievedThresholds = thresholds.filter(t => value >= t);
+
+            if (achievedThresholds.length === 0) return;
+
+            // Get existing milestones of this type
+            const existing = await ctx.db
+                .query("milestones")
+                .withIndex("by_user_and_type", (q) =>
+                    q.eq("userId", userId).eq("type", type)
+                )
+                .collect();
+
+            const existingValues = new Set(existing.map(m => m.value));
+
+            // Find new milestones to create
+            for (const threshold of achievedThresholds) {
+                if (!existingValues.has(threshold)) {
+                    // Create new milestone
+                    const milestoneId = await ctx.db.insert("milestones", {
+                        userId,
+                        type,
+                        value: threshold,
+                        achievedAt: now,
+                        isPublic: true,
+                        celebratedBy: [],
+                    });
+
+                    createdMilestones.push(`${type}:${threshold}`);
+
+                    // Notify friends
+                    const user = await ctx.db.get(userId);
+                    const friendships = await ctx.db
+                        .query("friendships")
+                        .withIndex("by_user", (q) => q.eq("userId", userId))
+                        .collect();
+
+                    const milestoneMessages: Record<string, string> = {
+                        tasks_completed: `completed ${threshold} quests`,
+                        streak_achieved: `reached a ${threshold}-day streak`,
+                        level_up: `leveled up to Level ${threshold}`,
+                        habit_streak: `hit a ${threshold}-day habit streak`,
+                    };
+
+                    const message = milestoneMessages[type] || `achieved a milestone`;
+
+                    for (const friendship of friendships) {
+                        await ctx.db.insert("socialNotifications", {
+                            userId: friendship.friendId,
+                            type: "milestone_friend",
+                            fromUserId: userId,
+                            referenceId: milestoneId,
+                            referenceType: "milestone",
+                            message: `${user?.name || 'A friend'} ${message}! 🎉`,
+                            seen: false,
+                            createdAt: now,
+                        });
+                    }
+                }
+            }
+        };
+
+        // Check each type of milestone
+        if (args.tasksCompleted !== undefined) {
+            await checkAndCreate("tasks_completed", args.tasksCompleted);
+        }
+        if (args.currentStreak !== undefined) {
+            await checkAndCreate("streak_achieved", args.currentStreak);
+        }
+        if (args.level !== undefined) {
+            await checkAndCreate("level_up", args.level);
+        }
+        if (args.habitStreak !== undefined) {
+            await checkAndCreate("habit_streak", args.habitStreak);
+        }
+
+        return { created: createdMilestones };
     },
 });
 

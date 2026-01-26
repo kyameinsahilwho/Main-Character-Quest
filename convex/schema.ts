@@ -142,7 +142,8 @@ export default defineSchema({
         celebratedBy: v.optional(v.array(v.id("users"))), // Users who cheered this milestone
     })
         .index("by_user", ["userId"])
-        .index("by_type", ["type"]),
+        .index("by_type", ["type"])
+        .index("by_user_and_type", ["userId", "type"]),
 
     // Cheers/Reactions - send encouragement to friends
     cheers: defineTable({

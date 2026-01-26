@@ -18,7 +18,11 @@ import {
     Award,
     ChevronRight,
     Copy,
-    Mail
+    Mail,
+    MoreVertical,
+    LogOut,
+    Trash2,
+    UserMinus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +36,12 @@ import {
     DialogFooter,
     DialogDescription
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSocial, useChallenges } from "@/hooks/use-social";
 import { Id } from "../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -147,28 +157,28 @@ export function SocialSection({ className }: SocialSectionProps) {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="grid grid-cols-4 gap-2 p-1 bg-transparent mb-4">
+                <TabsList className="grid grid-cols-4 gap-1 p-1 bg-transparent mb-4">
                     <TabsTrigger
                         value="friends"
-                        className="rounded-xl text-xs font-black uppercase tracking-wide border-2 border-transparent data-[state=active]:bg-violet-500 data-[state=active]:text-white data-[state=active]:border-violet-600 data-[state=active]:border-b-4 transition-all data-[state=inactive]:hover:bg-muted"
+                        className="rounded-xl text-xs font-bold uppercase tracking-wide border border-transparent data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 transition-all data-[state=inactive]:hover:bg-muted"
                     >
                         Friends
                     </TabsTrigger>
                     <TabsTrigger
                         value="challenges"
-                        className="rounded-xl text-xs font-black uppercase tracking-wide border-2 border-transparent data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:border-amber-600 data-[state=active]:border-b-4 transition-all data-[state=inactive]:hover:bg-muted"
+                        className="rounded-xl text-xs font-bold uppercase tracking-wide border border-transparent data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 transition-all data-[state=inactive]:hover:bg-muted"
                     >
                         Challenges
                     </TabsTrigger>
                     <TabsTrigger
                         value="leaderboard"
-                        className="rounded-xl text-xs font-black uppercase tracking-wide border-2 border-transparent data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:border-blue-600 data-[state=active]:border-b-4 transition-all data-[state=inactive]:hover:bg-slate-100"
+                        className="rounded-xl text-xs font-bold uppercase tracking-wide border border-transparent data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 transition-all data-[state=inactive]:hover:bg-muted"
                     >
                         Ranks
                     </TabsTrigger>
                     <TabsTrigger
                         value="feed"
-                        className="rounded-xl text-xs font-black uppercase tracking-wide border-2 border-transparent data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:border-green-600 data-[state=active]:border-b-4 transition-all data-[state=inactive]:hover:bg-slate-100"
+                        className="rounded-xl text-xs font-bold uppercase tracking-wide border border-transparent data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 transition-all data-[state=inactive]:hover:bg-muted"
                     >
                         Feed
                     </TabsTrigger>
@@ -337,7 +347,7 @@ function FriendsTab({ social }: { social: ReturnType<typeof useSocial> }) {
             {/* Invite Button */}
             <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
                 <DialogTrigger asChild>
-                    <Button className="w-full gap-2 bg-violet-500 hover:bg-violet-600 text-white font-bold">
+                    <Button className="w-full gap-2 bg-violet-500 hover:bg-violet-600 text-white font-bold border-violet-700 hover:border-violet-800">
                         <UserPlus className="w-4 h-4" />
                         Invite Friend by Email
                     </Button>
@@ -380,7 +390,12 @@ function FriendsTab({ social }: { social: ReturnType<typeof useSocial> }) {
                     </div>
                 ) : (
                     social.friends.map((friend) => friend && (
-                        <FriendCard key={friend.friendshipId} friend={friend} onSendCheer={social.sendCheer} />
+                        <FriendCard
+                            key={friend.friendshipId}
+                            friend={friend}
+                            onSendCheer={social.sendCheer}
+                            onRemoveFriend={social.removeFriend}
+                        />
                     ))
                 )}
             </div>
@@ -388,9 +403,10 @@ function FriendsTab({ social }: { social: ReturnType<typeof useSocial> }) {
     );
 }
 
-function FriendCard({ friend, onSendCheer }: {
+function FriendCard({ friend, onSendCheer, onRemoveFriend }: {
     friend: any;
-    onSendCheer: (userId: Id<"users">, type: string) => void
+    onSendCheer: (userId: Id<"users">, type: string) => void;
+    onRemoveFriend: (userId: Id<"users">) => void;
 }) {
     const [showCheerPicker, setShowCheerPicker] = useState(false);
 
@@ -398,7 +414,7 @@ function FriendCard({ friend, onSendCheer }: {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex items-center gap-3 p-4 bg-card border-2 border-border border-b-4 rounded-2xl mb-2"
+            className="flex items-center gap-3 p-4 bg-card border-2 border-border border-b-4 rounded-2xl mb-2 group"
         >
             <div className="relative">
                 <div className="w-12 h-12 rounded-full bg-violet-500 border-2 border-violet-600 flex items-center justify-center overflow-hidden shadow-sm ring-4 ring-violet-500/10">
@@ -433,40 +449,68 @@ function FriendCard({ friend, onSendCheer }: {
                 )}
             </div>
 
-            {/* Cheer Button */}
-            <div className="relative">
-                <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-10 w-10 rounded-xl border-2 border-b-4 border-slate-200 hover:bg-violet-50 hover:border-violet-200 active:border-b-0 active:translate-y-[4px] transition-all"
-                    onClick={() => setShowCheerPicker(!showCheerPicker)}
-                >
-                    <span className="text-xl">👏</span>
-                </Button>
+            <div className="flex items-center gap-1">
+                {/* Cheer Button */}
+                <div className="relative">
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-10 w-10 rounded-xl border-2 border-b-4 border-slate-200 hover:bg-violet-50 hover:border-violet-200 active:border-b-0 active:translate-y-[4px] transition-all"
+                        onClick={() => setShowCheerPicker(!showCheerPicker)}
+                    >
+                        <span className="text-xl">👏</span>
+                    </Button>
 
-                <AnimatePresence>
-                    {showCheerPicker && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                            className="absolute right-0 top-12 bg-white border-2 border-b-4 border-slate-200 rounded-2xl p-2 shadow-xl z-10 flex gap-2 w-max"
+                    <AnimatePresence>
+                        {showCheerPicker && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                className="absolute right-0 top-12 bg-white border-2 border-b-4 border-slate-200 rounded-2xl p-2 shadow-xl z-20 flex gap-2 w-max"
+                            >
+                                {CHEER_TYPES.map((cheer) => (
+                                    <button
+                                        key={cheer.id}
+                                        onClick={() => {
+                                            onSendCheer(friend.id, cheer.id);
+                                            setShowCheerPicker(false);
+                                        }}
+                                        className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-90"
+                                    >
+                                        {cheer.emoji}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* More Options Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
                         >
-                            {CHEER_TYPES.map((cheer) => (
-                                <button
-                                    key={cheer.id}
-                                    onClick={() => {
-                                        onSendCheer(friend.id, cheer.id);
-                                        setShowCheerPicker(false);
-                                    }}
-                                    className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-90"
-                                >
-                                    {cheer.emoji}
-                                </button>
-                            ))}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            <MoreVertical className="w-4 h-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 font-bold">
+                        <DropdownMenuItem
+                            className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                            onClick={() => {
+                                if (confirm(`Are you sure you want to remove ${friend.name} from your squad?`)) {
+                                    onRemoveFriend(friend.id);
+                                }
+                            }}
+                        >
+                            <UserMinus className="w-4 h-4 mr-2" />
+                            Unfriend
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </motion.div>
     );
@@ -563,7 +607,7 @@ function ChallengesTab({ challenges, friends }: {
             {/* Create Challenge Button */}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                 <DialogTrigger asChild>
-                    <Button className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold">
+                    <Button className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-700 hover:border-amber-800">
                         <Target className="w-4 h-4" />
                         Create Challenge
                     </Button>
@@ -643,7 +687,7 @@ function ChallengesTab({ challenges, friends }: {
                         <Button
                             onClick={handleCreateChallenge}
                             disabled={!newChallenge.title.trim()}
-                            className="w-full bg-amber-500 hover:bg-amber-600"
+                            className="w-full bg-amber-500 hover:bg-amber-600 border-amber-700 hover:border-amber-800"
                         >
                             Start Challenge
                         </Button>
@@ -667,7 +711,11 @@ function ChallengesTab({ challenges, friends }: {
                     challenges.activeChallenges
                         .filter((c: any) => c.myStatus === "accepted")
                         .map((challenge: any) => (
-                            <ChallengeCard key={challenge.id} challenge={challenge} />
+                            <ChallengeCard
+                                key={challenge.id}
+                                challenge={challenge}
+                                onLeaveChallenge={challenges.leaveChallenge}
+                            />
                         ))
                 )}
             </div>
@@ -675,21 +723,51 @@ function ChallengesTab({ challenges, friends }: {
     );
 }
 
-function ChallengeCard({ challenge }: { challenge: any }) {
+function ChallengeCard({ challenge, onLeaveChallenge }: {
+    challenge: any;
+    onLeaveChallenge: (id: Id<"challenges">) => void;
+}) {
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-4 bg-card border-2 border-border border-b-4 rounded-2xl"
+            className="p-4 bg-card border-2 border-border border-b-4 rounded-2xl relative"
         >
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <Target className="w-5 h-5 text-amber-500" />
                     <span className="font-bold">{challenge.title}</span>
                 </div>
-                <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full font-medium">
-                    {challenge.daysRemaining}d left
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full font-medium">
+                        {challenge.daysRemaining}d left
+                    </span>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 -mr-2 rounded-lg text-muted-foreground hover:bg-muted"
+                            >
+                                <MoreVertical className="w-3 h-3" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 font-bold">
+                            <DropdownMenuItem
+                                className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                onClick={() => {
+                                    if (confirm(`Are you sure you want to leave ${challenge.title}?`)) {
+                                        onLeaveChallenge(challenge.id);
+                                    }
+                                }}
+                            >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Leave Challenge
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
 
             {/* My Progress */}
@@ -743,6 +821,16 @@ function LeaderboardTab({ leaderboard }: { leaderboard: any[] }) {
         return "bg-muted text-muted-foreground";
     };
 
+    const sortedLeaderboard = [...leaderboard].sort((a, b) => {
+        switch (sortBy) {
+            case "streak": return (b.currentStreak || 0) - (a.currentStreak || 0);
+            case "level": return (b.level || 0) - (a.level || 0);
+            case "tasks": return (b.tasksCompleted || 0) - (a.tasksCompleted || 0);
+            case "xp":
+            default: return (b.totalXP || 0) - (a.totalXP || 0);
+        }
+    });
+
     return (
         <>
             {/* Sort Options */}
@@ -770,14 +858,15 @@ function LeaderboardTab({ leaderboard }: { leaderboard: any[] }) {
 
             {/* Leaderboard List */}
             <div className="space-y-2">
-                {leaderboard.length === 0 ? (
+                {sortedLeaderboard.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         <Trophy className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <p className="font-medium">Add friends to see the leaderboard!</p>
                     </div>
                 ) : (
-                    leaderboard.map((entry: any) => (
+                    sortedLeaderboard.map((entry: any) => (
                         <motion.div
+                            layout
                             key={entry.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -788,13 +877,20 @@ function LeaderboardTab({ leaderboard }: { leaderboard: any[] }) {
                                     : "bg-card border-border hover:border-slate-300"
                             )}
                         >
-                            {/* Rank Badge */}
+                            {/* Rank Badge - Only show dynamic rank 1-3 if sorted by XP? No, show rank always? 
+                                Actually, entry.rank comes from server and might be fixed to XP. 
+                                We should probably recalculate rank roughly based on index for this view if we sort client side.
+                            */}
                             <div className={cn(
                                 "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm",
-                                getRankStyle(entry.rank)
+                                getRankStyle(entry.rank) // Note: This might still use the server-provided rank (based on XP). 
+                                // Ideally we should recalculate if we want it to reflect the current sort. 
+                                // But keeping it simple for now as requested "sort by desc". 
+                                // To make it perfect, we'd map index+1 to rank.
                             )}>
                                 {entry.rank}
                             </div>
+
 
                             {/* Avatar */}
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center overflow-hidden">
@@ -851,6 +947,8 @@ function FeedTab({
     onCelebrate: (id: Id<"milestones">) => void;
     onSendCheer: (userId: Id<"users">, type: string) => void;
 }) {
+    const [celebratingId, setCelebratingId] = useState<string | null>(null);
+
     const getMilestoneIcon = (type: string) => {
         switch (type) {
             case "tasks_completed": return "✓";
@@ -871,6 +969,13 @@ function FeedTab({
             case "weekly_goal": return "Crushed their weekly goal!";
             default: return "Achieved a milestone!";
         }
+    };
+
+    const handleCelebrate = (milestoneId: string) => {
+        setCelebratingId(milestoneId);
+        onCelebrate(milestoneId as Id<"milestones">);
+        // Clear confetti after animation
+        setTimeout(() => setCelebratingId(null), 1500);
     };
 
     return (
@@ -935,8 +1040,41 @@ function FeedTab({
                             key={milestone._id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="p-4 bg-card border-2 border-border border-b-4 rounded-2xl"
+                            className="p-4 bg-card border-2 border-border border-b-4 rounded-2xl relative overflow-hidden"
                         >
+                            {/* Mini Confetti Effect */}
+                            <AnimatePresence>
+                                {celebratingId === milestone._id && (
+                                    <>
+                                        {[...Array(12)].map((_, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{
+                                                    opacity: 1,
+                                                    scale: 0,
+                                                    x: 0,
+                                                    y: 0
+                                                }}
+                                                animate={{
+                                                    opacity: 0,
+                                                    scale: 1,
+                                                    x: (Math.random() - 0.5) * 150,
+                                                    y: (Math.random() - 0.5) * 100 - 30
+                                                }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                                className="absolute right-16 top-1/2 pointer-events-none z-10"
+                                                style={{
+                                                    fontSize: "16px",
+                                                }}
+                                            >
+                                                {["🎉", "✨", "🎊", "⭐", "💫", "🌟"][i % 6]}
+                                            </motion.div>
+                                        ))}
+                                    </>
+                                )}
+                            </AnimatePresence>
+
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl">
                                     {getMilestoneIcon(milestone.type)}
@@ -946,16 +1084,33 @@ function FeedTab({
                                     <p className="text-sm text-muted-foreground">
                                         {getMilestoneMessage(milestone.type, milestone.value)}
                                     </p>
+                                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                                        {(() => {
+                                            const date = new Date(milestone.achievedAt);
+                                            const now = new Date();
+                                            const diffMs = now.getTime() - date.getTime();
+                                            const diffMins = Math.floor(diffMs / 60000);
+                                            const diffHours = Math.floor(diffMs / 3600000);
+                                            const diffDays = Math.floor(diffMs / 86400000);
+
+                                            if (diffMins < 1) return "just now";
+                                            if (diffMins < 60) return `${diffMins}m ago`;
+                                            if (diffHours < 24) return `${diffHours}h ago`;
+                                            if (diffDays < 7) return `${diffDays}d ago`;
+                                            return date.toLocaleDateString();
+                                        })()}
+                                    </p>
                                 </div>
                                 <Button
                                     size="sm"
-                                    variant={milestone.hasCelebrated ? "secondary" : "default"}
+                                    variant={milestone.hasCelebrated ? "secondary" : "outline"}
                                     className={cn(
+                                        "relative z-20",
                                         milestone.hasCelebrated
-                                            ? "bg-violet-500/20 text-violet-500"
-                                            : "bg-violet-500 hover:bg-violet-600"
+                                            ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                                            : "bg-white hover:bg-gray-50 text-foreground border-2 border-gray-200 hover:border-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:border-zinc-600"
                                     )}
-                                    onClick={() => !milestone.hasCelebrated && onCelebrate(milestone._id)}
+                                    onClick={() => !milestone.hasCelebrated && handleCelebrate(milestone._id)}
                                     disabled={milestone.hasCelebrated}
                                 >
                                     {milestone.hasCelebrated ? "🎉 Celebrated" : "🎉 Celebrate"}

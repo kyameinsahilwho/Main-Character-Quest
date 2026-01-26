@@ -36,6 +36,9 @@ export default function TaskQuestApp() {
   const { signOut } = useClerk();
   const userData = useQuery(api.users.viewer);
   const updateSettingsMutation = useMutation(api.users.updateSettings);
+  const autoCheckMilestonesMutation = useMutation(api.challenges.autoCheckMilestones);
+  const recordDailyActivityMutation = useMutation(api.challenges.recordDailyActivity);
+  const updateChallengeProgressMutation = useMutation(api.challenges.updateChallengeProgress);
   const storeUser = useMutation(api.users.store);
   const { toast } = useToast();
 
@@ -162,6 +165,33 @@ export default function TaskQuestApp() {
             longestStreak: streaks.longest,
             tasksCompleted: stats.completedTasks,
           });
+
+          // Auto-check and create milestones based on current stats
+          await autoCheckMilestonesMutation({
+            tasksCompleted: stats.completedTasks,
+            currentStreak: streaks.current,
+            level: levelInfo.level,
+          });
+
+          // Record daily activity for friends to see
+          const todaysHabitCompletions = habits.filter(h =>
+            h.completions.some(c => {
+              const completionDate = new Date(c.completedAt).toDateString();
+              return completionDate === new Date().toDateString();
+            })
+          ).length;
+
+          await recordDailyActivityMutation({
+            tasksCompleted: stats.completedTasks,
+            habitsCompleted: todaysHabitCompletions,
+            xpEarned: levelInfo.totalXP,
+            streakMaintained: streaks.current > 0,
+          });
+
+          // Update streak challenge progress if streak is active
+          if (streaks.current > 0) {
+            await updateChallengeProgressMutation({ type: "streak", value: streaks.current });
+          }
         } catch (error) {
           console.error('Error syncing user settings:', error);
         }
@@ -170,7 +200,7 @@ export default function TaskQuestApp() {
       const timer = setTimeout(syncSettings, 2000);
       return () => clearTimeout(timer);
     }
-  }, [user, isInitialLoad, levelInfo.totalXP, levelInfo.level, streaks, stats.completedTasks, updateSettingsMutation]);
+  }, [user, isInitialLoad, levelInfo.totalXP, levelInfo.level, streaks, stats.completedTasks, habits, updateSettingsMutation, autoCheckMilestonesMutation, recordDailyActivityMutation, updateChallengeProgressMutation]);
 
   // Window resize for confetti
   useEffect(() => {

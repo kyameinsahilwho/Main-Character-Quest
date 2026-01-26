@@ -123,10 +123,10 @@ function TaskItem({ task, onToggle, onDelete, onEdit, onAddSubtask, onToggleSubt
       className="mb-3"
     >
       <Card className={cn(
-        "transition-all duration-200 overflow-hidden flex flex-col border-2 rounded-[2rem] relative bg-card border-border border-b-[5px]",
+        "transition-all duration-200 overflow-hidden flex flex-col border-2 rounded-2xl relative bg-card border-zinc-200 dark:border-zinc-700 border-b-[5px]",
         task.isCompleted
-          ? 'bg-muted/40 border-border border-b-0 translate-y-[5px] shadow-none opacity-80'
-          : 'active:translate-y-[5px] active:border-b-0 active:shadow-none hover:bg-muted/10',
+          ? 'bg-muted/40 border-zinc-300 dark:border-zinc-600 border-b-0 translate-y-[5px] shadow-none opacity-70'
+          : 'active:translate-y-[5px] active:border-b-0 active:shadow-none hover:border-zinc-300 dark:hover:border-zinc-600',
         isAnimating && 'animate-green-flash'
       )}>
         <div className="flex flex-col">

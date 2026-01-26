@@ -142,6 +142,9 @@ export const useHabits = () => {
   const addCompletionMutation = useMutation(api.habits.addCompletion);
   const removeCompletionMutation = useMutation(api.habits.removeCompletion);
 
+  // Challenge progress tracking
+  const updateChallengeProgressMutation = useMutation(api.challenges.updateChallengeProgress);
+
   // Local State
   const [localHabits, setLocalHabits] = useState<Habit[]>([]);
   const [isLocalLoaded, setIsLocalLoaded] = useState(false);
@@ -294,8 +297,8 @@ export const useHabits = () => {
           frequency: habitData.frequency,
           currentStreak: 0,
           bestStreak: 0,
-          color: habitData.color,
-          icon: habitData.icon,
+          color: habitData.color || "#6366f1",
+          icon: habitData.icon || "✨",
           createdAt,
           customDays: habitData.customDays,
           totalCompletions: 0,
@@ -413,6 +416,16 @@ export const useHabits = () => {
 
         // Clear optimistic update after successful sync
         clearOptimisticUpdate(habitId);
+
+        // 📊 Update challenge progress if habit was completed (not uncompleted)
+        if (added) {
+          try {
+            await updateChallengeProgressMutation({ type: "habit", value: 1 });
+          } catch (err) {
+            console.error("Failed to update challenge progress:", err);
+            // Don't fail the habit completion if challenge update fails
+          }
+        }
       } catch (error: any) {
         console.error("Mutation failed, rolling back:", error);
 

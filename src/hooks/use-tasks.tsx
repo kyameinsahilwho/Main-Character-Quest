@@ -106,6 +106,9 @@ export const useTasks = () => {
     const updateProjectMutation = useMutation(api.projects.update);
     const deleteProjectMutation = useMutation(api.projects.remove);
 
+    // Challenge progress tracking
+    const updateChallengeProgressMutation = useMutation(api.challenges.updateChallengeProgress);
+
     // Map Convex data to App types with optimistic updates applied
     const tasks: Task[] = useMemo(() => {
         if (isAuthenticated) {
@@ -407,6 +410,18 @@ export const useTasks = () => {
 
                 // Clear optimistic update after successful sync (server data will take over)
                 clearOptimisticUpdate(taskId);
+
+                // 📊 Update challenge progress if task was completed
+                if (isCompleted) {
+                    try {
+                        await updateChallengeProgressMutation({ type: "task", value: 1 });
+                        // Also update XP progress
+                        await updateChallengeProgressMutation({ type: "xp", value: newXP });
+                    } catch (err) {
+                        console.error("Failed to update challenge progress:", err);
+                        // Don't fail the task completion if challenge update fails
+                    }
+                }
             } catch (error: any) {
                 console.error("Mutation failed, rolling back:", error);
 
