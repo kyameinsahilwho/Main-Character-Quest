@@ -42,6 +42,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useSocial, useChallenges } from "@/hooks/use-social";
 import { Id } from "../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -627,34 +634,43 @@ function ChallengesTab({ challenges, friends }: {
                         />
 
                         <div className="grid grid-cols-2 gap-2">
-                            <select
-                                className="px-3 py-2 rounded-lg border border-border bg-background"
+                            <Select
                                 value={newChallenge.type}
-                                onChange={(e) => setNewChallenge({ ...newChallenge, type: e.target.value })}
+                                onValueChange={(value) => setNewChallenge({ ...newChallenge, type: value })}
                             >
-                                <option value="tasks_count">Complete Tasks</option>
-                                <option value="habits_count">Check-in Habits</option>
-                                <option value="streak">Maintain Streak</option>
-                                <option value="xp_earned">Earn XP</option>
-                            </select>
+                                <SelectTrigger className="border-2 border-b-4 border-border rounded-xl bg-background font-medium">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent className="border-2 rounded-xl">
+                                    <SelectItem value="tasks_count">✅ Complete Tasks</SelectItem>
+                                    <SelectItem value="habits_count">💧 Check-in Habits</SelectItem>
+                                    <SelectItem value="streak">🔥 Maintain Streak</SelectItem>
+                                    <SelectItem value="xp_earned">⭐ Earn XP</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <Input
                                 type="number"
                                 placeholder="Target"
+                                className="border-2 border-b-4 rounded-xl"
                                 value={newChallenge.targetValue}
                                 onChange={(e) => setNewChallenge({ ...newChallenge, targetValue: parseInt(e.target.value) || 0 })}
                             />
                         </div>
 
-                        <select
-                            className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                            value={newChallenge.durationDays}
-                            onChange={(e) => setNewChallenge({ ...newChallenge, durationDays: parseInt(e.target.value) })}
+                        <Select
+                            value={newChallenge.durationDays.toString()}
+                            onValueChange={(value) => setNewChallenge({ ...newChallenge, durationDays: parseInt(value) })}
                         >
-                            <option value={3}>3 Days</option>
-                            <option value={7}>1 Week</option>
-                            <option value={14}>2 Weeks</option>
-                            <option value={30}>1 Month</option>
-                        </select>
+                            <SelectTrigger className="w-full border-2 border-b-4 border-border rounded-xl bg-background font-medium">
+                                <SelectValue placeholder="Select duration" />
+                            </SelectTrigger>
+                            <SelectContent className="border-2 rounded-xl">
+                                <SelectItem value="3">⚡ 3 Days (Quick Sprint)</SelectItem>
+                                <SelectItem value="7">📅 1 Week</SelectItem>
+                                <SelectItem value="14">🗓️ 2 Weeks</SelectItem>
+                                <SelectItem value="30">📆 1 Month</SelectItem>
+                            </SelectContent>
+                        </Select>
 
                         {friends.length > 0 && (
                             <div className="space-y-2">

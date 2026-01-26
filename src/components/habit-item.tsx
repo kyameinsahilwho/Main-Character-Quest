@@ -247,7 +247,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
           </div>
         </div>
 
-        <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar relative">
+        <div className="flex justify-between md:justify-end items-center gap-1 md:gap-3 overflow-visible pb-1 md:pb-0 relative">
           {viewOffset !== 0 && (
             <div className={cn(
               "absolute -top-4 right-0 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse",
