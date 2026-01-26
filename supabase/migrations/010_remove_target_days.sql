@@ -1,1 +1,0 @@
-ALTER TABLE habits DROP COLUMN IF EXISTS target_days;

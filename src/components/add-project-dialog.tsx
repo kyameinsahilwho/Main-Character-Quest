@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 interface AddProjectDialogProps {
   children: React.ReactNode;
   onAddProject: (projectData: Omit<Project, 'id' | 'createdAt'>) => void;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddProjectDialog({ children, onAddProject }: AddProjectDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddProjectDialog({ children, onAddProject, defaultOpen = false, onOpenChange }: AddProjectDialogProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("📁");
   const [color, setColor] = useState("#3b82f6");
@@ -43,8 +45,13 @@ export function AddProjectDialog({ children, onAddProject }: AddProjectDialogPro
     setOpen(false);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="w-[90vw] max-w-[400px] bg-white border-2 border-b-8 border-[#CBD5E1] text-[#1E293B] rounded-[2rem] shadow-2xl p-0 overflow-hidden flex flex-col">
         <DialogTitle className="sr-only">Create New Project</DialogTitle>

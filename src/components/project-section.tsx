@@ -70,7 +70,7 @@ export default function ProjectSection({
 
   const handleUpdateProject = () => {
     if (editingProject && editingProject.name.trim()) {
-      onUpdateProject(editingProject.id, { 
+      onUpdateProject(editingProject.id, {
         name: editingProject.name.trim(),
         color: editingProject.color,
         icon: editingProject.icon
@@ -84,12 +84,12 @@ export default function ProjectSection({
   const projectTasks = tasks.filter(t => t.projectId === selectedProjectId);
 
   return (
-    <div className="flex flex-col h-full gap-6 overflow-y-auto w-full">
+    <div className="flex flex-col h-full gap-6 overflow-y-auto w-full pb-32">
       {selectedProjectId ? (
         <div className="flex flex-col gap-4 w-full">
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => onSelectProject(null)}
               className="p-0 h-auto hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
             >
@@ -97,11 +97,11 @@ export default function ProjectSection({
             </Button>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <div className="p-1.5 rounded-lg bg-primary/10 text-primary" style={{ backgroundColor: selectedProject?.color ? selectedProject.color + '20' : undefined, color: selectedProject?.color }}>
-               {selectedProject?.icon ? <span className="text-lg">{selectedProject.icon}</span> : <Folder className="h-4 w-4" />}
+              {selectedProject?.icon ? <span className="text-lg">{selectedProject.icon}</span> : <Folder className="h-4 w-4" />}
             </div>
             <span className="font-black text-xl">{selectedProject?.name}</span>
           </div>
-          
+
           <TaskList
             tasks={projectTasks}
             listType="active"
@@ -128,7 +128,7 @@ export default function ProjectSection({
               const progress = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
 
               return (
-                <Card 
+                <Card
                   key={project.id}
                   className="group relative overflow-hidden border-2 border-b-[6px] border-border hover:border-primary/50 transition-all cursor-pointer rounded-3xl"
                   onClick={() => onSelectProject(project.id)}
@@ -148,7 +148,7 @@ export default function ProjectSection({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl border-2 border-border">
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingProject(project);
@@ -159,7 +159,7 @@ export default function ProjectSection({
                             <Edit2 className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               onDeleteProject(project.id);
@@ -180,8 +180,8 @@ export default function ProjectSection({
                         <span>{progress}%</span>
                       </div>
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary transition-all duration-500" 
+                        <div
+                          className="h-full bg-primary transition-all duration-500"
                           style={{ width: `${progress}%`, backgroundColor: project.color }}
                         />
                       </div>
@@ -201,27 +201,27 @@ export default function ProjectSection({
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="flex gap-4 items-start">
-                <CompactIconPicker
-                  selectedIcon={editingProject?.icon || "📁"}
-                  onSelectIcon={(icon) => setEditingProject(prev => prev ? { ...prev, icon } : null)}
-                  selectedColor={editingProject?.color || "#3b82f6"}
-                  onSelectColor={(color) => setEditingProject(prev => prev ? { ...prev, color } : null)}
-                  colors={colors}
-                />
-                <div className="flex-1 grid grid-cols-6 gap-2">
-                  {colors.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setEditingProject(prev => prev ? { ...prev, color: c } : null)}
-                      className={cn(
-                        "w-8 h-8 rounded-full border-2 transition-all",
-                        editingProject?.color === c ? "border-[#1E293B] scale-110" : "border-transparent hover:scale-105"
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
+              <CompactIconPicker
+                selectedIcon={editingProject?.icon || "📁"}
+                onSelectIcon={(icon) => setEditingProject(prev => prev ? { ...prev, icon } : null)}
+                selectedColor={editingProject?.color || "#3b82f6"}
+                onSelectColor={(color) => setEditingProject(prev => prev ? { ...prev, color } : null)}
+                colors={colors}
+              />
+              <div className="flex-1 grid grid-cols-6 gap-2">
+                {colors.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setEditingProject(prev => prev ? { ...prev, color: c } : null)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      editingProject?.color === c ? "border-[#1E293B] scale-110" : "border-transparent hover:scale-105"
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
             </div>
             <Input
               placeholder="Project Name"
@@ -232,14 +232,14 @@ export default function ProjectSection({
             />
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
               className="rounded-xl border-2 border-border font-bold"
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleUpdateProject}
               className="rounded-xl border-2 border-b-4 border-primary bg-primary text-primary-foreground font-bold"
             >

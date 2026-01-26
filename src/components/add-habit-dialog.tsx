@@ -16,6 +16,8 @@ import { CompactIconPicker } from "./icon-picker";
 interface AddHabitDialogProps {
   children: React.ReactNode;
   onAddHabit: (habitData: Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>) => void;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const COLORS = [
@@ -37,8 +39,8 @@ const COLORS = [
   "bg-slate-600/20 border-slate-600/30",
 ];
 
-export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddHabitDialog({ children, onAddHabit, defaultOpen = false, onOpenChange }: AddHabitDialogProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const [title, setTitle] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'every_2_days' | 'every_3_days' | 'every_4_days' | 'specific_days'>('daily');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
@@ -71,8 +73,8 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
   };
 
   const toggleDay = (day: number) => {
-    setCustomDays(prev => 
-      prev.includes(day) 
+    setCustomDays(prev =>
+      prev.includes(day)
         ? prev.filter(d => d !== day)
         : [...prev, day].sort()
     );
@@ -80,8 +82,13 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="w-[90vw] max-w-[600px] bg-white border-2 border-b-8 border-[#CBD5E1] text-[#1E293B] rounded-[2rem] shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
         <DialogTitle className="sr-only">Create New Ritual</DialogTitle>
@@ -203,8 +210,8 @@ export function AddHabitDialog({ children, onAddHabit }: AddHabitDialogProps) {
 
         {/* Footer Button */}
         <div className="border-t border-[#E2E8F0] px-6 py-4 bg-white flex-shrink-0">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={!title.trim() || !selectedIcon}
             onClick={handleSubmit}
             className="w-full h-14 rounded-2xl bg-[#6366f1] border-2 border-b-[6px] border-[#4f46e5] text-white hover:bg-[#818cf8] hover:border-[#6366f1] font-black text-lg uppercase tracking-wider active:translate-y-[2px] active:border-b-[4px] transition-all shadow-lg relative overflow-hidden"

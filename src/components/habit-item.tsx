@@ -30,7 +30,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
       setViewOffset(0);
     }
   }, [isExpanded]);
-  
+
   const viewDate = addWeeks(currentDate, viewOffset);
 
   // Daily view
@@ -45,12 +45,12 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
   const now = new Date();
   const periodCompletions = useMemo(() => habit.completions.filter(c => {
     const date = parseISO(c.completedAt);
-    return habit.frequency === 'weekly' 
+    return habit.frequency === 'weekly'
       ? isSameWeek(date, now, { weekStartsOn: 0 })
       : isSameMonth(date, now);
   }).length, [habit.completions, habit.frequency]);
 
-  const isCompletedToday = useMemo(() => habit.completions.some(c => 
+  const isCompletedToday = useMemo(() => habit.completions.some(c =>
     isToday(parseISO(c.completedAt))
   ), [habit.completions]);
 
@@ -80,25 +80,25 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
     if (habit.frequency === 'daily' || habit.frequency === 'specific_days' || ['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
       return [];
     }
-    
+
     if (habit.frequency === 'weekly') {
       // Show all weeks of the current month
       const weeksInMonth = eachWeekOfInterval({
         start: startOfMonth(now),
         end: endOfMonth(now)
       }, { weekStartsOn: 0 });
-      
+
       return weeksInMonth.map((date, i) => {
         const completions = getCompletionsForPeriod(date, 'weekly');
-        return { 
-          date, 
-          completions, 
-          label: `W${i + 1}`, 
-          isCurrent: isSameWeek(date, now, { weekStartsOn: 0 }) 
+        return {
+          date,
+          completions,
+          label: `W${i + 1}`,
+          isCurrent: isSameWeek(date, now, { weekStartsOn: 0 })
         };
       });
     }
-    
+
     // Default for monthly or other non-daily/weekly
     return Array.from({ length: 4 }).map((_, i) => {
       const date = subMonths(now, i);
@@ -109,109 +109,43 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
   })();
 
   const getHabitCardAesthetics = (colorStr?: string) => {
-    if (!colorStr) return {
-      card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
-      checkbox: "bg-[#1E293B] border-[#0F172A]",
-      iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
+    const aesthetic = {
+      card: "bg-card border-border hover:border-slate-300",
+      checkbox: "bg-slate-700 border-slate-800",
+      iconBg: "bg-slate-100 border-slate-200 text-slate-500"
     };
 
-    const match = colorStr.match(/bg-([a-z]+)-600/);
-    if (match && match[1]) {
-      const color = match[1];
-      const themes: Record<string, { card: string; checkbox: string; iconBg: string }> = {
-        blue: {
-          card: "bg-blue-50 border-blue-200 hover:border-blue-400",
-          checkbox: "bg-blue-600 border-blue-800",
-          iconBg: "bg-blue-100 border-blue-200"
-        },
-        purple: {
-          card: "bg-purple-50 border-purple-200 hover:border-purple-400",
-          checkbox: "bg-purple-600 border-purple-800",
-          iconBg: "bg-purple-100 border-purple-200"
-        },
-        cyan: {
-          card: "bg-cyan-50 border-cyan-200 hover:border-cyan-400",
-          checkbox: "bg-cyan-600 border-cyan-800",
-          iconBg: "bg-cyan-100 border-cyan-200"
-        },
-        rose: {
-          card: "bg-rose-50 border-rose-200 hover:border-rose-400",
-          checkbox: "bg-rose-600 border-rose-800",
-          iconBg: "bg-rose-100 border-rose-200"
-        },
-        amber: {
-          card: "bg-amber-50 border-amber-200 hover:border-amber-400",
-          checkbox: "bg-amber-600 border-amber-800",
-          iconBg: "bg-amber-100 border-amber-200"
-        },
-        indigo: {
-          card: "bg-indigo-50 border-indigo-200 hover:border-indigo-400",
-          checkbox: "bg-indigo-600 border-indigo-800",
-          iconBg: "bg-indigo-100 border-indigo-200"
-        },
-        emerald: {
-          card: "bg-emerald-50 border-emerald-200 hover:border-emerald-400",
-          checkbox: "bg-emerald-600 border-emerald-800",
-          iconBg: "bg-emerald-100 border-emerald-200"
-        },
-        orange: {
-          card: "bg-orange-50 border-orange-200 hover:border-orange-400",
-          checkbox: "bg-orange-600 border-orange-800",
-          iconBg: "bg-orange-100 border-orange-200"
-        },
-        pink: {
-          card: "bg-pink-50 border-pink-200 hover:border-pink-400",
-          checkbox: "bg-pink-600 border-pink-800",
-          iconBg: "bg-pink-100 border-pink-200"
-        },
-        violet: {
-          card: "bg-violet-50 border-violet-200 hover:border-violet-400",
-          checkbox: "bg-violet-600 border-violet-800",
-          iconBg: "bg-violet-100 border-violet-200"
-        },
-        teal: {
-          card: "bg-teal-50 border-teal-200 hover:border-teal-400",
-          checkbox: "bg-teal-600 border-teal-800",
-          iconBg: "bg-teal-100 border-teal-200"
-        },
-        sky: {
-          card: "bg-sky-50 border-sky-200 hover:border-sky-400",
-          checkbox: "bg-sky-600 border-sky-800",
-          iconBg: "bg-sky-100 border-sky-200"
-        },
-        lime: {
-          card: "bg-lime-50 border-lime-200 hover:border-lime-400",
-          checkbox: "bg-lime-600 border-lime-800",
-          iconBg: "bg-lime-100 border-lime-200"
-        },
-        yellow: {
-          card: "bg-yellow-50 border-yellow-200 hover:border-yellow-400",
-          checkbox: "bg-yellow-600 border-yellow-800",
-          iconBg: "bg-yellow-100 border-yellow-200"
-        },
-        fuchsia: {
-          card: "bg-fuchsia-50 border-fuchsia-200 hover:border-fuchsia-400",
-          checkbox: "bg-fuchsia-600 border-fuchsia-800",
-          iconBg: "bg-fuchsia-100 border-fuchsia-200"
-        },
-        slate: {
-          card: "bg-slate-50 border-slate-200 hover:border-slate-400",
-          checkbox: "bg-slate-600 border-slate-800",
-          iconBg: "bg-slate-100 border-slate-200"
-        },
-      };
-      return themes[color] || {
-        card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
-        checkbox: "bg-[#1E293B] border-[#0F172A]",
-        iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
-      };
+    if (colorStr) {
+      const match = colorStr.match(/bg-([a-z]+)-600/);
+      if (match && match[1]) {
+        const color = match[1];
+        const themes: Record<string, { card: string; checkbox: string; iconBg: string }> = {
+          blue: { card: "bg-blue-50 border-blue-200 border-b-blue-300 hover:border-blue-300", checkbox: "bg-blue-500 border-blue-600", iconBg: "bg-blue-500 border-blue-600 text-white" },
+          purple: { card: "bg-purple-50 border-purple-200 border-b-purple-300 hover:border-purple-300", checkbox: "bg-purple-500 border-purple-600", iconBg: "bg-purple-500 border-purple-600 text-white" },
+          cyan: { card: "bg-cyan-50 border-cyan-200 border-b-cyan-300 hover:border-cyan-300", checkbox: "bg-cyan-500 border-cyan-600", iconBg: "bg-cyan-500 border-cyan-600 text-white" },
+          rose: { card: "bg-rose-50 border-rose-200 border-b-rose-300 hover:border-rose-300", checkbox: "bg-rose-500 border-rose-600", iconBg: "bg-rose-500 border-rose-600 text-white" },
+          amber: { card: "bg-amber-50 border-amber-200 border-b-amber-300 hover:border-amber-300", checkbox: "bg-amber-500 border-amber-600", iconBg: "bg-amber-500 border-amber-600 text-white" },
+          indigo: { card: "bg-indigo-50 border-indigo-200 border-b-indigo-300 hover:border-indigo-300", checkbox: "bg-indigo-500 border-indigo-600", iconBg: "bg-indigo-500 border-indigo-600 text-white" },
+          emerald: { card: "bg-emerald-50 border-emerald-200 border-b-emerald-300 hover:border-emerald-300", checkbox: "bg-emerald-500 border-emerald-600", iconBg: "bg-emerald-500 border-emerald-600 text-white" },
+          orange: { card: "bg-orange-50 border-orange-200 border-b-orange-300 hover:border-orange-300", checkbox: "bg-orange-500 border-orange-600", iconBg: "bg-orange-500 border-orange-600 text-white" },
+          pink: { card: "bg-pink-50 border-pink-200 border-b-pink-300 hover:border-pink-300", checkbox: "bg-pink-500 border-pink-600", iconBg: "bg-pink-500 border-pink-600 text-white" },
+          violet: { card: "bg-violet-50 border-violet-200 border-b-violet-300 hover:border-violet-300", checkbox: "bg-violet-500 border-violet-600", iconBg: "bg-violet-500 border-violet-600 text-white" },
+          teal: { card: "bg-teal-50 border-teal-200 border-b-teal-300 hover:border-teal-300", checkbox: "bg-teal-500 border-teal-600", iconBg: "bg-teal-500 border-teal-600 text-white" },
+          sky: { card: "bg-sky-50 border-sky-200 border-b-sky-300 hover:border-sky-300", checkbox: "bg-sky-500 border-sky-600", iconBg: "bg-sky-500 border-sky-600 text-white" },
+          lime: { card: "bg-lime-50 border-lime-200 border-b-lime-300 hover:border-lime-300", checkbox: "bg-lime-500 border-lime-600", iconBg: "bg-lime-500 border-lime-600 text-white" },
+          yellow: { card: "bg-yellow-50 border-yellow-200 border-b-yellow-300 hover:border-yellow-300", checkbox: "bg-yellow-500 border-yellow-600", iconBg: "bg-yellow-500 border-yellow-600 text-white" },
+          fuchsia: { card: "bg-fuchsia-50 border-fuchsia-200 border-b-fuchsia-300 hover:border-fuchsia-300", checkbox: "bg-fuchsia-500 border-fuchsia-600", iconBg: "bg-fuchsia-500 border-fuchsia-600 text-white" },
+          slate: { card: "bg-slate-50 border-slate-200 border-b-slate-300 hover:border-slate-300", checkbox: "bg-slate-500 border-slate-600", iconBg: "bg-slate-500 border-slate-600 text-white" },
+        };
+        const theme = themes[color];
+        if (theme) {
+          aesthetic.card = theme.card;
+          aesthetic.checkbox = theme.checkbox;
+          aesthetic.iconBg = theme.iconBg;
+        }
+      }
     }
-
-    return {
-      card: "bg-white border-[#CBD5E1] hover:border-[#6366f1]",
-      checkbox: "bg-[#1E293B] border-[#0F172A]",
-      iconBg: "bg-[#F1F4F9] border-[#CBD5E1]"
-    };
+    return aesthetic;
   };
 
   const aesthetics = getHabitCardAesthetics(habit.color);
@@ -225,14 +159,14 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
   };
 
   const handleToggle = (habitId: string, date: string, e?: React.MouseEvent) => {
-    const isCompleted = habit.completions.some(c => 
+    const isCompleted = habit.completions.some(c =>
       startOfDay(parseISO(c.completedAt)).getTime() === startOfDay(parseISO(date)).getTime()
     );
 
     if (!isCompleted) {
       // Play sound
       playCompletionSound();
- 
+
       // Show confetti
       if (cardRef.current && e) {
         const rect = cardRef.current.getBoundingClientRect();
@@ -257,7 +191,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
   };
 
   const isCompletedOnDate = (date: Date) => {
-    return habit.completions.some(c => 
+    return habit.completions.some(c =>
       startOfDay(parseISO(c.completedAt)).getTime() === startOfDay(date).getTime()
     );
   };
@@ -277,7 +211,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
       )}
     >
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-        <div 
+        <div
           className="flex items-center gap-3 min-w-[140px] md:min-w-[180px] cursor-pointer flex-1"
           onClick={() => setIsExpanded(!isExpanded)}
         >
@@ -298,7 +232,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Flame className={cn(
-                  "w-3 h-3 fill-current", 
+                  "w-3 h-3 fill-current",
                   habit.currentStreak > 0 ? "text-orange-500" : "text-gray-300"
                 )} />
                 <span className={cn("text-[10px] font-black uppercase tracking-wider", habit.currentStreak > 0 ? "text-orange-500" : "text-gray-300")}>
@@ -327,7 +261,7 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
               const completed = isCompletedOnDate(date);
               const today = isToday(date);
               const isFuture = date > new Date();
-              
+
               let isDayEnabled = true;
               if (habit.frequency === 'specific_days') {
                 isDayEnabled = habit.customDays?.includes(date.getDay()) ?? false;
@@ -358,13 +292,13 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
                     className={cn(
                       "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
                       (isFuture || !isDayEnabled) ? "opacity-10 cursor-not-allowed border-gray-100" : "cursor-pointer active:translate-y-0.5",
-                      completed 
+                      completed
                         ? `${aesthetics.checkbox} text-white`
                         : cn(
-                            "bg-white",
-                            today ? themeColors.border : "border-[#F1F4F9]",
-                            today && themeColors.icon
-                          )
+                          "bg-white",
+                          today ? themeColors.border : "border-[#F1F4F9]",
+                          today && themeColors.icon
+                        )
                     )}
                   >
                     {completed ? (
@@ -394,13 +328,13 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
                     className={cn(
                       "w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
                       !period.isCurrent && "opacity-40 cursor-default",
-                      period.completions > 0 
+                      period.completions > 0
                         ? `${aesthetics.checkbox} text-white`
                         : cn(
-                            "bg-white",
-                            period.isCurrent ? themeColors.border : "border-[#F1F4F9]",
-                            period.isCurrent && themeColors.icon
-                          ),
+                          "bg-white",
+                          period.isCurrent ? themeColors.border : "border-[#F1F4F9]",
+                          period.isCurrent && themeColors.icon
+                        ),
                       period.isCurrent && "active:translate-y-0.5 cursor-pointer"
                     )}
                   >
@@ -438,8 +372,8 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
                   onClick={() => setViewOffset(prev => prev === 0 ? -1 : 0)}
                   className={cn(
                     "flex-1 border-2 border-b-4 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl active:translate-y-0.5 active:border-b-0 transition-all",
-                    viewOffset !== 0 
-                      ? `${aesthetics.checkbox} text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]` 
+                    viewOffset !== 0
+                      ? `${aesthetics.checkbox} text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]`
                       : "bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F4F9] hover:text-[#1E293B] hover:border-[#CBD5E1]"
                   )}
                 >

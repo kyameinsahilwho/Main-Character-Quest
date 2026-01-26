@@ -1,28 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { Habit } from '@/lib/types';
-import { 
-  startOfDay, 
-  parseISO, 
-  differenceInCalendarDays, 
-  isToday, 
-  isYesterday,
+import {
+  startOfDay,
+  parseISO,
+  differenceInCalendarDays,
   startOfYear,
   endOfYear,
   eachDayOfInterval,
-  isSameDay,
-  eachWeekOfInterval,
   isSameWeek,
+  eachWeekOfInterval,
   eachMonthOfInterval,
   isSameMonth
 } from 'date-fns';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
 import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-system';
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 
-const HABITS_STORAGE_KEY = 'taskQuestHabits';
-const SAVE_DEBOUNCE_MS = 500;
+// Optimistic update storage key
+const OPTIMISTIC_HABITS_KEY = 'pollytasks_optimistic_habits';
 
 const calculateMaxGap = (frequency: Habit['frequency'], customDays?: number[]) => {
   if (frequency === 'every_2_days') return 2;
@@ -30,18 +28,17 @@ const calculateMaxGap = (frequency: Habit['frequency'], customDays?: number[]) =
   if (frequency === 'every_4_days') return 4;
   if (frequency === 'weekly') return 7;
   if (frequency === 'monthly') return 31;
-  
+
   if (frequency === 'specific_days' && customDays && customDays.length > 0) {
     const sortedDays = [...customDays].sort((a, b) => a - b);
     let maxGap = 0;
     for (let i = 0; i < sortedDays.length - 1; i++) {
-      maxGap = Math.max(maxGap, sortedDays[i+1] - sortedDays[i]);
+      maxGap = Math.max(maxGap, sortedDays[i + 1] - sortedDays[i]);
     }
-    // Check wrap around (e.g. Fri(5) to Mon(1) next week)
     maxGap = Math.max(maxGap, 7 - sortedDays[sortedDays.length - 1] + sortedDays[0]);
     return maxGap;
   }
-  
+
   return 1; // daily
 };
 
@@ -58,7 +55,7 @@ const calculateHabitXP = (completions: { completedAt: string }[], frequency: Hab
     const maxGap = calculateMaxGap(frequency, customDays);
 
     for (let i = 1; i < sortedCompletions.length; i++) {
-      const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i-1]);
+      const diff = differenceInCalendarDays(sortedCompletions[i], sortedCompletions[i - 1]);
       if (diff <= maxGap) {
         tempStreak++;
         const bonus = Math.min(tempStreak * STREAK_XP_BONUS, MAX_STREAK_BONUS);
@@ -73,16 +70,16 @@ const calculateHabitXP = (completions: { completedAt: string }[], frequency: Hab
 };
 
 const calculateYearlyStats = (
-  completions: { completedAt: string }[], 
-  frequency: Habit['frequency'], 
-  createdAt: string, 
+  completions: { completedAt: string }[],
+  frequency: Habit['frequency'],
+  createdAt: string,
   customDays?: number[]
 ) => {
   const now = new Date();
   const year = now.getFullYear();
   const start = startOfYear(now);
   const end = endOfYear(now);
-  
+
   let totalExpected = 0;
   let achieved = 0;
 
@@ -101,7 +98,7 @@ const calculateYearlyStats = (
         const diffDays = differenceInCalendarDays(startOfDay(day), startDate);
         isScheduled = diffDays >= 0 && diffDays % interval === 0;
       }
-      
+
       if (isScheduled) {
         totalExpected++;
         if (completionDateTimes.has(day.getTime())) {
@@ -130,328 +127,355 @@ const calculateYearlyStats = (
   return { achieved, totalExpected, year };
 };
 
-export const useHabits = (user?: User | null) => {
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasLoadedRef = useRef(false);
-  const lastUserIdRef = useRef<string | null>(null);
-  const supabase = createClient();
+import { isFirstTimeVisitor, getTemplateHabits } from '@/lib/template-data';
 
-  // Load habits from localStorage or Supabase
+export const useHabits = () => {
+  const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+  const [forceLocal, setForceLocal] = useState(false);
+
+  const isAuthenticated = _realIsAuthenticated && !forceLocal;
+
+  const rawHabits = useQuery(api.habits.get);
+  const addHabitMutation = useMutation(api.habits.add);
+  const updateHabitMutation = useMutation(api.habits.update);
+  const deleteHabitMutation = useMutation(api.habits.remove);
+  const addCompletionMutation = useMutation(api.habits.addCompletion);
+  const removeCompletionMutation = useMutation(api.habits.removeCompletion);
+
+  // Local State
+  const [localHabits, setLocalHabits] = useState<Habit[]>([]);
+  const [isLocalLoaded, setIsLocalLoaded] = useState(false);
+
+  // Optimistic updates state - overlay on top of server data
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<Habit>>>({});
+
+  // Load from LocalStorage
   useEffect(() => {
-    const currentUserId = user?.id || null;
-    if (lastUserIdRef.current !== currentUserId) {
-      hasLoadedRef.current = false;
-      lastUserIdRef.current = currentUserId;
-    }
-    
-    if (hasLoadedRef.current) return;
-    
-    const loadHabits = async () => {
-      // Always load from local storage first for immediate UI
-      const storedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
-      if (storedHabits) {
-        const parsedHabits: Habit[] = JSON.parse(storedHabits);
-        // Sort by createdAt ascending
-        const sortedHabits = [...parsedHabits].sort((a, b) => 
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        // Ensure XP and stats are calculated/updated for local habits too
-        const habitsWithStats = sortedHabits.map(habit => {
-          const now = new Date();
-          const needsYearlyUpdate = !habit.yearlyStats || habit.yearlyStats.year !== now.getFullYear();
-          return {
-            ...habit,
-            xp: calculateHabitXP(habit.completions || [], habit.frequency, habit.customDays),
-            totalCompletions: habit.completions.length,
-            yearlyStats: needsYearlyUpdate 
-              ? calculateYearlyStats(habit.completions, habit.frequency, habit.createdAt, habit.customDays)
-              : habit.yearlyStats
-          };
-        });
-        setHabits(habitsWithStats);
-      }
-      
-      setIsInitialLoad(false); // UI is ready
-
+    if (!isAuthenticated && !isAuthLoading && !isLocalLoaded) {
       try {
-        if (user) {
-          console.log('Loading habits from Supabase...');
-          const { data: habitsData, error: habitsError } = await supabase
-            .from('habits')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true });
+        const storedHabits = localStorage.getItem('pollytasks_habits');
 
-          if (habitsError) throw habitsError;
-
-          const { data: completionsData, error: completionsError } = await supabase
-            .from('habit_completions')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (completionsError) throw completionsError;
-
-          const loadedHabits: Habit[] = (habitsData || []).map((dbHabit) => {
-            const completions = (completionsData || [])
-              .filter((c) => c.habit_id === dbHabit.id)
-              .map((c) => ({
-                id: c.id,
-                habitId: c.habit_id,
-                completedAt: c.completed_at,
-              }));
-            
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const hasValidYearlyStats = dbHabit.stats_year === currentYear;
-
-            return {
-              id: dbHabit.id,
-              title: dbHabit.title,
-              description: dbHabit.description,
-              frequency: dbHabit.frequency,
-              currentStreak: dbHabit.current_streak,
-              bestStreak: dbHabit.best_streak,
-              color: dbHabit.color,
-              icon: dbHabit.icon,
-              createdAt: dbHabit.created_at,
-              customDays: dbHabit.custom_days,
-              completions,
-              xp: calculateHabitXP(completions, dbHabit.frequency, dbHabit.custom_days),
-              totalCompletions: dbHabit.total_completions ?? completions.length,
-              yearlyStats: hasValidYearlyStats && dbHabit.yearly_achieved !== undefined && dbHabit.yearly_expected !== undefined
-                ? { achieved: dbHabit.yearly_achieved, totalExpected: dbHabit.yearly_expected, year: dbHabit.stats_year! }
-                : calculateYearlyStats(completions, dbHabit.frequency, dbHabit.created_at, dbHabit.custom_days),
-              archived: dbHabit.archived,
-              reminderTime: dbHabit.reminder_time,
-              reminderEnabled: dbHabit.reminder_enabled,
-            };
-          });
-
-          setHabits(loadedHabits);
-          hasLoadedRef.current = true;
-        } else {
-          // Already loaded from localStorage
-          hasLoadedRef.current = true;
+        if (!storedHabits && isFirstTimeVisitor()) {
+          setLocalHabits(getTemplateHabits());
+        } else if (storedHabits) {
+          setLocalHabits(JSON.parse(storedHabits));
         }
-      } catch (error) {
-        console.error("Failed to load habits", error);
-        // Fallback to localStorage - already loaded
-        hasLoadedRef.current = true;
+      } catch (e) {
+        console.error("Failed to load local habits", e);
       } finally {
-        setIsInitialLoad(false);
+        setIsLocalLoaded(true);
       }
-    };
-
-    loadHabits();
-  }, [user, supabase]);
-
-  // Save habits to localStorage
-  useEffect(() => {
-    if (!isInitialLoad) {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(() => {
-        localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(habits));
-      }, SAVE_DEBOUNCE_MS);
-
-      return () => {
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
-        }
-      };
     }
-  }, [habits, isInitialLoad]);
+  }, [isAuthenticated, isAuthLoading, isLocalLoaded]);
+
+  // Load optimistic updates from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(OPTIMISTIC_HABITS_KEY);
+      if (stored) {
+        setOptimisticUpdates(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("Failed to load optimistic habit updates", e);
+    }
+  }, []);
+
+  // Save optimistic updates to localStorage
+  useEffect(() => {
+    if (Object.keys(optimisticUpdates).length > 0) {
+      localStorage.setItem(OPTIMISTIC_HABITS_KEY, JSON.stringify(optimisticUpdates));
+    } else {
+      localStorage.removeItem(OPTIMISTIC_HABITS_KEY);
+    }
+  }, [optimisticUpdates]);
+
+  // Save to LocalStorage
+  useEffect(() => {
+    if (!isAuthenticated && !isAuthLoading && isLocalLoaded) {
+      localStorage.setItem('pollytasks_habits', JSON.stringify(localHabits));
+    }
+  }, [localHabits, isAuthenticated, isAuthLoading, isLocalLoaded]);
+
+  // Helper: Apply optimistic update
+  const applyOptimisticUpdate = useCallback((habitId: string, update: Partial<Habit>) => {
+    setOptimisticUpdates(prev => ({
+      ...prev,
+      [habitId]: { ...(prev[habitId] || {}), ...update }
+    }));
+  }, []);
+
+  // Helper: Clear optimistic update
+  const clearOptimisticUpdate = useCallback((habitId: string) => {
+    setOptimisticUpdates(prev => {
+      const next = { ...prev };
+      delete next[habitId];
+      return next;
+    });
+  }, []);
+
+  const habits: Habit[] = useMemo(() => {
+    if (isAuthenticated) {
+      if (!rawHabits) return [];
+      return rawHabits.map(h => {
+        const completions = (h.completions || []).map((c: any) => ({
+          id: c._id,
+          habitId: c.habitId,
+          completedAt: c.completedAt
+        }));
+
+        const xp = calculateHabitXP(completions, h.frequency as any, h.customDays);
+        const yearlyStats = calculateYearlyStats(completions, h.frequency as any, h.createdAt, h.customDays);
+
+        const baseHabit: Habit = {
+          id: h._id,
+          title: h.title,
+          description: h.description,
+          frequency: h.frequency as any,
+          currentStreak: h.currentStreak,
+          bestStreak: h.bestStreak,
+          color: h.color,
+          icon: h.icon,
+          createdAt: h.createdAt,
+          customDays: h.customDays,
+          completions,
+          xp,
+          totalCompletions: completions.length,
+          yearlyStats,
+          archived: h.archived,
+          reminderTime: h.reminderTime,
+          reminderEnabled: h.reminderEnabled,
+        };
+
+        // Apply optimistic updates if present
+        const optimistic = optimisticUpdates[h._id];
+        if (optimistic) {
+          return { ...baseHabit, ...optimistic };
+        }
+
+        return baseHabit;
+      }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else {
+      return localHabits;
+    }
+  }, [rawHabits, isAuthenticated, localHabits, optimisticUpdates]);
 
   const addHabit = useCallback(async (habitData: Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>) => {
     const createdAt = new Date().toISOString();
     const yearlyStats = calculateYearlyStats([], habitData.frequency, createdAt, habitData.customDays);
-    
-    const newHabit: Habit = {
-      ...habitData,
-      id: crypto.randomUUID(),
-      currentStreak: 0,
-      bestStreak: 0,
-      createdAt,
-      completions: [],
-      totalCompletions: 0,
-      yearlyStats,
+
+    const handleLocalAdd = () => {
+      const newHabit: Habit = {
+        id: crypto.randomUUID(),
+        title: habitData.title,
+        description: habitData.description,
+        frequency: habitData.frequency,
+        currentStreak: 0,
+        bestStreak: 0,
+        color: habitData.color,
+        icon: habitData.icon,
+        createdAt,
+        customDays: habitData.customDays,
+        totalCompletions: 0,
+        yearlyStats,
+        archived: habitData.archived,
+        reminderTime: habitData.reminderTime || undefined,
+        reminderEnabled: habitData.reminderEnabled,
+        completions: [],
+        xp: 0
+      };
+      setLocalHabits(prev => [...prev, newHabit]);
     };
-    
-    setHabits(prev => [...prev, newHabit]);
 
-    if (user) {
+    if (isAuthenticated) {
       try {
-        const { error } = await supabase
-          .from('habits')
-          .insert({
-            id: newHabit.id,
-            user_id: user.id,
-            title: newHabit.title,
-            description: newHabit.description,
-            frequency: newHabit.frequency,
-            current_streak: newHabit.currentStreak,
-            best_streak: newHabit.bestStreak,
-            color: newHabit.color,
-            icon: newHabit.icon,
-            created_at: newHabit.createdAt,
-            custom_days: newHabit.customDays,
-            total_completions: 0,
-            yearly_achieved: yearlyStats.achieved,
-            yearly_expected: yearlyStats.totalExpected,
-            stats_year: yearlyStats.year,
-            archived: newHabit.archived || false,
-            reminder_time: newHabit.reminderTime,
-            reminder_enabled: newHabit.reminderEnabled,
-          });
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing habit to Supabase:', error);
-      }
-    }
-  }, [user, supabase]);
-
-  const toggleHabitCompletion = useCallback(async (habitId: string, date: string) => {
-    const targetDate = startOfDay(parseISO(date)).toISOString();
-    
-    setHabits(prev => prev.map(habit => {
-      if (habit.id === habitId) {
-        const existingCompletionIndex = habit.completions.findIndex(c => 
-          startOfDay(parseISO(c.completedAt)).getTime() === startOfDay(parseISO(targetDate)).getTime()
-        );
-
-        let newCompletions = [...habit.completions];
-        if (existingCompletionIndex >= 0) {
-          const completionToRemove = newCompletions[existingCompletionIndex];
-          newCompletions.splice(existingCompletionIndex, 1);
-          
-          if (user) {
-            supabase.from('habit_completions')
-              .delete()
-              .eq('id', completionToRemove.id)
-              .then(({ error }) => {
-                if (error) console.error('Error removing habit completion:', error);
-              });
-          }
+        await addHabitMutation({
+          title: habitData.title,
+          description: habitData.description,
+          frequency: habitData.frequency,
+          currentStreak: 0,
+          bestStreak: 0,
+          color: habitData.color,
+          icon: habitData.icon,
+          createdAt,
+          customDays: habitData.customDays,
+          totalCompletions: 0,
+          yearlyAchieved: yearlyStats.achieved,
+          yearlyExpected: yearlyStats.totalExpected,
+          statsYear: yearlyStats.year,
+          archived: habitData.archived,
+          reminderTime: habitData.reminderTime || undefined,
+          reminderEnabled: habitData.reminderEnabled
+        });
+      } catch (error: any) {
+        console.error("Mutation failed, falling back to local:", error);
+        if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+          setForceLocal(true);
+          handleLocalAdd();
         } else {
-          const newCompletion = {
-            id: crypto.randomUUID(),
-            habitId,
-            completedAt: targetDate,
-          };
-          newCompletions.push(newCompletion);
-
-          if (user) {
-            supabase.from('habit_completions')
-              .insert({
-                id: newCompletion.id,
-                habit_id: habitId,
-                user_id: user.id,
-                completed_at: targetDate,
-              })
-              .then(({ error }) => {
-                if (error) console.error('Error adding habit completion:', error);
-              });
-          }
+          throw error;
         }
-        
-        // Recalculate streak and XP
-        const sortedCompletions = [...newCompletions]
-          .map(c => startOfDay(parseISO(c.completedAt)))
-          .sort((a, b) => a.getTime() - b.getTime());
-
-        let currentStreak = 0;
-        let bestStreak = habit.bestStreak;
-
-        if (sortedCompletions.length > 0) {
-          const lastCompletion = sortedCompletions[sortedCompletions.length - 1];
-          const maxGap = calculateMaxGap(habit.frequency, habit.customDays);
-          
-          if (differenceInCalendarDays(new Date(), lastCompletion) <= maxGap) {
-            currentStreak = 1;
-            for (let i = sortedCompletions.length - 2; i >= 0; i--) {
-              const diff = differenceInCalendarDays(sortedCompletions[i+1], sortedCompletions[i]);
-              if (diff <= maxGap) {
-                currentStreak++;
-              } else {
-                break;
-              }
-            }
-          }
-        }
-
-        bestStreak = Math.max(bestStreak, currentStreak);
-        
-        // Calculate XP: Base reward + streak bonus
-        const finalXP = calculateHabitXP(newCompletions, habit.frequency, habit.customDays);
-        
-        // Calculate yearly stats
-        const yearlyStats = calculateYearlyStats(newCompletions, habit.frequency, habit.createdAt, habit.customDays);
-
-        if (user) {
-          supabase.from('habits')
-            .update({ 
-              current_streak: currentStreak, 
-              best_streak: bestStreak,
-              total_completions: newCompletions.length,
-              yearly_achieved: yearlyStats.achieved,
-              yearly_expected: yearlyStats.totalExpected,
-              stats_year: yearlyStats.year,
-            })
-            .eq('id', habitId)
-            .then(({ error }) => {
-              if (error) console.error('Error updating habit streak:', error);
-            });
-        }
-        
-        return { 
-          ...habit, 
-          completions: newCompletions, 
-          currentStreak, 
-          bestStreak,
-          xp: finalXP,
-          totalCompletions: newCompletions.length,
-          yearlyStats
-        };
       }
-      return habit;
-    }));
-  }, [user, supabase]);
+    } else {
+      handleLocalAdd();
+    }
+  }, [addHabitMutation, isAuthenticated]);
 
-  const deleteHabit = useCallback(async (id: string) => {
-    setHabits(prev => prev.filter(h => h.id !== id));
-    if (user) {
-      try {
-        const { error } = await supabase.from('habits').delete().eq('id', id);
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error deleting habit from Supabase:', error);
+  // OPTIMISTIC toggle habit completion - instant UI update!
+  const toggleHabitCompletion = useCallback(async (habitId: string, date: string) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const targetDate = startOfDay(parseISO(date)).toISOString();
+
+    const existingCompletion = habit.completions.find(c =>
+      startOfDay(parseISO(c.completedAt)).getTime() === startOfDay(parseISO(targetDate)).getTime()
+    );
+
+    let newCompletions = [...habit.completions];
+    let added = false;
+    let removedCompletionId: string | undefined;
+
+    if (existingCompletion) {
+      newCompletions = newCompletions.filter(c => c.id !== existingCompletion.id);
+      removedCompletionId = existingCompletion.id;
+    } else {
+      newCompletions.push({ id: crypto.randomUUID(), habitId: habitId, completedAt: targetDate });
+      added = true;
+    }
+
+    // Recalculate streak
+    const sortedCompletions = [...newCompletions]
+      .map(c => startOfDay(parseISO(c.completedAt)))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    let currentStreak = 0;
+    let bestStreak = habit.bestStreak;
+
+    if (sortedCompletions.length > 0) {
+      const lastCompletion = sortedCompletions[sortedCompletions.length - 1];
+      const maxGap = calculateMaxGap(habit.frequency, habit.customDays);
+
+      if (differenceInCalendarDays(new Date(), lastCompletion) <= maxGap) {
+        currentStreak = 1;
+        for (let i = sortedCompletions.length - 2; i >= 0; i--) {
+          const diff = differenceInCalendarDays(sortedCompletions[i + 1], sortedCompletions[i]);
+          if (diff <= maxGap) {
+            currentStreak++;
+          } else {
+            break;
+          }
+        }
       }
     }
-  }, [user, supabase]);
+
+    bestStreak = Math.max(bestStreak, currentStreak);
+    const yearlyStats = calculateYearlyStats(newCompletions, habit.frequency, habit.createdAt, habit.customDays);
+    const xp = calculateHabitXP(newCompletions, habit.frequency, habit.customDays);
+
+    // Store previous state for rollback
+    const previousState = {
+      completions: habit.completions,
+      currentStreak: habit.currentStreak,
+      bestStreak: habit.bestStreak,
+      totalCompletions: habit.totalCompletions,
+      yearlyStats: habit.yearlyStats,
+      xp: habit.xp
+    };
+
+    if (isAuthenticated) {
+      // 🚀 OPTIMISTIC UPDATE - Update UI immediately!
+      applyOptimisticUpdate(habitId, {
+        completions: newCompletions,
+        currentStreak,
+        bestStreak,
+        totalCompletions: newCompletions.length,
+        yearlyStats,
+        xp
+      });
+
+      // Sync to database in background
+      try {
+        if (added) {
+          await addCompletionMutation({ habitId: habitId as Id<"habits">, completedAt: targetDate });
+        } else if (removedCompletionId) {
+          await removeCompletionMutation({ completionId: removedCompletionId as Id<"habitCompletions"> });
+        }
+
+        await updateHabitMutation({
+          id: habitId as Id<"habits">,
+          currentStreak,
+          bestStreak,
+          totalCompletions: newCompletions.length,
+          yearlyAchieved: yearlyStats.achieved,
+          yearlyExpected: yearlyStats.totalExpected,
+          statsYear: yearlyStats.year
+        });
+
+        // Clear optimistic update after successful sync
+        clearOptimisticUpdate(habitId);
+      } catch (error: any) {
+        console.error("Mutation failed, rolling back:", error);
+
+        // ⏪ ROLLBACK on failure
+        if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+          setForceLocal(true);
+          clearOptimisticUpdate(habitId);
+          setLocalHabits(prev => prev.map(h =>
+            h.id === habitId ? {
+              ...h,
+              currentStreak,
+              bestStreak,
+              totalCompletions: newCompletions.length,
+              yearlyStats,
+              completions: newCompletions,
+              xp
+            } : h
+          ));
+        } else {
+          // Rollback to previous state
+          applyOptimisticUpdate(habitId, previousState);
+          setTimeout(() => clearOptimisticUpdate(habitId), 100);
+          throw error;
+        }
+      }
+    } else {
+      // Local-only update
+      setLocalHabits(prev => prev.map(h =>
+        h.id === habitId ? {
+          ...h,
+          currentStreak,
+          bestStreak,
+          totalCompletions: newCompletions.length,
+          yearlyStats,
+          completions: newCompletions,
+          xp
+        } : h
+      ));
+    }
+
+  }, [habits, addCompletionMutation, removeCompletionMutation, updateHabitMutation, isAuthenticated, applyOptimisticUpdate, clearOptimisticUpdate]);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Omit<Habit, 'id' | 'createdAt' | 'completions'>>) => {
-    setHabits(prev => prev.map(habit => {
-      if (habit.id === id) {
-        const updatedHabit = { ...habit, ...updates };
-        // If frequency or customDays changed, recalculate stats
-        if (updates.frequency !== undefined || updates.customDays !== undefined) {
-          updatedHabit.yearlyStats = calculateYearlyStats(
-            habit.completions, 
-            updatedHabit.frequency, 
-            habit.createdAt, 
-            updatedHabit.customDays
-          );
-          updatedHabit.xp = calculateHabitXP(habit.completions, updatedHabit.frequency, updatedHabit.customDays);
+    const handleLocalUpdate = () => {
+      setLocalHabits(prev => prev.map(h => {
+        if (h.id === id) {
+          const updatedHabit = { ...h, ...updates };
+          if (updates.frequency || updates.customDays) {
+            const newYearlyStats = calculateYearlyStats(
+              h.completions,
+              updates.frequency || h.frequency,
+              h.createdAt,
+              updates.customDays || h.customDays
+            );
+            updatedHabit.yearlyStats = newYearlyStats;
+          }
+          return updatedHabit;
         }
-        return updatedHabit;
-      }
-      return habit;
-    }));
+        return h;
+      }));
+    };
 
-    if (user) {
+    if (isAuthenticated) {
       try {
         const dbUpdates: any = {};
         if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -459,44 +483,66 @@ export const useHabits = (user?: User | null) => {
         if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
         if (updates.color !== undefined) dbUpdates.color = updates.color;
         if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
-        if (updates.customDays !== undefined) dbUpdates.custom_days = updates.customDays;
+        if (updates.customDays !== undefined) dbUpdates.customDays = updates.customDays;
         if (updates.archived !== undefined) dbUpdates.archived = updates.archived;
-        if (updates.reminderTime !== undefined) dbUpdates.reminder_time = updates.reminderTime;
-        if (updates.reminderEnabled !== undefined) dbUpdates.reminder_enabled = updates.reminderEnabled;
+        if (updates.reminderTime !== undefined) dbUpdates.reminderTime = updates.reminderTime || undefined;
+        if (updates.reminderEnabled !== undefined) dbUpdates.reminderEnabled = updates.reminderEnabled;
 
-        // If frequency or customDays changed, sync the new stats to DB
-        if (updates.frequency !== undefined || updates.customDays !== undefined) {
-          const habit = habits.find(h => h.id === id);
-          if (habit) {
-            const newYearlyStats = calculateYearlyStats(
-              habit.completions, 
-              updates.frequency || habit.frequency, 
-              habit.createdAt, 
-              updates.customDays || habit.customDays
-            );
-            dbUpdates.yearly_achieved = newYearlyStats.achieved;
-            dbUpdates.yearly_expected = newYearlyStats.totalExpected;
-            dbUpdates.stats_year = newYearlyStats.year;
-          }
+        const habit = habits.find(h => h.id === id);
+        if (habit && (updates.frequency !== undefined || updates.customDays !== undefined)) {
+          const newYearlyStats = calculateYearlyStats(
+            habit.completions,
+            updates.frequency || habit.frequency,
+            habit.createdAt,
+            updates.customDays || habit.customDays
+          );
+          dbUpdates.yearlyAchieved = newYearlyStats.achieved;
+          dbUpdates.yearlyExpected = newYearlyStats.totalExpected;
+          dbUpdates.statsYear = newYearlyStats.year;
         }
 
-        const { error } = await supabase
-          .from('habits')
-          .update(dbUpdates)
-          .eq('id', id);
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating habit in Supabase:', error);
+        await updateHabitMutation({
+          id: id as Id<"habits">,
+          ...dbUpdates
+        });
+      } catch (error: any) {
+        console.error("Mutation failed, falling back to local:", error);
+        if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+          setForceLocal(true);
+          handleLocalUpdate();
+        } else {
+          throw error;
+        }
       }
+    } else {
+      handleLocalUpdate();
     }
-  }, [user, supabase]);
+  }, [updateHabitMutation, isAuthenticated, habits]);
+
+  const deleteHabit = useCallback(async (id: string) => {
+    if (isAuthenticated) {
+      try {
+        await deleteHabitMutation({ id: id as Id<"habits"> });
+      } catch (error: any) {
+        console.error("Mutation failed, falling back to local:", error);
+        if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+          setForceLocal(true);
+          setLocalHabits(prev => prev.filter(h => h.id !== id));
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      setLocalHabits(prev => prev.filter(h => h.id !== id));
+    }
+  }, [deleteHabitMutation, isAuthenticated]);
 
   return {
     habits,
     addHabit,
     updateHabit,
-    toggleHabitCompletion,
     deleteHabit,
-    isInitialLoad,
+    toggleHabitCompletion,
+    isInitialLoad: isAuthenticated ? rawHabits === undefined : !isLocalLoaded,
   };
 };

@@ -45,11 +45,11 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   const dailyHabits = activeHabits.filter(h => h.frequency === 'daily');
   const weeklyHabits = activeHabits.filter(h => h.frequency === 'weekly');
   const monthlyHabits = activeHabits.filter(h => h.frequency === 'monthly');
-  
+
   const intervalHabits = activeHabits.filter(h => {
     if (!['every_2_days', 'every_3_days', 'every_4_days'].includes(h.frequency)) return false;
     if (showAll) return true;
-    
+
     const interval = parseInt(h.frequency.split('_')[1]);
     const startDate = startOfDay(parseISO(h.createdAt));
     const diffDays = differenceInCalendarDays(startOfDay(today), startDate);
@@ -62,11 +62,11 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
     return h.customDays?.includes(dayOfWeek);
   });
 
-  const isAnyHabitVisible = dailyHabits.length > 0 || 
-                            specificDayHabits.length > 0 || 
-                            intervalHabits.length > 0 || 
-                            weeklyHabits.length > 0 || 
-                            monthlyHabits.length > 0;
+  const isAnyHabitVisible = dailyHabits.length > 0 ||
+    specificDayHabits.length > 0 ||
+    intervalHabits.length > 0 ||
+    weeklyHabits.length > 0 ||
+    monthlyHabits.length > 0;
 
   const renderHabitList = (title: string, habitsList: Habit[]) => {
     if (habitsList.length === 0) return null;
@@ -99,25 +99,25 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
+    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-32">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white border-2 border-b-[6px] border-[#E2E8F0] text-[#1E293B] shadow-sm">
-           
+
             <h2 className="text-lg font-black font-headline uppercase tracking-widest">My Rituals</h2>
           </div>
 
           <div className="hidden md:block h-1 w-12 bg-[#E2E8F0] rounded-full" />
-          
-          <div 
+
+          <div
             onClick={() => setShowAll(!showAll)}
             className="flex items-center bg-[#F1F4F9] p-1.5 rounded-2xl border-2 border-b-4 border-[#E2E8F0] gap-1 cursor-pointer select-none transition-all active:translate-y-0.5 active:border-b-2"
           >
             <div
               className={cn(
                 "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-200",
-                !showAll 
-                  ? "text-[#1E293B] bg-white border-b-4 border-[#E2E8F0] shadow-sm" 
+                !showAll
+                  ? "text-[#1E293B] bg-white border-b-4 border-[#E2E8F0] shadow-sm"
                   : "text-[#64748B] hover:text-[#1E293B]"
               )}
             >
@@ -126,8 +126,8 @@ export function HabitTracker({ habits, onAddHabit, onUpdateHabit, onToggleHabit,
             <div
               className={cn(
                 "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-200",
-                showAll 
-                  ? "text-[#1E293B] bg-white border-b-4 border-[#E2E8F0] shadow-sm" 
+                showAll
+                  ? "text-[#1E293B] bg-white border-b-4 border-[#E2E8F0] shadow-sm"
                   : "text-[#64748B] hover:text-[#1E293B]"
               )}
             >

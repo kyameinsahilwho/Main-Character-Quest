@@ -1,715 +1,690 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { Task, Subtask, Streaks, Project } from '@/lib/types';
-import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO, format } from 'date-fns';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO } from 'date-fns';
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+import { isFirstTimeVisitor, markAsVisited, getTemplateTasks, getTemplateProjects } from '@/lib/template-data';
 
-const TASKS_STORAGE_KEY = 'taskQuestTasks';
-const PROJECTS_STORAGE_KEY = 'taskQuestProjects';
-const SAVE_DEBOUNCE_MS = 500; // Debounce localStorage saves
+// Optimistic update storage key
+const OPTIMISTIC_TASKS_KEY = 'pollytasks_optimistic_tasks';
+const OPTIMISTIC_PROJECTS_KEY = 'pollytasks_optimistic_projects';
 
-export const useTasks = (user?: User | null, hasSyncedToSupabase?: boolean) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const tasksRef = useRef<Task[]>([]);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasLoadedRef = useRef(false);
-  const lastUserIdRef = useRef<string | null>(null);
-  const supabase = createClient();
+export const useTasks = () => {
+    // Auth state
+    const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+    const [forceLocal, setForceLocal] = useState(false);
 
-  // Keep tasksRef in sync with tasks state
-  useEffect(() => {
-    tasksRef.current = tasks;
-  }, [tasks]);
+    // Use local fallback if auth fails or explicitly forced
+    const isAuthenticated = _realIsAuthenticated && !forceLocal;
 
-  // Load tasks from localStorage or Supabase
-  useEffect(() => {
-    // Reset hasLoaded if user changed (login/logout)
-    const currentUserId = user?.id || null;
-    if (lastUserIdRef.current !== currentUserId) {
-      hasLoadedRef.current = false;
-      lastUserIdRef.current = currentUserId;
-    }
-    
-    // Only load once per user session
-    if (hasLoadedRef.current) return;
-    
-    const loadTasks = async () => {
-      // Always load from local storage first for immediate UI
-      const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-      const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-      
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      }
-      if (storedProjects) {
-        setProjects(JSON.parse(storedProjects));
-      }
-      
-      setIsInitialLoad(false); // UI is ready
+    // Convex Queries
+    const rawTasks = useQuery(api.tasks.get);
+    const rawProjects = useQuery(api.projects.get);
+    const addProjectMutation = useMutation(api.projects.add);
 
-      try {
-        if (user) {
-          // Check if this is first login by looking at sync status
-          const syncStatus = localStorage.getItem('task-quest-sync-status');
-          const localTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-          
-          console.log('Loading tasks - sync status:', syncStatus);
-          console.log('Has local tasks:', !!localTasks);
-          
-          // If user just logged in and hasn't synced yet, keep local tasks
-          if (syncStatus !== 'synced' && localTasks) {
-            console.log('First login detected - loading from localStorage, will sync after');
-            // Already loaded above
-            hasLoadedRef.current = true;
-            return;
-          }
-          
-          console.log('Loading tasks from Supabase...');
-          // User has synced before or no local data - load from Supabase
-          const { data: tasksData, error: tasksError } = await supabase
-            .from('tasks')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+    // Local State (for unauthenticated users)
+    const [localTasks, setLocalTasks] = useState<Task[]>([]);
+    const [localProjects, setLocalProjects] = useState<Project[]>([]);
+    const [isLocalLoaded, setIsLocalLoaded] = useState(false);
 
-          if (tasksError) throw tasksError;
+    // Optimistic updates state - overlay on top of server data
+    const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<Task>>>({});
+    const pendingMutations = useRef<Set<string>>(new Set());
 
-          const { data: projectsData, error: projectsError } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+    // Load from LocalStorage (with template data for first-time visitors)
+    useEffect(() => {
+        if (!isAuthenticated && !isAuthLoading && !isLocalLoaded) {
+            try {
+                const storedTasks = localStorage.getItem('pollytasks_tasks');
+                const storedProjects = localStorage.getItem('pollytasks_projects');
 
-          if (projectsError) throw projectsError;
-
-          const { data: subtasksData, error: subtasksError } = await supabase
-            .from('subtasks')
-            .select('*');
-
-          if (subtasksError) throw subtasksError;
-
-          console.log('Loaded', tasksData?.length || 0, 'tasks from Supabase');
-          console.log('Loaded', projectsData?.length || 0, 'projects from Supabase');
-
-          // Convert DB format to app format
-          const loadedTasks: Task[] = (tasksData || [])
-            .filter((dbTask) => !dbTask.is_template)
-            .map((dbTask) => ({
-            id: dbTask.id,
-            title: dbTask.title,
-            dueDate: dbTask.due_date || null,
-            isCompleted: dbTask.is_completed,
-            completedAt: dbTask.completed_at || null,
-            subtasks: (subtasksData || [])
-              .filter((st) => st.task_id === dbTask.id)
-              .map((st) => ({
-                id: st.id,
-                text: st.title,
-                isCompleted: st.is_completed,
-              })),
-            createdAt: dbTask.created_at,
-            xp: dbTask.reward_xp || 10,
-            projectId: dbTask.project_id,
-            reminderAt: dbTask.reminder_at,
-            reminderEnabled: dbTask.reminder_enabled,
-          }));
-
-          const loadedProjects: Project[] = (projectsData || []).map((dbProject) => ({
-            id: dbProject.id,
-            name: dbProject.name,
-            description: dbProject.description,
-            color: dbProject.color,
-            icon: dbProject.icon,
-            createdAt: dbProject.created_at,
-          }));
-
-          setTasks(loadedTasks);
-          setProjects(loadedProjects);
-          hasLoadedRef.current = true;
-        } else {
-          // No user - already loaded from localStorage
-          hasLoadedRef.current = true;
+                // Check if first-time visitor (no stored data and hasn't visited before)
+                if (!storedTasks && !storedProjects && isFirstTimeVisitor()) {
+                    // Seed template data for first-time visitors
+                    setLocalTasks(getTemplateTasks());
+                    setLocalProjects(getTemplateProjects());
+                    markAsVisited();
+                } else {
+                    // Load existing data
+                    if (storedTasks) {
+                        const parsed = JSON.parse(storedTasks);
+                        setLocalTasks(parsed);
+                    }
+                    if (storedProjects) {
+                        const parsed = JSON.parse(storedProjects);
+                        setLocalProjects(parsed);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load local tasks", e);
+            } finally {
+                setIsLocalLoaded(true);
+            }
         }
-      } catch (error) {
-        console.error("Failed to load tasks", error);
-        // Fallback to localStorage - already loaded
-        hasLoadedRef.current = true;
-      } finally {
-        setIsInitialLoad(false);
-      }
-    };
+    }, [isAuthenticated, isAuthLoading, isLocalLoaded]);
 
-    loadTasks();
-  }, [user, supabase]);
-
-  // Save tasks to localStorage or Supabase
-  useEffect(() => {
-    if (!isInitialLoad) {
-      // Debounce saves
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(async () => {
+    // Load optimistic updates from localStorage on mount (for persistence across refreshes)
+    useEffect(() => {
         try {
-          // Always save to localStorage as backup
-          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
-          localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-
-          // If user is logged in, also save to Supabase
-          if (user) {
-            // Note: Real-time sync is handled by individual operations
-            // This is just a backup/safety mechanism
-          }
-        } catch (error) {
-          console.error("Failed to save tasks", error);
+            const stored = localStorage.getItem(OPTIMISTIC_TASKS_KEY);
+            if (stored) {
+                setOptimisticUpdates(JSON.parse(stored));
+            }
+        } catch (e) {
+            console.error("Failed to load optimistic updates", e);
         }
-      }, SAVE_DEBOUNCE_MS);
+    }, []);
 
-      return () => {
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
+    // Save optimistic updates to localStorage
+    useEffect(() => {
+        if (Object.keys(optimisticUpdates).length > 0) {
+            localStorage.setItem(OPTIMISTIC_TASKS_KEY, JSON.stringify(optimisticUpdates));
+        } else {
+            localStorage.removeItem(OPTIMISTIC_TASKS_KEY);
         }
-      };
-    }
-  }, [tasks, isInitialLoad, user]);
+    }, [optimisticUpdates]);
 
-  const stats = useMemo(() => {
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.isCompleted).length;
-    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    return {
-      totalTasks,
-      completedTasks,
-      completionPercentage,
-    };
-  }, [tasks]);
+    // Save to LocalStorage
+    useEffect(() => {
+        if (!isAuthenticated && !isAuthLoading && isLocalLoaded) {
+            localStorage.setItem('pollytasks_tasks', JSON.stringify(localTasks));
+            localStorage.setItem('pollytasks_projects', JSON.stringify(localProjects));
+        }
+    }, [localTasks, localProjects, isAuthenticated, isAuthLoading, isLocalLoaded]);
 
-  const streaks = useMemo<Streaks>(() => {
-    const completedDates = tasks
-      .filter(task => task.completedAt)
-      .map(task => startOfDay(parseISO(task.completedAt!)))
-      .sort((a, b) => a.getTime() - b.getTime());
+    const addTaskMutation = useMutation(api.tasks.add);
+    const updateTaskMutation = useMutation(api.tasks.update);
+    const deleteTaskMutation = useMutation(api.tasks.remove);
 
-    if (completedDates.length === 0) return { current: 0, longest: 0 };
-    
-    // Use a Set for unique dates (more efficient than array operations)
-    const uniqueDates = Array.from(
-      new Set(completedDates.map(d => d.getTime()))
-    ).map(time => new Date(time));
+    const addSubtaskMutation = useMutation(api.tasks.addSubtask);
+    const updateSubtaskMutation = useMutation(api.tasks.updateSubtask);
+    const removeSubtaskMutation = useMutation(api.tasks.removeSubtask);
 
-    if (uniqueDates.length === 0) return { current: 0, longest: 0 };
+    const updateProjectMutation = useMutation(api.projects.update);
+    const deleteProjectMutation = useMutation(api.projects.remove);
 
-    let longest = 1;
-    let current = 1;
-    
-    for (let i = 1; i < uniqueDates.length; i++) {
-      const daysDiff = differenceInCalendarDays(uniqueDates[i], uniqueDates[i-1]);
-      if (daysDiff === 1) {
-        current++;
-      } else if (daysDiff > 1) {
+    // Map Convex data to App types with optimistic updates applied
+    const tasks: Task[] = useMemo(() => {
+        if (isAuthenticated) {
+            if (!rawTasks) return [];
+            return rawTasks.map(t => {
+                const baseTask: Task = {
+                    id: t._id,
+                    title: t.title,
+                    dueDate: t.dueDate || null,
+                    isCompleted: t.isCompleted,
+                    completedAt: t.completedAt || null,
+                    createdAt: t.createdAt,
+                    projectId: t.projectId || null,
+                    reminderAt: t.reminderAt,
+                    reminderEnabled: t.reminderEnabled,
+                    xp: t.rewardXp,
+                    subtasks: (t.subtasks || []).map((st: any) => ({
+                        id: st._id,
+                        text: st.title,
+                        isCompleted: st.isCompleted
+                    }))
+                };
+
+                // Apply optimistic updates if present
+                const optimistic = optimisticUpdates[t._id];
+                if (optimistic) {
+                    return { ...baseTask, ...optimistic };
+                }
+
+                return baseTask;
+            });
+        } else {
+            return localTasks;
+        }
+    }, [rawTasks, isAuthenticated, localTasks, optimisticUpdates]);
+
+    const projects: Project[] = useMemo(() => {
+        if (isAuthenticated) {
+            if (!rawProjects) return [];
+            return rawProjects.map(p => ({
+                id: p._id,
+                name: p.name,
+                description: p.description,
+                color: p.color,
+                icon: p.icon,
+                createdAt: p.createdAt
+            }));
+        } else {
+            return localProjects;
+        }
+    }, [rawProjects, isAuthenticated, localProjects]);
+
+    // Derived state (Stats & Streaks)
+    const stats = useMemo(() => {
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(task => task.isCompleted).length;
+        const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        return {
+            totalTasks,
+            completedTasks,
+            completionPercentage,
+        };
+    }, [tasks]);
+
+    const streaks = useMemo<Streaks>(() => {
+        const completedDates = tasks
+            .filter(task => task.completedAt)
+            .map(task => startOfDay(parseISO(task.completedAt!)))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+        if (completedDates.length === 0) return { current: 0, longest: 0 };
+
+        const uniqueDates = Array.from(
+            new Set(completedDates.map(d => d.getTime()))
+        ).map(time => new Date(time));
+
+        if (uniqueDates.length === 0) return { current: 0, longest: 0 };
+
+        let longest = 1;
+        let current = 1;
+
+        for (let i = 1; i < uniqueDates.length; i++) {
+            const daysDiff = differenceInCalendarDays(uniqueDates[i], uniqueDates[i - 1]);
+            if (daysDiff === 1) {
+                current++;
+            } else if (daysDiff > 1) {
+                longest = Math.max(longest, current);
+                current = 1;
+            }
+        }
         longest = Math.max(longest, current);
-        current = 1;
-      }
-    }
-    longest = Math.max(longest, current);
-    
-    // Calculate current streak
-    let currentStreak = 0;
-    const lastCompletion = uniqueDates[uniqueDates.length - 1];
 
-    if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
-      currentStreak = 1;
-      for (let i = uniqueDates.length - 2; i >= 0; i--) {
-        const daysDiff = differenceInCalendarDays(uniqueDates[i+1], uniqueDates[i]);
-        if (daysDiff === 1) {
-          currentStreak++;
-        } else if (daysDiff > 1) {
-          break;
-        }
-      }
-    }
+        let currentStreak = 0;
+        const lastCompletion = uniqueDates[uniqueDates.length - 1];
 
-    return { current: currentStreak, longest };
-  }, [tasks]);
-
-  // Sync streaks to Supabase whenever they change
-  useEffect(() => {
-    if (!isInitialLoad && user && streaks) {
-      // This is now handled in TaskQuestApp to include habit XP
-    }
-  }, [streaks, user, isInitialLoad, supabase, stats.completedTasks]);
-
-  const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
-    const newTask: Task = {
-      ...taskData,
-      id: crypto.randomUUID(),
-      isCompleted: false,
-      completedAt: null,
-      subtasks: taskData.subtasks || [],
-      createdAt: new Date().toISOString(),
-      projectId: taskData.projectId,
-    };
-    
-    setTasks(prev => [newTask, ...prev]);
-
-    // Sync to Supabase if user is logged in
-    if (user) {
-      try {
-        const { error } = await supabase
-          .from('tasks')
-          .insert({
-            id: newTask.id,
-            user_id: user.id,
-            title: newTask.title,
-            due_date: newTask.dueDate,
-            is_completed: newTask.isCompleted,
-            completed_at: newTask.completedAt,
-            created_at: newTask.createdAt,
-            project_id: newTask.projectId,
-            reminder_at: newTask.reminderAt,
-            reminder_enabled: newTask.reminderEnabled,
-          });
-
-        if (error) throw error;
-
-        // Insert subtasks if any
-        if (newTask.subtasks.length > 0) {
-          const { error: subtasksError } = await supabase
-            .from('subtasks')
-            .insert(
-              newTask.subtasks.map((st) => ({
-                id: st.id,
-                task_id: newTask.id,
-                title: st.text,
-                is_completed: st.isCompleted,
-              }))
-            );
-
-          if (subtasksError) throw subtasksError;
-        }
-      } catch (error) {
-        console.error('Error syncing task to Supabase:', error);
-      }
-    }
-  }, [user, supabase]);
-
-
-
-  const updateTask = useCallback(async (taskId: string, updatedData: Partial<Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>>) => {
-    setTasks(prev => prev.map(task => task.id === taskId ? { ...task, ...updatedData } : task));
-    
-    // Sync to Supabase
-    if (user) {
-      try {
-        const updatePayload: any = {};
-        if (updatedData.title !== undefined) updatePayload.title = updatedData.title;
-        if (updatedData.dueDate !== undefined) updatePayload.due_date = updatedData.dueDate;
-        if (updatedData.projectId !== undefined) updatePayload.project_id = updatedData.projectId;
-        if (updatedData.reminderAt !== undefined) updatePayload.reminder_at = updatedData.reminderAt;
-        if (updatedData.reminderEnabled !== undefined) updatePayload.reminder_enabled = updatedData.reminderEnabled;
-        
-        const { error } = await supabase
-          .from('tasks')
-          .update(updatePayload)
-          .eq('id', taskId);
-
-        if (error) throw error;
-
-        // Sync subtasks if they were updated
-        if (updatedData.subtasks !== undefined) {
-          // Delete existing subtasks first
-          const { error: deleteError } = await supabase
-            .from('subtasks')
-            .delete()
-            .eq('task_id', taskId);
-
-          if (deleteError) throw deleteError;
-
-          // Insert new subtasks
-          if (updatedData.subtasks.length > 0) {
-            const { error: insertError } = await supabase
-              .from('subtasks')
-              .insert(
-                updatedData.subtasks.map((st) => ({
-                  id: st.id,
-                  task_id: taskId,
-                  title: st.text,
-                  is_completed: st.isCompleted,
-                }))
-              );
-
-            if (insertError) throw insertError;
-          }
-        }
-      } catch (error) {
-        console.error('Error updating task in Supabase:', error);
-      }
-    }
-  }, [user, supabase]);
-  
-  const deleteTask = useCallback(async (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
-    
-    // Delete from Supabase
-    if (user) {
-      try {
-        await supabase.from('tasks').delete().eq('id', taskId);
-      } catch (error) {
-        console.error('Error deleting task from Supabase:', error);
-      }
-    }
-  }, [user, supabase, tasks]);
-
-  const toggleTaskCompletion = useCallback(async (taskId: string) => {
-    // First, get the current task to determine new state
-    const currentTask = tasks.find(t => t.id === taskId);
-    if (!currentTask) return;
-    
-    const isCompleted = !currentTask.isCompleted;
-    const completedAt = isCompleted ? new Date().toISOString() : null;
-    
-    // Calculate XP with streak bonus
-    let newXP = currentTask.xp || 10;
-    if (isCompleted) {
-      // Check if any other task was completed today to determine if streak increments
-      const hasCompletedTaskToday = tasks.some(t => 
-        t.id !== taskId && 
-        t.isCompleted && 
-        t.completedAt && 
-        isToday(parseISO(t.completedAt))
-      );
-      
-      const effectiveStreak = hasCompletedTaskToday ? streaks.current : streaks.current + 1;
-      const multiplier = Math.min(1 + (effectiveStreak * 0.1), 5);
-      newXP = Math.round(10 * multiplier);
-    } else {
-      // Reset to base XP if uncompleted
-      newXP = 10;
-    }
-    
-    // Update local state
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        return {
-          ...task,
-          isCompleted,
-          completedAt,
-          xp: newXP,
-          subtasks: task.subtasks.map(sub => ({ ...sub, isCompleted })),
-        };
-      }
-      return task;
-    }));
-
-    // Sync to Supabase
-    if (user) {
-      try {
-        await supabase
-          .from('tasks')
-          .update({
-            is_completed: isCompleted,
-            completed_at: completedAt,
-            reward_xp: newXP
-          })
-          .eq('id', taskId);
-
-        // Update all subtasks
-        if (currentTask.subtasks.length > 0) {
-          for (const subtask of currentTask.subtasks) {
-            await supabase
-              .from('subtasks')
-              .update({ is_completed: isCompleted })
-              .eq('id', subtask.id);
-          }
-        }
-      } catch (error) {
-        console.error('Error toggling task completion in Supabase:', error);
-      }
-    }
-  }, [user, supabase, tasks, streaks.current]);
-  
-  const addSubtask = useCallback(async (taskId: string, text: string) => {
-    const newSubtask: Subtask = {
-      id: crypto.randomUUID(),
-      text,
-      isCompleted: false,
-    };
-    
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const wasCompleted = task.isCompleted;
-        return { 
-          ...task,
-          subtasks: [...task.subtasks, newSubtask],
-          isCompleted: wasCompleted ? false : task.isCompleted,
-          completedAt: wasCompleted ? null : task.completedAt
-        };
-      }
-      return task;
-    }));
-
-    // Sync to Supabase
-    if (user) {
-      try {
-        await supabase.from('subtasks').insert({
-          id: newSubtask.id,
-          task_id: taskId,
-          title: newSubtask.text,
-          is_completed: newSubtask.isCompleted,
-        });
-
-        // Update task if it was completed
-        const task = tasks.find(t => t.id === taskId);
-        if (task?.isCompleted) {
-          await supabase
-            .from('tasks')
-            .update({ is_completed: false, completed_at: null })
-            .eq('id', taskId);
-        }
-      } catch (error) {
-        console.error('Error adding subtask to Supabase:', error);
-      }
-    }
-  }, [user, supabase, tasks]);
-
-  const toggleSubtaskCompletion = useCallback(async (taskId: string, subtaskId: string): Promise<'subtask' | 'main' | 'none'> => {
-    // Get current task to determine changes
-    const currentTask = tasks.find(t => t.id === taskId);
-    if (!currentTask) return 'none';
-    
-    const subtask = currentTask.subtasks.find(st => st.id === subtaskId);
-    if (!subtask) return 'none';
-
-    const subtaskNowCompleted = !subtask.isCompleted;
-    let changeType: 'subtask' | 'main' | 'none' = subtaskNowCompleted ? 'subtask' : 'none';
-    
-    const newSubtasks = currentTask.subtasks.map(sub => 
-      sub.id === subtaskId ? { ...sub, isCompleted: subtaskNowCompleted } : sub
-    );
-    const allSubtasksCompleted = newSubtasks.every(sub => sub.isCompleted);
-    
-    // Determine if main task completion changes
-    let newTaskCompleted = currentTask.isCompleted;
-    let newTaskCompletedAt = currentTask.completedAt;
-    
-    if (allSubtasksCompleted && !currentTask.isCompleted) {
-      changeType = 'main';
-      newTaskCompleted = true;
-      newTaskCompletedAt = new Date().toISOString();
-    } else if (!allSubtasksCompleted && currentTask.isCompleted) {
-      newTaskCompleted = false;
-      newTaskCompletedAt = null;
-    }
-    
-    // Update local state
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        return {
-          ...task,
-          subtasks: newSubtasks,
-          isCompleted: newTaskCompleted,
-          completedAt: newTaskCompletedAt,
-        };
-      }
-      return task;
-    }));
-
-    // Sync to Supabase
-    if (user) {
-      try {
-        // Update the subtask
-        await supabase
-          .from('subtasks')
-          .update({ is_completed: subtaskNowCompleted })
-          .eq('id', subtaskId);
-
-        // Update task completion if needed
-        await supabase
-          .from('tasks')
-          .update({
-            is_completed: newTaskCompleted,
-            completed_at: newTaskCompletedAt,
-          })
-          .eq('id', taskId);
-      } catch (error) {
-        console.error('Error toggling subtask in Supabase:', error);
-      }
-    }
-
-    return changeType;
-  }, [user, supabase, tasks]);
-
-  const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => {
-        // Incompleted tasks come first
-        if (a.isCompleted && !b.isCompleted) return 1;
-        if (!a.isCompleted && b.isCompleted) return -1;
-      
-        // If both are incomplete, sort by due date (earliest first), then creation
-        if (!a.isCompleted && !b.isCompleted) {
-          if (a.dueDate && b.dueDate) return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
-          if (a.dueDate) return -1;
-          if (b.dueDate) return 1;
-          return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
+        if (isToday(lastCompletion) || isYesterday(lastCompletion)) {
+            currentStreak = 1;
+            for (let i = uniqueDates.length - 2; i >= 0; i--) {
+                const daysDiff = differenceInCalendarDays(uniqueDates[i + 1], uniqueDates[i]);
+                if (daysDiff === 1) {
+                    currentStreak++;
+                } else if (daysDiff > 1) {
+                    break;
+                }
+            }
         }
 
-        // If both are complete, sort by completion date (most recent first)
-        if (a.completedAt && b.completedAt) {
-            return parseISO(b.completedAt).getTime() - parseISO(a.completedAt).getTime();
-        }
+        return { current: currentStreak, longest };
+    }, [tasks]);
 
-        return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
-    });
-  }, [tasks]);
-
-  // Function to reload tasks from Supabase after sync
-  const reloadFromSupabase = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (tasksError) throw tasksError;
-
-      const { data: subtasksData, error: subtasksError } = await supabase
-        .from('subtasks')
-        .select('*');
-
-      if (subtasksError) throw subtasksError;
-
-      const loadedTasks: Task[] = (tasksData || [])
-        .filter((dbTask) => !dbTask.is_template)
-        .map((dbTask) => ({
-        id: dbTask.id,
-        title: dbTask.title,
-        dueDate: dbTask.due_date || null,
-        isCompleted: dbTask.is_completed,
-        completedAt: dbTask.completed_at || null,
-        subtasks: (subtasksData || [])
-          .filter((st) => st.task_id === dbTask.id)
-          .map((st) => ({
-            id: st.id,
-            text: st.title,
-            isCompleted: st.is_completed,
-          })),
-        createdAt: dbTask.created_at,
-        xp: dbTask.reward_xp || 10,
-        projectId: dbTask.project_id,
-      }));
-
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (projectsData) {
-        const loadedProjects: Project[] = projectsData.map((dbProject) => ({
-          id: dbProject.id,
-          name: dbProject.name,
-          description: dbProject.description,
-          color: dbProject.color,
-          icon: dbProject.icon,
-          createdAt: dbProject.created_at,
+    // Helper: Apply optimistic update
+    const applyOptimisticUpdate = useCallback((taskId: string, update: Partial<Task>) => {
+        setOptimisticUpdates(prev => ({
+            ...prev,
+            [taskId]: { ...(prev[taskId] || {}), ...update }
         }));
-        setProjects(loadedProjects);
-      }
+    }, []);
 
-      setTasks(loadedTasks);
-    } catch (error) {
-      console.error('Error reloading from Supabase:', error);
-    }
-  }, [user, supabase]);
+    // Helper: Clear optimistic update
+    const clearOptimisticUpdate = useCallback((taskId: string) => {
+        setOptimisticUpdates(prev => {
+            const next = { ...prev };
+            delete next[taskId];
+            return next;
+        });
+    }, []);
 
-  const addProject = useCallback(async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
-    const newProject: Project = {
-      ...projectData,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+    // Action wrappers
+    const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'isCompleted' | 'completedAt' | 'createdAt'>) => {
+        const handleLocalAdd = () => {
+            const newTask: Task = {
+                id: crypto.randomUUID(),
+                title: taskData.title,
+                dueDate: taskData.dueDate,
+                isCompleted: false,
+                completedAt: null,
+                createdAt: new Date().toISOString(),
+                projectId: taskData.projectId,
+                reminderAt: taskData.reminderAt,
+                reminderEnabled: taskData.reminderEnabled,
+                xp: taskData.xp || 10,
+                subtasks: (taskData.subtasks || []).map(st => ({
+                    id: crypto.randomUUID(),
+                    text: st.text,
+                    isCompleted: st.isCompleted
+                }))
+            };
+            setLocalTasks(prev => [...prev, newTask]);
+        };
+
+        if (isAuthenticated) {
+            try {
+                await addTaskMutation({
+                    title: taskData.title,
+                    dueDate: taskData.dueDate || undefined,
+                    projectId: taskData.projectId ? taskData.projectId as Id<"projects"> : undefined,
+                    reminderAt: taskData.reminderAt || undefined,
+                    reminderEnabled: taskData.reminderEnabled,
+                    rewardXp: taskData.xp || 10,
+                    isCompleted: false,
+                    createdAt: new Date().toISOString(),
+                    subtasks: (taskData.subtasks || []).map(st => ({
+                        title: st.text,
+                        isCompleted: st.isCompleted
+                    }))
+                });
+            } catch (error: any) {
+                console.error("Mutation failed, falling back to local:", error);
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    handleLocalAdd();
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            handleLocalAdd();
+        }
+    }, [addTaskMutation, isAuthenticated]);
+
+
+    const updateTask = useCallback(async (taskId: string, updatedData: Partial<Task>) => {
+        const handleLocalUpdate = () => {
+            setLocalTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, ...updatedData } : t
+            ));
+        };
+
+        if (isAuthenticated) {
+            try {
+                const updates: any = {};
+                if (updatedData.title !== undefined) updates.title = updatedData.title;
+                if (updatedData.dueDate !== undefined) updates.dueDate = updatedData.dueDate || undefined;
+                if (updatedData.isCompleted !== undefined) updates.isCompleted = updatedData.isCompleted;
+                if (updatedData.completedAt !== undefined) updates.completedAt = updatedData.completedAt || undefined;
+                if (updatedData.projectId !== undefined) updates.projectId = updatedData.projectId ? updatedData.projectId as Id<"projects"> : undefined;
+                if (updatedData.reminderAt !== undefined) updates.reminderAt = updatedData.reminderAt || undefined;
+                if (updatedData.reminderEnabled !== undefined) updates.reminderEnabled = updatedData.reminderEnabled;
+                if (updatedData.xp !== undefined) updates.rewardXp = updatedData.xp;
+
+                await updateTaskMutation({
+                    id: taskId as Id<"tasks">,
+                    ...updates
+                });
+            } catch (error: any) {
+                console.error("Mutation failed, falling back to local:", error);
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    handleLocalUpdate();
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            handleLocalUpdate();
+        }
+    }, [updateTaskMutation, isAuthenticated]);
+
+    const deleteTask = useCallback(async (taskId: string) => {
+        if (isAuthenticated) {
+            try {
+                await deleteTaskMutation({ id: taskId as Id<"tasks"> });
+            } catch (error: any) {
+                console.error("Mutation failed, falling back to local:", error);
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    setLocalTasks(prev => prev.filter(t => t.id !== taskId));
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            setLocalTasks(prev => prev.filter(t => t.id !== taskId));
+        }
+    }, [deleteTaskMutation, isAuthenticated]);
+
+    // OPTIMISTIC toggle task completion - instant UI update!
+    const toggleTaskCompletion = useCallback(async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const isCompleted = !task.isCompleted;
+        const completedAt = isCompleted ? new Date().toISOString() : undefined;
+
+        // XP Logic
+        let newXP = task.xp || 10;
+        if (isCompleted) {
+            const hasCompletedTaskToday = tasks.some(t =>
+                t.id !== taskId &&
+                t.isCompleted &&
+                t.completedAt &&
+                isToday(parseISO(t.completedAt))
+            );
+            const effectiveStreak = hasCompletedTaskToday ? streaks.current : streaks.current + 1;
+            const multiplier = Math.min(1 + (effectiveStreak * 0.1), 5);
+            newXP = Math.round(10 * multiplier);
+        } else {
+            newXP = 10;
+        }
+
+        // Update subtasks to match
+        const updatedSubtasks = task.subtasks.map(st => ({ ...st, isCompleted }));
+
+        // Store previous state for rollback
+        const previousState = {
+            isCompleted: task.isCompleted,
+            completedAt: task.completedAt,
+            xp: task.xp,
+            subtasks: task.subtasks
+        };
+
+        if (isAuthenticated) {
+            // 🚀 OPTIMISTIC UPDATE - Update UI immediately!
+            applyOptimisticUpdate(taskId, {
+                isCompleted,
+                completedAt: completedAt || null,
+                xp: newXP,
+                subtasks: updatedSubtasks
+            });
+
+            // Sync to database in background
+            try {
+                await updateTaskMutation({
+                    id: taskId as Id<"tasks">,
+                    isCompleted,
+                    completedAt,
+                    rewardXp: newXP
+                });
+
+                // Also toggle subtasks
+                if (task.subtasks.length > 0) {
+                    await Promise.all(task.subtasks.map(st =>
+                        updateSubtaskMutation({
+                            id: st.id as Id<"subtasks">,
+                            isCompleted
+                        })
+                    ));
+                }
+
+                // Clear optimistic update after successful sync (server data will take over)
+                clearOptimisticUpdate(taskId);
+            } catch (error: any) {
+                console.error("Mutation failed, rolling back:", error);
+
+                // ⏪ ROLLBACK on failure
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    // Apply update locally instead
+                    clearOptimisticUpdate(taskId);
+                    setLocalTasks(prev => prev.map(t => {
+                        if (t.id === taskId) {
+                            return {
+                                ...t,
+                                isCompleted,
+                                completedAt: completedAt || null,
+                                xp: newXP,
+                                subtasks: updatedSubtasks
+                            };
+                        }
+                        return t;
+                    }));
+                } else {
+                    // Rollback to previous state
+                    applyOptimisticUpdate(taskId, previousState);
+                    // Clear after a moment so user sees the rollback
+                    setTimeout(() => clearOptimisticUpdate(taskId), 100);
+                    throw error;
+                }
+            }
+        } else {
+            // Local-only update
+            setLocalTasks(prev => prev.map(t => {
+                if (t.id === taskId) {
+                    return {
+                        ...t,
+                        isCompleted,
+                        completedAt: completedAt || null,
+                        xp: newXP,
+                        subtasks: updatedSubtasks
+                    };
+                }
+                return t;
+            }));
+        }
+
+    }, [tasks, streaks, updateTaskMutation, updateSubtaskMutation, isAuthenticated, applyOptimisticUpdate, clearOptimisticUpdate]);
+
+    const addSubtask = useCallback(async (taskId: string, text: string) => {
+        const handleLocalAddSubtask = () => {
+            setLocalTasks(prev => prev.map(t => {
+                if (t.id === taskId) {
+                    const newSubtask: Subtask = { id: crypto.randomUUID(), text, isCompleted: false };
+                    const updatedTask = { ...t, subtasks: [...t.subtasks, newSubtask] };
+                    if (updatedTask.isCompleted) {
+                        updatedTask.isCompleted = false;
+                        updatedTask.completedAt = null;
+                    }
+                    return updatedTask;
+                }
+                return t;
+            }));
+        };
+
+        if (isAuthenticated) {
+            try {
+                await addSubtaskMutation({
+                    taskId: taskId as Id<"tasks">,
+                    title: text,
+                    isCompleted: false
+                });
+
+                const task = tasks.find(t => t.id === taskId);
+                if (task?.isCompleted) {
+                    await updateTaskMutation({
+                        id: taskId as Id<"tasks">,
+                        isCompleted: false,
+                        completedAt: undefined
+                    });
+                }
+            } catch (error: any) {
+                console.error("Mutation failed, falling back to local:", error);
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    handleLocalAddSubtask();
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            handleLocalAddSubtask();
+        }
+    }, [addSubtaskMutation, tasks, updateTaskMutation, isAuthenticated]);
+
+    // OPTIMISTIC toggle subtask completion
+    const toggleSubtaskCompletion = useCallback(async (taskId: string, subtaskId: string) => {
+        const handleLocalToggleSubtask = () => {
+            let result: 'subtask' | 'main' | 'none' = 'none';
+            setLocalTasks(prev => prev.map(t => {
+                if (t.id === taskId) {
+                    const subtasks = t.subtasks.map(st =>
+                        st.id === subtaskId ? { ...st, isCompleted: !st.isCompleted } : st
+                    );
+
+                    const targetSubtask = subtasks.find(st => st.id === subtaskId);
+                    const newIsCompleted = targetSubtask?.isCompleted;
+
+                    let isCompleted = t.isCompleted;
+                    let completedAt = t.completedAt;
+
+                    const allCompleted = subtasks.every(st => st.isCompleted);
+
+                    if (newIsCompleted && allCompleted && !isCompleted) {
+                        isCompleted = true;
+                        completedAt = new Date().toISOString();
+                        result = 'main';
+                    } else if (!newIsCompleted && isCompleted) {
+                        isCompleted = false;
+                        completedAt = null;
+                        result = 'main';
+                    } else {
+                        result = 'subtask';
+                    }
+
+                    return { ...t, subtasks, isCompleted, completedAt };
+                }
+                return t;
+            }));
+            return result;
+        };
+
+        if (isAuthenticated) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return 'none';
+            const subtask = task.subtasks.find(st => st.id === subtaskId);
+            if (!subtask) return 'none';
+
+            const newIsCompleted = !subtask.isCompleted;
+
+            // Calculate what the result would be
+            const updatedSubtasks = task.subtasks.map(st =>
+                st.id === subtaskId ? { ...st, isCompleted: newIsCompleted } : st
+            );
+            const allCompleted = updatedSubtasks.every(st => st.isCompleted);
+
+            let taskIsCompleted = task.isCompleted;
+            let taskCompletedAt = task.completedAt;
+            let result = 'subtask';
+
+            if (newIsCompleted && allCompleted && !task.isCompleted) {
+                taskIsCompleted = true;
+                taskCompletedAt = new Date().toISOString();
+                result = 'main';
+            } else if (!newIsCompleted && task.isCompleted) {
+                taskIsCompleted = false;
+                taskCompletedAt = null;
+                result = 'main';
+            }
+
+            // 🚀 OPTIMISTIC UPDATE
+            applyOptimisticUpdate(taskId, {
+                subtasks: updatedSubtasks,
+                isCompleted: taskIsCompleted,
+                completedAt: taskCompletedAt
+            });
+
+            try {
+                await updateSubtaskMutation({
+                    id: subtaskId as Id<"subtasks">,
+                    isCompleted: newIsCompleted
+                });
+
+                // Update main task if needed
+                if (taskIsCompleted !== task.isCompleted) {
+                    await updateTaskMutation({
+                        id: taskId as Id<"tasks">,
+                        isCompleted: taskIsCompleted,
+                        completedAt: taskIsCompleted ? taskCompletedAt || undefined : undefined
+                    });
+                }
+
+                clearOptimisticUpdate(taskId);
+                return result;
+            } catch (error: any) {
+                console.error("Mutation failed:", error);
+                // Rollback
+                clearOptimisticUpdate(taskId);
+                if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
+                    setForceLocal(true);
+                    return handleLocalToggleSubtask();
+                }
+                throw error;
+            }
+        } else {
+            return handleLocalToggleSubtask();
+        }
+    }, [tasks, updateSubtaskMutation, updateTaskMutation, isAuthenticated, applyOptimisticUpdate, clearOptimisticUpdate]) as (taskId: string, subtaskId: string) => Promise<'subtask' | 'main' | 'none'>;
+
+    const addProject = useCallback(async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+        if (isAuthenticated) {
+            await addProjectMutation({
+                name: projectData.name,
+                description: projectData.description || "",
+                color: projectData.color || "#6366f1",
+                icon: projectData.icon || "📁",
+                createdAt: new Date().toISOString()
+            });
+        } else {
+            const newProject: Project = {
+                id: crypto.randomUUID(),
+                name: projectData.name,
+                description: projectData.description,
+                color: projectData.color || "#6366f1",
+                icon: projectData.icon || "📁",
+                createdAt: new Date().toISOString()
+            };
+            setLocalProjects(prev => [...prev, newProject]);
+        }
+    }, [addProjectMutation, isAuthenticated]);
+
+    const updateProject = useCallback(async (projectId: string, data: Partial<Project>) => {
+        if (isAuthenticated) {
+            await updateProjectMutation({
+                id: projectId as Id<"projects">,
+                name: data.name,
+                description: data.description || undefined,
+                color: data.color,
+                icon: data.icon
+            });
+        } else {
+            setLocalProjects(prev => prev.map(p =>
+                p.id === projectId ? { ...p, ...data } : p
+            ));
+        }
+    }, [updateProjectMutation, isAuthenticated]);
+
+    const deleteProject = useCallback(async (projectId: string) => {
+        if (isAuthenticated) {
+            await deleteProjectMutation({ id: projectId as Id<"projects"> });
+        } else {
+            setLocalProjects(prev => prev.filter(p => p.id !== projectId));
+        }
+    }, [deleteProjectMutation, isAuthenticated]);
+
+    // sortedTasks
+    const sortedTasks = useMemo(() => {
+        return [...tasks].sort((a, b) => {
+            if (a.isCompleted && !b.isCompleted) return 1;
+            if (!a.isCompleted && b.isCompleted) return -1;
+
+            if (!a.isCompleted && !b.isCompleted) {
+                if (a.dueDate && b.dueDate) return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
+                if (a.dueDate) return -1;
+                if (b.dueDate) return 1;
+                return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
+            }
+
+            if (a.completedAt && b.completedAt) {
+                return parseISO(b.completedAt).getTime() - parseISO(a.completedAt).getTime();
+            }
+
+            return parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime();
+        });
+    }, [tasks]);
+
+    return {
+        tasks: sortedTasks,
+        projects,
+        stats,
+        streaks,
+        addTask,
+        updateTask,
+        deleteTask,
+        toggleTaskCompletion,
+        addSubtask,
+        toggleSubtaskCompletion,
+        addProject,
+        updateProject,
+        deleteProject,
+        isInitialLoad: isAuthenticated ? rawTasks === undefined : !isLocalLoaded,
+        reloadFromSupabase: async () => { },
     };
-    
-    setProjects(prev => [newProject, ...prev]);
-
-    if (user) {
-      try {
-        const { error } = await supabase
-          .from('projects')
-          .insert({
-            id: newProject.id,
-            user_id: user.id,
-            name: newProject.name,
-            description: newProject.description,
-            color: newProject.color,
-            icon: newProject.icon,
-            created_at: newProject.createdAt,
-          });
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing project to Supabase:', error);
-      }
-    }
-  }, [user, supabase]);
-
-  const updateProject = useCallback(async (projectId: string, updatedData: Partial<Omit<Project, 'id' | 'createdAt'>>) => {
-    setProjects(prev => prev.map(project => project.id === projectId ? { ...project, ...updatedData } : project));
-    
-    if (user) {
-      try {
-        const updatePayload: any = {};
-        if (updatedData.name !== undefined) updatePayload.name = updatedData.name;
-        if (updatedData.description !== undefined) updatePayload.description = updatedData.description;
-        if (updatedData.color !== undefined) updatePayload.color = updatedData.color;
-        if (updatedData.icon !== undefined) updatePayload.icon = updatedData.icon;
-        
-        await supabase
-          .from('projects')
-          .update(updatePayload)
-          .eq('id', projectId);
-      } catch (error) {
-        console.error('Error updating project in Supabase:', error);
-      }
-    }
-  }, [user, supabase, projects]);
-
-  const deleteProject = useCallback(async (projectId: string) => {
-    setProjects(prev => prev.filter(project => project.id !== projectId));
-    // Also clear project_id from tasks
-    setTasks(prev => prev.map(task => task.projectId === projectId ? { ...task, projectId: null } : task));
-    
-    if (user) {
-      try {
-        await supabase.from('projects').delete().eq('id', projectId);
-        // Tasks will have project_id set to NULL due to ON DELETE SET NULL in DB
-      } catch (error) {
-        console.error('Error deleting project from Supabase:', error);
-      }
-    }
-  }, [user, supabase, projects]);
-
-  return {
-    tasks: sortedTasks,
-    projects,
-    stats,
-    streaks,
-    addTask,
-    updateTask,
-    deleteTask,
-    toggleTaskCompletion,
-    addSubtask,
-    toggleSubtaskCompletion,
-    addProject,
-    updateProject,
-    deleteProject,
-    isInitialLoad,
-    reloadFromSupabase,
-  };
 };

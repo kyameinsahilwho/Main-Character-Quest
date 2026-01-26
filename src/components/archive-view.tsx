@@ -22,11 +22,11 @@ interface ArchiveViewProps {
   setCelebrating: (val: boolean) => void;
 }
 
-export function ArchiveView({ 
-  habits, 
-  tasks, 
-  onUnarchiveHabit, 
-  onDeleteHabit, 
+export function ArchiveView({
+  habits,
+  tasks,
+  onUnarchiveHabit,
+  onDeleteHabit,
   onDeleteTask,
   onToggleTask,
   onEditTask,
@@ -39,16 +39,16 @@ export function ArchiveView({
   const archivedHabits = habits.filter(h => h.archived);
   const completedTasks = tasks.filter(t => t.isCompleted);
 
-  const filteredHabits = archivedHabits.filter(h => 
+  const filteredHabits = archivedHabits.filter(h =>
     h.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredTasks = completedTasks.filter(t => 
+  const filteredTasks = completedTasks.filter(t =>
     t.title.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-32">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -80,16 +80,16 @@ export function ArchiveView({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => onUnarchiveHabit(habit.id)}
                       className="font-bold"
                     >
                       Unarchive
                     </Button>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       size="sm"
                       onClick={() => onDeleteHabit(habit.id)}
                       className="font-bold"
@@ -106,7 +106,7 @@ export function ArchiveView({
 
       <div className="space-y-4">
         <h3 className="text-lg font-black uppercase tracking-wide text-muted-foreground">Completed Quests</h3>
-        <TaskList 
+        <TaskList
           tasks={filteredTasks}
           listType="completed"
           onToggleTask={onToggleTask}

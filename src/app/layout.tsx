@@ -1,11 +1,12 @@
-import type {Metadata, Viewport} from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { Toaster } from "@/components/ui/toaster"
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Pollytasks',
-  description: 'Become the main character of your life and conquer your goals!',
+  description: 'Track your habits and become the hero of your own story!',
 };
 
 export const viewport: Viewport = {
@@ -13,7 +14,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#000000",
+  themeColor: "#65d01e",
   // Prevents viewport from resizing when keyboard appears on some devices
   interactiveWidget: 'resizes-content',
 };
@@ -26,10 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased noise-bg" suppressHydrationWarning>
         {/* Google tag (gtag.js) */}
@@ -43,7 +44,9 @@ export default function RootLayout({
             gtag('config', 'G-Y1N5618EQW');
           `}
         </Script>
-        {children}
+        <ConvexClientProvider>
+          {children}
+        </ConvexClientProvider>
         <Toaster />
       </body>
     </html>

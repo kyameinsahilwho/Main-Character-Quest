@@ -60,16 +60,20 @@ interface AddTaskDialogProps {
   projects?: Project[]
   defaultProjectId?: string | null
   forceProject?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function AddTaskDialog({ 
-  children, 
-  onAddTask, 
-  projects = [], 
+export function AddTaskDialog({
+  children,
+  onAddTask,
+  projects = [],
   defaultProjectId = null,
-  forceProject = false
+  forceProject = false,
+  defaultOpen = false,
+  onOpenChange
 }: AddTaskDialogProps) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<{ text: string }[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -110,7 +114,7 @@ export function AddTaskDialog({
     const handleViewportResize = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight;
       const heightDiff = initialViewportHeight.current - currentHeight;
-      
+
       // If viewport shrunk by more than 150px, keyboard is likely open
       const keyboardOpen = heightDiff > 150;
       setIsMobileKeyboardOpen(keyboardOpen);
@@ -216,6 +220,7 @@ export function AddTaskDialog({
         }
       }
       setOpen(newOpen);
+      onOpenChange?.(newOpen);
     }} modal={true}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
