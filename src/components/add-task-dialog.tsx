@@ -298,6 +298,23 @@ export function AddTaskDialog({
                         onSelect={field.onChange}
                         initialFocus
                       />
+                      <div className="p-3 border-t border-border">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-center"
+                          onClick={() => {
+                            field.onChange(undefined);
+                            // Close popover logic would be complex here without controlled state for popover
+                            // But usually clicking inside doesn't close it, so we might need to handle it.
+                            // However, just clearing it is enough for now.
+                            // To actually close the popover we would need to control the Open state of the Popover.
+                            // But `shadcn` popover doesn't expose a close method easily if not controlled.
+                            // Let's just clear the value.
+                          }}
+                        >
+                          Clear Date
+                        </Button>
+                      </div>
                     </PopoverContent>
                   </Popover>
                   <FormMessage />

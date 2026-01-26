@@ -43,7 +43,7 @@ const Section = memo(({ title, children, isPast, isToday, count }: { title: stri
   const [isOpen, setIsOpen] = useState(!isPast);
 
   return (
-    <div className="mb-10">
+    <div className={cn(isPast ? "mb-10" : "mb-4")}>
       <div className="py-2 mb-4 cursor-pointer group" onClick={() => setIsOpen(!isOpen)}>
         <h2 className={cn(
           "text-sm md:text-base font-black font-headline flex items-center gap-4 uppercase tracking-[0.2em]", 
@@ -175,9 +175,9 @@ function TaskList({
     const order = [];
     if (groupedTasks['Past']) order.push('Past');
     if (groupedTasks['Today']) order.push('Today');
+    if (groupedTasks['No Due Date']) order.push('No Due Date');
     if (groupedTasks['Tomorrow']) order.push('Tomorrow');
     order.push(...otherSections);
-    if (groupedTasks['No Due Date']) order.push('No Due Date');
     
     return order;
   }, [groupedTasks, listType]);
