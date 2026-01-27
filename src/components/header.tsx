@@ -20,6 +20,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from 'next/link';
 import { User } from '@/lib/types';
+import { useSocial } from "@/hooks/use-social";
+import { NotificationItem } from "@/components/notification-item";
 
 interface HeaderProps {
   stats?: {
@@ -44,6 +46,13 @@ interface HeaderProps {
 }
 
 function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, notificationState, isAuthenticated }: HeaderProps) {
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const social = useSocial();
+
+  const handleMarkAllRead = async () => {
+    await social.markNotificationsAsSeen();
+  };
 
   const getUserInitials = (email?: string) => {
     if (!email) return 'U';
@@ -118,6 +127,76 @@ function Header({ stats, streaks, isInitialLoad, user, onSignOut, isSyncing, not
               <Skeleton className="h-8 w-16 md:h-10 md:w-24 rounded-xl" />
             </div>
           )}
+
+          {/* Notification Bell - Always visible, clickable */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <Bell className={cn(
+                "w-6 h-6 transition-colors",
+                social.unreadCount > 0 ? "text-violet-500" : "text-muted-foreground"
+              )} />
+              {social.unreadCount > 0 && (
+                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {social.unreadCount > 9 ? "9+" : social.unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            <AnimatePresence>
+              {showNotifications && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotifications(false)}
+                  />
+
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="absolute right-0 top-12 w-80 max-h-96 bg-card border-2 border-border border-b-4 rounded-2xl shadow-xl z-50 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                      <h3 className="font-bold text-sm">Notifications</h3>
+                      {social.unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-xs text-violet-500 hover:text-violet-600 font-medium"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notification List */}
+                    <div className="max-h-72 overflow-auto">
+                      {social.notifications.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No notifications yet</p>
+                        </div>
+                      ) : (
+                        social.notifications.map((notification: any) => (
+                          <NotificationItem
+                            key={notification._id}
+                            notification={notification}
+                            onMarkRead={() => social.markNotificationsAsSeen([notification._id])}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Auth Button */}
           {user ? (

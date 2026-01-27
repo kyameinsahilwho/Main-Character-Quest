@@ -313,6 +313,50 @@ export const useTasks = () => {
                     id: taskId as Id<"tasks">,
                     ...updates
                 });
+
+                // Handle Subtasks Sync
+                if (updatedData.subtasks) {
+                    const currentTask = tasks.find(t => t.id === taskId);
+                    if (currentTask) {
+                        const currentSubtasks = currentTask.subtasks;
+                        const newSubtasks = updatedData.subtasks;
+
+                        // 1. Identify subtasks to delete
+                        const newSubtaskIds = new Set(newSubtasks.map(st => st.id));
+                        const subtasksToDelete = currentSubtasks.filter(st => !newSubtaskIds.has(st.id));
+
+                        for (const st of subtasksToDelete) {
+                            await removeSubtaskMutation({ id: st.id as Id<"subtasks"> });
+                        }
+
+                        // 2. Identify subtasks to add
+                        const currentSubtaskIds = new Set(currentSubtasks.map(st => st.id));
+                        const subtasksToAdd = newSubtasks.filter(st => !currentSubtaskIds.has(st.id));
+
+                        for (const st of subtasksToAdd) {
+                            await addSubtaskMutation({
+                                taskId: taskId as Id<"tasks">,
+                                title: st.text,
+                                isCompleted: st.isCompleted
+                            });
+                        }
+
+                        // 3. Identify subtasks to update
+                        const subtasksToUpdate = newSubtasks.filter(st => {
+                            if (!currentSubtaskIds.has(st.id)) return false;
+                            const current = currentSubtasks.find(c => c.id === st.id);
+                            return current && (current.text !== st.text || current.isCompleted !== st.isCompleted);
+                        });
+
+                        for (const st of subtasksToUpdate) {
+                            await updateSubtaskMutation({
+                                id: st.id as Id<"subtasks">,
+                                title: st.text,
+                                isCompleted: st.isCompleted
+                            });
+                        }
+                    }
+                }
             } catch (error: any) {
                 console.error("Mutation failed, falling back to local:", error);
                 if (error.message?.includes("Unauthorized") || error.toString().includes("Unauthorized")) {
@@ -325,7 +369,7 @@ export const useTasks = () => {
         } else {
             handleLocalUpdate();
         }
-    }, [updateTaskMutation, isAuthenticated]);
+    }, [updateTaskMutation, isAuthenticated, tasks, removeSubtaskMutation, addSubtaskMutation, updateSubtaskMutation]);
 
     const deleteTask = useCallback(async (taskId: string) => {
         if (isAuthenticated) {
