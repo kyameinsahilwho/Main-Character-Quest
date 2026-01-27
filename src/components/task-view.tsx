@@ -62,18 +62,6 @@ export function TaskView({
     return !isSameDay(due, today) && !isBefore(due, today);
   });
 
-  // Group upcoming tasks by date
-  const upcomingTasksByDate = upcomingTasks.reduce((acc, task) => {
-    const dateKey = task.dueDate!;
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
-
-  const sortedDates = Object.keys(upcomingTasksByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
   return (
     <div className="space-y-8 pb-32">
       {/* Habits Section */}
@@ -129,23 +117,18 @@ export function TaskView({
       </section>
 
       {/* Upcoming Quests Section */}
-      {sortedDates.length > 0 && (
+      {upcomingTasks.length > 0 && (
         <section className="space-y-6 pt-4">
-          {sortedDates.map(date => (
-            <div key={date} className="space-y-2">
-
-              <TaskList
-                tasks={upcomingTasksByDate[date]}
-                listType="active"
-                onToggleTask={onToggleTask}
-                onDeleteTask={onDeleteTask}
-                onEditTask={onEditTask}
-                onAddSubtask={onAddSubtask}
-                onToggleSubtask={onToggleSubtask}
-                setCelebrating={setCelebrating}
-              />
-            </div>
-          ))}
+          <TaskList
+            tasks={upcomingTasks}
+            listType="active"
+            onToggleTask={onToggleTask}
+            onDeleteTask={onDeleteTask}
+            onEditTask={onEditTask}
+            onAddSubtask={onAddSubtask}
+            onToggleSubtask={onToggleSubtask}
+            setCelebrating={setCelebrating}
+          />
         </section>
       )}
     </div>

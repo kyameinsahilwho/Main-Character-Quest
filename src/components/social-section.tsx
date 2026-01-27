@@ -69,13 +69,8 @@ interface SocialSectionProps {
 
 export function SocialSection({ className }: SocialSectionProps) {
     const [activeTab, setActiveTab] = useState("friends");
-    const [showNotifications, setShowNotifications] = useState(false);
     const social = useSocial();
     const challenges = useChallenges();
-
-    const handleMarkAllRead = async () => {
-        await social.markNotificationsAsSeen();
-    };
 
     return (
         <div className={cn("flex flex-col h-full", className)}>
@@ -89,76 +84,6 @@ export function SocialSection({ className }: SocialSectionProps) {
                         <h2 className="text-lg font-black font-headline">Accountability Squad</h2>
                         <p className="text-xs text-muted-foreground">{social.friends.length} friends</p>
                     </div>
-                </div>
-
-                {/* Notification Bell - Always visible, clickable */}
-                <div className="relative">
-                    <button
-                        onClick={() => setShowNotifications(!showNotifications)}
-                        className="relative p-2 rounded-full hover:bg-muted transition-colors"
-                    >
-                        <Bell className={cn(
-                            "w-6 h-6 transition-colors",
-                            social.unreadCount > 0 ? "text-violet-500" : "text-muted-foreground"
-                        )} />
-                        {social.unreadCount > 0 && (
-                            <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                {social.unreadCount > 9 ? "9+" : social.unreadCount}
-                            </span>
-                        )}
-                    </button>
-
-                    {/* Notifications Dropdown */}
-                    <AnimatePresence>
-                        {showNotifications && (
-                            <>
-                                {/* Backdrop */}
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setShowNotifications(false)}
-                                />
-
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                    className="absolute right-0 top-12 w-80 max-h-96 bg-card border-2 border-border border-b-4 rounded-2xl shadow-xl z-50 overflow-hidden"
-                                >
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between p-4 border-b border-border">
-                                        <h3 className="font-bold text-sm">Notifications</h3>
-                                        {social.unreadCount > 0 && (
-                                            <button
-                                                onClick={handleMarkAllRead}
-                                                className="text-xs text-violet-500 hover:text-violet-600 font-medium"
-                                            >
-                                                Mark all read
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Notification List */}
-                                    <div className="max-h-72 overflow-auto">
-                                        {social.notifications.length === 0 ? (
-                                            <div className="p-6 text-center text-muted-foreground">
-                                                <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                                <p className="text-sm">No notifications yet</p>
-                                            </div>
-                                        ) : (
-                                            social.notifications.map((notification: any) => (
-                                                <NotificationItem
-                                                    key={notification._id}
-                                                    notification={notification}
-                                                    onMarkRead={() => social.markNotificationsAsSeen([notification._id])}
-                                                />
-                                            ))
-                                        )}
-                                    </div>
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
                 </div>
             </div>
 
@@ -214,67 +139,6 @@ export function SocialSection({ className }: SocialSectionProps) {
                     </TabsContent>
                 </div>
             </Tabs>
-        </div>
-    );
-}
-
-// Notification Item Component
-function NotificationItem({ notification, onMarkRead }: {
-    notification: any;
-    onMarkRead: () => void;
-}) {
-    const getNotificationIcon = (type: string) => {
-        switch (type) {
-            case "friend_request": return "👋";
-            case "friend_accepted": return "🤝";
-            case "cheer_received": return "🎉";
-            case "challenge_invite": return "🎯";
-            case "challenge_update": return "📊";
-            case "milestone_friend": return "🏆";
-            default: return "🔔";
-        }
-    };
-
-    const timeAgo = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 1) return "just now";
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString();
-    };
-
-    return (
-        <div
-            className={cn(
-                "flex items-start gap-3 p-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer",
-                !notification.seen && "bg-violet-500/5"
-            )}
-            onClick={onMarkRead}
-        >
-            <div className="text-2xl shrink-0">
-                {getNotificationIcon(notification.type)}
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className={cn(
-                    "text-sm",
-                    !notification.seen && "font-medium"
-                )}>
-                    {notification.message}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                    {timeAgo(notification.createdAt)}
-                </p>
-            </div>
-            {!notification.seen && (
-                <div className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-2" />
-            )}
         </div>
     );
 }
