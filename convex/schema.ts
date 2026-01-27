@@ -216,4 +216,21 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_user_and_seen", ["userId", "seen"]),
+
+    // Weblogs for markdown notes
+    weblogs: defineTable({
+        userId: v.id("users"),
+        title: v.string(),
+        content: v.string(),
+        emoji: v.optional(v.string()),
+        color: v.optional(v.string()), // yellow, pink, blue, green
+        isPinned: v.optional(v.boolean()),
+        category: v.optional(v.string()), // "journal", "ideas", "learning", "personal"
+        tags: v.optional(v.array(v.string())), // Custom tags for organization
+        createdAt: v.string(),
+        updatedAt: v.string(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_and_category", ["userId", "category"])
+        .index("by_user_and_pinned", ["userId", "isPinned"]),
 });

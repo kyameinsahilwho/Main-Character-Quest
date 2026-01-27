@@ -18,6 +18,7 @@ import type * as social from "../social.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
+import type * as weblogs from "../weblogs.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   users: typeof users;
   utils: typeof utils;
+  weblogs: typeof weblogs;
 }>;
 
 /**

@@ -5,7 +5,7 @@ import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HeroStatsCard } from './hero-stats-card';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Swords, Droplets, FolderOpen, Users, Archive, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -87,35 +87,42 @@ export function DesktopSidebar({
                     <TabsList className={cn("flex flex-col h-auto bg-transparent border-0 p-0 gap-2 w-full", isCollapsed && "items-center")}>
                         <SidebarItem
                             value="today"
-                            icon={<Swords className={cn("w-6 h-6 group-data-[state=active]:fill-current", isCollapsed ? "mx-auto" : "")} />}
+                            icon="swords"
                             label="Quests"
                             color="green"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
                             value="habits"
-                            icon={<Droplets className={cn("w-6 h-6 group-data-[state=active]:fill-current", isCollapsed ? "mx-auto" : "")} />}
+                            icon="water_drop"
                             label="Rituals"
                             color="blue"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
                             value="projects"
-                            icon={<FolderOpen className={cn("w-6 h-6 group-data-[state=active]:fill-current", isCollapsed ? "mx-auto" : "")} />}
+                            icon="folder_open"
                             label="Projects"
                             color="orange"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
                             value="social"
-                            icon={<Users className={cn("w-6 h-6 group-data-[state=active]:fill-current", isCollapsed ? "mx-auto" : "")} />}
+                            icon="group"
                             label="Squad"
                             color="purple"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
+                            value="weblog"
+                            icon="menu_book"
+                            label="Weblog"
+                            color="amber"
+                            isCollapsed={isCollapsed}
+                        />
+                        <SidebarItem
                             value="archive"
-                            icon={<Archive className={cn("w-6 h-6", isCollapsed ? "mx-auto" : "")} />}
+                            icon="inventory_2"
                             label="Archive"
                             color="slate"
                             isCollapsed={isCollapsed}
@@ -152,7 +159,7 @@ export function DesktopSidebar({
 
 interface SidebarItemProps {
     value: string;
-    icon: React.ReactNode;
+    icon: string;
     label: string;
     color: string;
     isCollapsed: boolean;
@@ -164,6 +171,7 @@ function SidebarItem({ value, icon, label, color, isCollapsed }: SidebarItemProp
         green: "data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400",
         blue: "data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400",
         orange: "data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-500",
+        amber: "data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400",
         purple: "data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400",
         slate: "data-[state=active]:text-slate-700 dark:data-[state=active]:text-slate-300"
     };
@@ -179,7 +187,9 @@ function SidebarItem({ value, icon, label, color, isCollapsed }: SidebarItemProp
             )}
         >
             <div className={cn("z-10 flex items-center justify-center transition-all", isCollapsed ? "" : "")}>
-                {icon}
+                <span className="material-symbols-outlined text-2xl group-data-[state=active]:[font-variation-settings:'FILL'_1]">
+                    {icon}
+                </span>
             </div>
             {!isCollapsed && (
                 <span className="text-xs font-bold uppercase tracking-wide z-10 whitespace-nowrap">

@@ -13,6 +13,7 @@ import { ArchiveView } from '@/components/archive-view';
 import { HabitTracker } from '@/components/habit-tracker';
 import ProjectSection from '@/components/project-section';
 import { SocialSection } from '@/components/social-section';
+import { WeblogSection } from '@/components/weblog-section';
 import { QuickAddMenu } from '@/components/quick-add-menu';
 import { EditTaskDialog } from '@/components/edit-task-dialog';
 import { EditReminderDialog } from '@/components/edit-reminder-dialog';
@@ -301,7 +302,7 @@ export default function TaskQuestApp() {
                 {/* Page Title & Actions */}
                 <div className="flex items-center justify-between">
                   <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight">
-                    {activeTab === 'today' ? "Quests" : activeTab === 'habits' ? 'Rituals' : activeTab === 'projects' ? 'Projects' : activeTab === 'social' ? 'Squad' : 'Archive'}
+                    {activeTab === 'today' ? "Quests" : activeTab === 'habits' ? 'Rituals' : activeTab === 'projects' ? 'Projects' : activeTab === 'weblog' ? 'Weblog' : activeTab === 'social' ? 'Squad' : 'Archive'}
                   </h1>
                   <CalendarDialog
                     tasks={tasks}
@@ -374,6 +375,9 @@ export default function TaskQuestApp() {
                       setCelebrating={setCelebrating}
                     />
                   </TabsContent>
+                  <TabsContent value="weblog" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <WeblogSection />
+                  </TabsContent>
                   <TabsContent value="social" className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <SocialSection />
                   </TabsContent>
@@ -398,6 +402,7 @@ export default function TaskQuestApp() {
             activeTab={activeTab}
             isQuickAddOpen={isQuickAddOpen}
             onToggleQuickAdd={() => setIsQuickAddOpen(prev => !prev)}
+            onTabChange={setActiveTab}
           />
         </Tabs>
       )}

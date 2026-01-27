@@ -1,0 +1,165 @@
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+
+// Get all weblogs for the current user
+export const list = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) =>
+                q.eq("tokenIdentifier", identity.tokenIdentifier)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const weblogs = await ctx.db
+            .query("weblogs")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+
+        // Sort by pinned status (true first) then by updatedAt (newest first)
+        return weblogs.sort((a, b) => {
+            if (a.isPinned === b.isPinned) {
+                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            }
+            return (a.isPinned ? -1 : 1);
+        });
+    },
+});
+
+// Create a new weblog
+export const create = mutation({
+    args: {
+        title: v.string(),
+        content: v.string(),
+        emoji: v.optional(v.string()),
+        category: v.optional(v.string()),
+        color: v.optional(v.string()),
+        isPinned: v.optional(v.boolean()),
+        tags: v.optional(v.array(v.string())),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) =>
+                q.eq("tokenIdentifier", identity.tokenIdentifier)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const now = new Date().toISOString();
+
+        const weblogId = await ctx.db.insert("weblogs", {
+            userId: user._id,
+            title: args.title,
+            content: args.content,
+            emoji: args.emoji || "📝",
+            category: args.category || "personal",
+            color: args.color || "yellow",
+            isPinned: args.isPinned || false,
+            tags: args.tags || [],
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        return weblogId;
+    },
+});
+
+// Update a weblog
+export const update = mutation({
+    args: {
+        id: v.id("weblogs"),
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        emoji: v.optional(v.string()),
+        category: v.optional(v.string()),
+        color: v.optional(v.string()),
+        isPinned: v.optional(v.boolean()),
+        tags: v.optional(v.array(v.string())),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const { id, ...updates } = args;
+        const now = new Date().toISOString();
+
+        await ctx.db.patch(id, {
+            ...updates,
+            updatedAt: now,
+        });
+    },
+});
+
+// Delete a weblog
+export const deleteWeblog = mutation({
+    args: { id: v.id("weblogs") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        await ctx.db.delete(args.id);
+    },
+});
+
+// Toggle pin status
+export const togglePin = mutation({
+    args: { id: v.id("weblogs") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const weblog = await ctx.db.get(args.id);
+        if (!weblog) throw new Error("Weblog not found");
+
+        const now = new Date().toISOString();
+
+        await ctx.db.patch(args.id, {
+            isPinned: !weblog.isPinned,
+            updatedAt: now,
+        });
+    },
+});
+
+// Get all unique tags for the current user
+export const getAllTags = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) =>
+                q.eq("tokenIdentifier", identity.tokenIdentifier)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const weblogs = await ctx.db
+            .query("weblogs")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+
+        // Extract all unique tags
+        const allTags = new Set<string>();
+        weblogs.forEach(weblog => {
+            if (weblog.tags) {
+                weblog.tags.forEach(tag => allTags.add(tag));
+            }
+        });
+
+        return Array.from(allTags).sort();
+    },
+});

@@ -1,0 +1,1157 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Weblog } from "@/hooks/use-weblogs";
+import {
+    X, Save, Bold, Italic, List, ListOrdered, CheckSquare,
+    Link as LinkIcon, Image as ImageIcon, Quote, Heading1, Heading2,
+    Heading3, Code, Undo, Redo, Download, FileText, Tag, Plus,
+    Underline, Strikethrough, Maximize2, Minimize2
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CompactIconPicker } from "./icon-picker";
+import { Badge } from "@/components/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// Default color for weblog icons
+const DEFAULT_ICON_COLOR = "bg-amber-100";
+const ICON_COLORS = [DEFAULT_ICON_COLOR];
+
+interface WeblogEditorProps {
+    isOpen: boolean;
+    onClose: () => void;
+    weblog?: Weblog | null;
+    onSave: (data: any) => Promise<void>;
+    existingTags?: string[];
+}
+
+export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [] }: WeblogEditorProps) {
+    const [title, setTitle] = useState("");
+    const [emoji, setEmoji] = useState("📝");
+    const [category, setCategory] = useState("personal");
+    const [tags, setTags] = useState<string[]>([]);
+    const [newTag, setNewTag] = useState("");
+    const [showTagInput, setShowTagInput] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showCloseWarning, setShowCloseWarning] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [activeFormats, setActiveFormats] = useState<{
+        bold: boolean;
+        italic: boolean;
+        underline: boolean;
+        strikethrough: boolean;
+        h1: boolean;
+        h2: boolean;
+        h3: boolean;
+        blockquote: boolean;
+        ul: boolean;
+        ol: boolean;
+        code: boolean;
+    }>({
+        bold: false,
+        italic: false,
+        underline: false,
+        strikethrough: false,
+        h1: false,
+        h2: false,
+        h3: false,
+        blockquote: false,
+        ul: false,
+        ol: false,
+        code: false,
+    });
+    const editorRef = useRef<HTMLDivElement>(null);
+    const tagInputRef = useRef<HTMLInputElement>(null);
+
+    // Detect mobile screen and set fullscreen by default
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) {
+                setIsFullscreen(true);
+            }
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Check active formats on selection change
+    const updateActiveFormats = useCallback(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        // Check inline formats
+        const bold = document.queryCommandState("bold");
+        const italic = document.queryCommandState("italic");
+        const underline = document.queryCommandState("underline");
+        const strikethrough = document.queryCommandState("strikeThrough");
+
+        // Check block formats
+        let h1 = false, h2 = false, h3 = false, blockquote = false, ul = false, ol = false, code = false;
+        
+        let node: Node | null = selection.anchorNode;
+        while (node && node !== editorRef.current) {
+            const tagName = node.nodeName.toLowerCase();
+            if (tagName === 'h1') h1 = true;
+            if (tagName === 'h2') h2 = true;
+            if (tagName === 'h3') h3 = true;
+            if (tagName === 'blockquote') blockquote = true;
+            if (tagName === 'ul') ul = true;
+            if (tagName === 'ol') ol = true;
+            if (tagName === 'code') code = true;
+            node = node.parentNode;
+        }
+
+        setActiveFormats({ bold, italic, underline, strikethrough, h1, h2, h3, blockquote, ul, ol, code });
+    }, []);
+
+    // Draft key for localStorage - use weblog id for editing, 'new' for new notes
+    const draftKey = useMemo(() => {
+        return weblog?._id ? `weblog-draft-${weblog._id}` : 'weblog-draft-new';
+    }, [weblog?._id]);
+
+    // Check if there are unsaved changes
+    const hasUnsavedChanges = useCallback(() => {
+        const currentContent = editorRef.current?.innerHTML || "";
+        const originalContent = weblog?.content || "";
+        const originalTitle = weblog?.title || "";
+        const originalEmoji = weblog?.emoji || "📝";
+        const originalCategory = weblog?.category || "personal";
+        const originalTags = weblog?.tags || [];
+        
+        return (
+            title !== originalTitle ||
+            emoji !== originalEmoji ||
+            category !== originalCategory ||
+            currentContent !== originalContent ||
+            JSON.stringify(tags) !== JSON.stringify(originalTags)
+        );
+    }, [title, emoji, category, tags, weblog]);
+
+    // Save draft to localStorage
+    const saveDraft = useCallback(() => {
+        const draft = {
+            title,
+            emoji,
+            category,
+            tags,
+            content: editorRef.current?.innerHTML || "",
+            savedAt: Date.now()
+        };
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+    }, [title, emoji, category, tags, draftKey]);
+
+    // Load draft from localStorage
+    const loadDraft = useCallback(() => {
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft) {
+            try {
+                return JSON.parse(savedDraft);
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }, [draftKey]);
+
+    // Clear draft from localStorage
+    const clearDraft = useCallback(() => {
+        localStorage.removeItem(draftKey);
+    }, [draftKey]);
+
+    // Reset state when opening - check for draft first
+    useEffect(() => {
+        if (isOpen) {
+            const draft = loadDraft();
+            if (draft && !weblog) {
+                // Load draft for new note
+                setTitle(draft.title || "");
+                setEmoji(draft.emoji || "📝");
+                setCategory(draft.category || "personal");
+                setTags(draft.tags || []);
+                setTimeout(() => {
+                    if (editorRef.current) {
+                        editorRef.current.innerHTML = draft.content || "";
+                    }
+                }, 50);
+            } else {
+                // Load from weblog or defaults
+                setTitle(weblog?.title || "");
+                setEmoji(weblog?.emoji || "📝");
+                setCategory(weblog?.category || "personal");
+                setTags(weblog?.tags || []);
+                setTimeout(() => {
+                    if (editorRef.current) {
+                        editorRef.current.innerHTML = weblog?.content || "";
+                    }
+                }, 50);
+            }
+        }
+    }, [isOpen, weblog, loadDraft]);
+
+    useEffect(() => {
+        if (showTagInput && tagInputRef.current) {
+            tagInputRef.current.focus();
+        }
+    }, [showTagInput]);
+
+    // Auto-save draft periodically while editing
+    useEffect(() => {
+        if (!isOpen) return;
+        
+        const interval = setInterval(() => {
+            if (hasUnsavedChanges()) {
+                saveDraft();
+            }
+        }, 5000); // Auto-save every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [isOpen, hasUnsavedChanges, saveDraft]);
+
+    const getContent = () => {
+        return editorRef.current?.innerHTML || "";
+    };
+
+    // Handle close with warning
+    const handleClose = useCallback(() => {
+        if (hasUnsavedChanges()) {
+            saveDraft(); // Save before showing warning
+            setShowCloseWarning(true);
+        } else {
+            clearDraft();
+            onClose();
+        }
+    }, [hasUnsavedChanges, saveDraft, clearDraft, onClose]);
+
+    // Discard draft and close
+    const handleDiscardAndClose = useCallback(() => {
+        clearDraft();
+        setShowCloseWarning(false);
+        onClose();
+    }, [clearDraft, onClose]);
+
+    // Keep draft and close
+    const handleKeepDraftAndClose = useCallback(() => {
+        saveDraft();
+        setShowCloseWarning(false);
+        onClose();
+    }, [saveDraft, onClose]);
+
+    const handleSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+        try {
+            await onSave({
+                id: weblog?._id,
+                title: title.trim() || "Untitled Note",
+                content: getContent(),
+                emoji,
+                category,
+                tags,
+                isPinned: weblog?.isPinned
+            });
+            clearDraft(); // Clear draft on successful save
+            onClose();
+        } catch (error) {
+            console.error("Failed to save note:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Format commands for rich text
+    const execCommand = useCallback((command: string, value?: string) => {
+        document.execCommand(command, false, value);
+        editorRef.current?.focus();
+    }, []);
+
+    // Check if current selection is inside a specific block type
+    const isInsideBlock = useCallback((tagName: string): boolean => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return false;
+        
+        let node: Node | null = selection.anchorNode;
+        while (node && node !== editorRef.current) {
+            if (node.nodeName.toLowerCase() === tagName.toLowerCase()) {
+                return true;
+            }
+            node = node.parentNode;
+        }
+        return false;
+    }, []);
+
+    // Get the parent block element of current selection
+    const getParentBlock = useCallback((): HTMLElement | null => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return null;
+        
+        let node: Node | null = selection.anchorNode;
+        while (node && node !== editorRef.current) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const el = node as HTMLElement;
+                const tagName = el.tagName.toLowerCase();
+                if (['h1', 'h2', 'h3', 'p', 'div', 'blockquote'].includes(tagName)) {
+                    return el;
+                }
+            }
+            node = node.parentNode;
+        }
+        return null;
+    }, []);
+
+    const formatBold = () => execCommand("bold");
+    const formatItalic = () => execCommand("italic");
+    const formatUnderline = () => execCommand("underline");
+    const formatStrikethrough = () => execCommand("strikeThrough");
+    const formatCode = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            const text = selection.toString();
+            if (text) {
+                // Check if already in code tag
+                let node: Node | null = selection.anchorNode;
+                while (node && node !== editorRef.current) {
+                    if (node.nodeName.toLowerCase() === 'code') {
+                        // Remove code formatting - replace with text content
+                        const codeEl = node as HTMLElement;
+                        const textNode = document.createTextNode(codeEl.textContent || '');
+                        codeEl.parentNode?.replaceChild(textNode, codeEl);
+                        editorRef.current?.focus();
+                        return;
+                    }
+                    node = node.parentNode;
+                }
+                execCommand("insertHTML", `<code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono">${text}</code>`);
+            }
+        }
+    };
+    
+    // Toggle heading - if already this heading, convert to paragraph
+    const formatHeading = (level: number) => {
+        const tagName = `h${level}`;
+        if (isInsideBlock(tagName)) {
+            execCommand("formatBlock", "div");
+        } else {
+            execCommand("formatBlock", tagName);
+        }
+    };
+    
+    // Convert to normal paragraph/div
+    const formatParagraph = () => {
+        execCommand("formatBlock", "div");
+    };
+    
+    // Toggle blockquote
+    const formatQuote = () => {
+        if (isInsideBlock("blockquote")) {
+            // Remove blockquote - need to unwrap
+            const parentBlock = getParentBlock();
+            if (parentBlock && parentBlock.tagName.toLowerCase() === 'blockquote') {
+                const div = document.createElement('div');
+                div.innerHTML = parentBlock.innerHTML;
+                parentBlock.parentNode?.replaceChild(div, parentBlock);
+                editorRef.current?.focus();
+            } else {
+                execCommand("formatBlock", "div");
+            }
+        } else {
+            execCommand("formatBlock", "blockquote");
+        }
+    };
+    
+    // Toggle lists
+    const formatBulletList = () => execCommand("insertUnorderedList");
+    const formatNumberedList = () => execCommand("insertOrderedList");
+    
+    const formatCheckList = () => {
+        execCommand("insertHTML", `<div class="flex items-start gap-2 my-1"><input type="checkbox" class="mt-1 w-4 h-4 rounded" /><span>Task item</span></div>`);
+    };
+    const insertLink = () => {
+        const url = prompt("Enter URL:");
+        if (url) {
+            execCommand("createLink", url);
+        }
+    };
+    const insertImage = () => {
+        const url = prompt("Enter image URL:");
+        if (url) {
+            execCommand("insertImage", url);
+        }
+    };
+    const undo = () => execCommand("undo");
+    const redo = () => execCommand("redo");
+
+    // Tag management
+    const addTag = (tag: string) => {
+        const trimmedTag = tag.trim().toLowerCase();
+        if (trimmedTag && !tags.includes(trimmedTag)) {
+            setTags([...tags, trimmedTag]);
+        }
+        setNewTag("");
+        setShowTagInput(false);
+    };
+
+    const removeTag = (tagToRemove: string) => {
+        setTags(tags.filter(t => t !== tagToRemove));
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            addTag(newTag);
+        } else if (e.key === "Escape") {
+            setShowTagInput(false);
+            setNewTag("");
+        }
+    };
+
+    // Export functions
+    const exportAsMarkdown = () => {
+        const content = getContent();
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || "";
+        
+        const markdown = `# ${title}\n\n${textContent}`;
+        const blob = new Blob([markdown], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title || "note"}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportAsPDF = async () => {
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${title}</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+                    
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    
+                    @page {
+                        size: A4;
+                        margin: 0;
+                    }
+                    
+                    body { 
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+                        min-height: 100vh;
+                        padding: 0;
+                        margin: 0;
+                        color: #334155;
+                    }
+                    
+                    .note-container {
+                        width: 100%;
+                        max-width: 100%;
+                        margin: 0;
+                        background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(254,250,224,0.95) 100%);
+                        min-height: 100vh;
+                        border: none;
+                        border-radius: 0;
+                        box-shadow: none;
+                    }
+                    
+                    .note-header {
+                        padding: 32px 48px;
+                        background: rgba(255,255,255,0.8);
+                        border-bottom: 3px solid rgba(226,232,240,0.6);
+                        display: flex;
+                        align-items: center;
+                        gap: 20px;
+                    }
+                    
+                    .note-emoji {
+                        font-size: 3rem;
+                        background: #fef3c7;
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 3px solid #fcd34d;
+                    }
+                    
+                    .note-title-section {
+                        flex: 1;
+                    }
+                    
+                    .note-title {
+                        font-size: 2.25rem;
+                        font-weight: 900;
+                        color: #0f172a;
+                        margin-bottom: 8px;
+                    }
+                    
+                    .note-meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+                    
+                    .category-badge {
+                        background: #1e293b;
+                        color: white;
+                        padding: 6px 16px;
+                        border-radius: 20px;
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                    }
+                    
+                    .date-text {
+                        color: #64748b;
+                        font-size: 0.9rem;
+                        font-weight: 500;
+                    }
+                    
+                    .note-content {
+                        padding: 48px;
+                        line-height: 1.9;
+                        font-size: 1.1rem;
+                        color: #334155;
+                    }
+                    
+                    .note-content h1 {
+                        font-size: 2rem;
+                        font-weight: 900;
+                        color: #0f172a;
+                        margin: 32px 0 16px 0;
+                    }
+                    
+                    .note-content h2 {
+                        font-size: 1.625rem;
+                        font-weight: 700;
+                        color: #1e293b;
+                        margin: 28px 0 14px 0;
+                    }
+                    
+                    .note-content h3 {
+                        font-size: 1.375rem;
+                        font-weight: 700;
+                        color: #1e293b;
+                        margin: 24px 0 12px 0;
+                    }
+                    
+                    .note-content p {
+                        margin: 16px 0;
+                    }
+                    
+                    .note-content blockquote {
+                        border-left: 5px solid #f59e0b;
+                        background: linear-gradient(90deg, rgba(251,191,36,0.15) 0%, transparent 100%);
+                        padding: 20px 24px;
+                        margin: 20px 0;
+                        border-radius: 0 16px 16px 0;
+                        font-style: italic;
+                        color: #57534e;
+                    }
+                    
+                    .note-content code {
+                        background: #f1f5f9;
+                        padding: 4px 10px;
+                        border-radius: 8px;
+                        font-size: 0.9em;
+                        font-family: 'SF Mono', 'Fira Code', monospace;
+                        color: #0f172a;
+                        border: 1px solid #e2e8f0;
+                    }
+                    
+                    .note-content pre {
+                        background: #1e293b;
+                        color: #e2e8f0;
+                        padding: 24px;
+                        border-radius: 16px;
+                        overflow-x: auto;
+                        margin: 20px 0;
+                        font-family: 'SF Mono', 'Fira Code', monospace;
+                        font-size: 0.95rem;
+                        line-height: 1.7;
+                    }
+                    
+                    .note-content pre code {
+                        background: transparent;
+                        padding: 0;
+                        border: none;
+                        color: inherit;
+                    }
+                    
+                    .note-content ul, .note-content ol {
+                        margin: 16px 0;
+                        padding-left: 32px;
+                    }
+                    
+                    .note-content li {
+                        margin: 8px 0;
+                    }
+                    
+                    .note-content ul li::marker {
+                        color: #f59e0b;
+                    }
+                    
+                    .note-content ol li::marker {
+                        color: #f59e0b;
+                        font-weight: 700;
+                    }
+                    
+                    .note-content a {
+                        color: #2563eb;
+                        text-decoration: none;
+                        border-bottom: 2px solid #93c5fd;
+                    }
+                    
+                    .note-content img {
+                        max-width: 100%;
+                        border-radius: 16px;
+                        margin: 20px 0;
+                        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                    }
+                    
+                    .note-content strong, .note-content b {
+                        font-weight: 700;
+                        color: #0f172a;
+                    }
+                    
+                    .note-content em, .note-content i {
+                        font-style: italic;
+                    }
+                    
+                    .note-content u {
+                        text-decoration: underline;
+                        text-decoration-color: #f59e0b;
+                        text-underline-offset: 4px;
+                    }
+                    
+                    .note-content s, .note-content strike {
+                        text-decoration: line-through;
+                        color: #94a3b8;
+                    }
+                    
+                    .note-footer {
+                        padding: 24px 48px;
+                        background: rgba(255,255,255,0.6);
+                        border-top: 3px solid rgba(226,232,240,0.6);
+                    }
+                    
+                    .tags-container {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    }
+                    
+                    .tag {
+                        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                        color: #92400e;
+                        padding: 8px 18px;
+                        border-radius: 24px;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        border: 2px solid #fcd34d;
+                    }
+                    
+                    @media print {
+                        body {
+                            background: white;
+                            padding: 0;
+                            margin: 0;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .note-container {
+                            width: 100%;
+                            max-width: 100%;
+                            background: white;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="note-container">
+                    <div class="note-header">
+                        <div class="note-emoji">${emoji}</div>
+                        <div class="note-title-section">
+                            <div class="note-title">${title || "Untitled Note"}</div>
+                            <div class="note-meta">
+                                <span class="category-badge">${category}</span>
+                                <span class="date-text">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note-content">
+                        ${getContent()}
+                    </div>
+                    ${tags.length > 0 ? `
+                    <div class="note-footer">
+                        <div class="tags-container">
+                            ${tags.map(t => `<span class="tag">#${t}</span>`).join("")}
+                        </div>
+                    </div>
+                    ` : ""}
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open("", "_blank");
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+    };
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen) return;
+            
+            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                e.preventDefault();
+                handleSave();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+                e.preventDefault();
+                formatBold();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === "i") {
+                e.preventDefault();
+                formatItalic();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === "u") {
+                e.preventDefault();
+                formatUnderline();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, title, emoji, category, tags]);
+
+    const suggestedTags = existingTags.filter(t => !tags.includes(t) && t.toLowerCase().includes(newTag.toLowerCase()));
+
+    return (
+        <>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <DialogContent hideCloseButton className={cn(
+                "p-0 gap-0 overflow-hidden flex flex-col shadow-2xl bg-[#FEFAE0] dark:bg-yellow-950/30",
+                isFullscreen 
+                    ? "!w-screen !h-[100dvh] !max-w-none !max-h-none !rounded-none !border-0 !top-0 !left-0 !translate-x-0 !translate-y-0" 
+                    : "max-w-4xl w-[95vw] md:w-full h-[90vh] md:h-[85vh] rounded-2xl md:rounded-3xl border-2 md:border-4 border-slate-200"
+            )}>
+                {/* Visually hidden title for screen readers */}
+                <DialogTitle className="sr-only">
+                    {weblog ? `Edit Note: ${weblog.title || 'Untitled'}` : 'Create New Note'}
+                </DialogTitle>
+
+                {/* Mobile Header */}
+                <div className="flex md:hidden items-center justify-between p-3 border-b-2 border-slate-200/50 bg-white/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="shrink-0 scale-75 origin-left -mr-2">
+                            <CompactIconPicker
+                                selectedIcon={emoji}
+                                onSelectIcon={setEmoji}
+                                selectedColor={DEFAULT_ICON_COLOR}
+                                onSelectColor={() => {}}
+                                colors={ICON_COLORS}
+                            />
+                        </div>
+                        <Input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Note Title..."
+                            className="border-none shadow-none text-base font-bold bg-transparent p-0 h-7 focus-visible:ring-0 placeholder:text-slate-400 min-w-0"
+                        />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            className="text-slate-400 h-8 w-8"
+                        >
+                            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg h-8 px-3"
+                        >
+                            <Save className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={handleClose} className="text-slate-400 h-8 w-8">
+                            <X className="w-5 h-5" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Desktop Header */}
+                <div className="hidden md:flex items-center justify-between p-4 border-b-2 border-slate-200/50 bg-white/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 flex-1">
+                        <CompactIconPicker
+                            selectedIcon={emoji}
+                            onSelectIcon={setEmoji}
+                            selectedColor={DEFAULT_ICON_COLOR}
+                            onSelectColor={() => {}}
+                            colors={ICON_COLORS}
+                        />
+
+                        <div className="flex flex-col flex-1">
+                            <Input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Note Title..."
+                                className="border-none shadow-none text-xl font-black bg-transparent p-0 h-8 focus-visible:ring-0 placeholder:text-slate-400"
+                            />
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category:</span>
+                                <div className="flex gap-1">
+                                    {["personal", "journal", "ideas", "learning"].map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setCategory(cat)}
+                                            className={cn(
+                                                "h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all",
+                                                category === cat
+                                                    ? "bg-slate-800 text-white border-slate-800"
+                                                    : "bg-white/50 text-slate-500 border-transparent hover:bg-slate-100"
+                                            )}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            className="text-slate-400 hover:text-slate-600 rounded-xl"
+                            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                        >
+                            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="font-bold rounded-xl border-2">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Export
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl font-bold border-2">
+                                <DropdownMenuItem onClick={exportAsMarkdown} className="cursor-pointer">
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Markdown (.md)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={exportAsPDF} className="cursor-pointer">
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    PDF (Print)
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all"
+                        >
+                            <Save className="w-4 h-4 mr-2" />
+                            Save
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleClose}
+                            className="text-slate-400 hover:text-slate-600 rounded-xl"
+                        >
+                            <X className="w-6 h-6" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Mobile Category */}
+                <div className="md:hidden px-3 py-2 bg-white/30 border-b border-slate-200/50">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                        {["personal", "journal", "ideas", "learning"].map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setCategory(cat)}
+                                className={cn(
+                                    "h-6 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap shrink-0",
+                                    category === cat
+                                        ? "bg-slate-800 text-white border-slate-800"
+                                        : "bg-white/50 text-slate-500 border-slate-200"
+                                )}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Tags Section */}
+                <div className="px-3 md:px-4 py-2 bg-white/30 border-b border-slate-200/50">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        {tags.map(tag => (
+                            <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-lg px-2 py-0.5 text-xs cursor-pointer"
+                                onClick={() => removeTag(tag)}
+                            >
+                                #{tag}
+                                <X className="w-3 h-3 ml-1" />
+                            </Badge>
+                        ))}
+                        {showTagInput ? (
+                            <div className="relative">
+                                <Input
+                                    ref={tagInputRef}
+                                    value={newTag}
+                                    onChange={(e) => setNewTag(e.target.value)}
+                                    onKeyDown={handleTagKeyDown}
+                                    onBlur={() => {
+                                        setTimeout(() => {
+                                            if (newTag.trim()) addTag(newTag);
+                                            else setShowTagInput(false);
+                                        }, 150);
+                                    }}
+                                    placeholder="Add tag..."
+                                    className="h-6 w-24 text-xs border rounded-lg px-2 py-0"
+                                />
+                                {suggestedTags.length > 0 && newTag && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-50 py-1 min-w-[120px]">
+                                        {suggestedTags.slice(0, 5).map(tag => (
+                                            <button
+                                                key={tag}
+                                                className="w-full text-left px-3 py-1 text-xs hover:bg-slate-100"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    addTag(tag);
+                                                }}
+                                            >
+                                                #{tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setShowTagInput(true)}
+                                className="flex items-center gap-1 h-6 px-2 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <Plus className="w-3 h-3" />
+                                <span className="hidden sm:inline">Add tag</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Formatting Toolbar */}
+                <div className="px-2 md:px-4 py-2 bg-white/40 border-b border-slate-200/50 overflow-x-auto scrollbar-hide">
+                    <div className="flex items-center gap-0.5 md:gap-1 min-w-max">
+                        <ToolbarButton onClick={undo} icon={<Undo className="w-4 h-4" />} tooltip="Undo" />
+                        <ToolbarButton onClick={redo} icon={<Redo className="w-4 h-4" />} tooltip="Redo" />
+                        
+                        <div className="w-px h-5 bg-slate-200 mx-1 md:mx-2" />
+                        
+                        <ToolbarButton onClick={formatBold} icon={<Bold className="w-4 h-4" />} tooltip="Bold (Ctrl+B)" active={activeFormats.bold} />
+                        <ToolbarButton onClick={formatItalic} icon={<Italic className="w-4 h-4" />} tooltip="Italic (Ctrl+I)" active={activeFormats.italic} />
+                        <ToolbarButton onClick={formatUnderline} icon={<Underline className="w-4 h-4" />} tooltip="Underline (Ctrl+U)" active={activeFormats.underline} />
+                        <ToolbarButton onClick={formatStrikethrough} icon={<Strikethrough className="w-4 h-4" />} tooltip="Strikethrough" active={activeFormats.strikethrough} />
+                        <ToolbarButton onClick={formatCode} icon={<Code className="w-4 h-4" />} tooltip="Inline Code" active={activeFormats.code} />
+                        
+                        <div className="w-px h-5 bg-slate-200 mx-1 md:mx-2" />
+                        
+                        <ToolbarButton onClick={() => formatHeading(1)} icon={<Heading1 className="w-4 h-4" />} tooltip="Heading 1 (toggle)" active={activeFormats.h1} />
+                        <ToolbarButton onClick={() => formatHeading(2)} icon={<Heading2 className="w-4 h-4" />} tooltip="Heading 2 (toggle)" active={activeFormats.h2} />
+                        <ToolbarButton onClick={() => formatHeading(3)} icon={<Heading3 className="w-4 h-4" />} tooltip="Heading 3 (toggle)" active={activeFormats.h3} />
+                        <ToolbarButton onClick={formatParagraph} icon={<span className="text-sm font-bold">¶</span>} tooltip="Normal Text" />
+                        
+                        <div className="w-px h-5 bg-slate-200 mx-1 md:mx-2" />
+                        
+                        <ToolbarButton onClick={formatBulletList} icon={<List className="w-4 h-4" />} tooltip="Bullet List (toggle)" active={activeFormats.ul} />
+                        <ToolbarButton onClick={formatNumberedList} icon={<ListOrdered className="w-4 h-4" />} tooltip="Numbered List (toggle)" active={activeFormats.ol} />
+                        <ToolbarButton onClick={formatCheckList} icon={<CheckSquare className="w-4 h-4" />} tooltip="Checklist" />
+                        <ToolbarButton onClick={formatQuote} icon={<Quote className="w-4 h-4" />} tooltip="Quote (toggle)" active={activeFormats.blockquote} />
+                        
+                        <div className="w-px h-5 bg-slate-200 mx-1 md:mx-2" />
+                        
+                        <ToolbarButton onClick={insertLink} icon={<LinkIcon className="w-4 h-4" />} tooltip="Insert Link" />
+                        <ToolbarButton onClick={insertImage} icon={<ImageIcon className="w-4 h-4" />} tooltip="Insert Image" />
+
+                        {/* Mobile Export */}
+                        <div className="md:hidden ml-auto">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+                                        <Download className="w-4 h-4" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl font-bold border-2">
+                                    <DropdownMenuItem onClick={exportAsMarkdown} className="cursor-pointer">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Markdown
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={exportAsPDF} className="cursor-pointer">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        PDF
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rich Text Editor - WYSIWYG */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-white/40 dark:bg-black/20 custom-scrollbar">
+                    <div
+                        ref={editorRef}
+                        contentEditable
+                        onSelect={updateActiveFormats}
+                        onKeyUp={updateActiveFormats}
+                        onClick={updateActiveFormats}
+                        className={cn(
+                            "min-h-full outline-none whitespace-pre-wrap break-words",
+                            "text-base md:text-lg leading-relaxed text-slate-700 dark:text-slate-200",
+                            "caret-slate-800 dark:caret-white",
+                            "[&>h1]:text-2xl [&>h1]:md:text-3xl [&>h1]:font-black [&>h1]:mt-6 [&>h1]:mb-3 [&>h1]:text-slate-900 [&>h1]:dark:text-white",
+                            "[&>h2]:text-xl [&>h2]:md:text-2xl [&>h2]:font-bold [&>h2]:mt-5 [&>h2]:mb-2 [&>h2]:text-slate-800 [&>h2]:dark:text-slate-100",
+                            "[&>h3]:text-lg [&>h3]:md:text-xl [&>h3]:font-bold [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:text-slate-800 [&>h3]:dark:text-slate-100",
+                            "[&>p]:my-2 [&>p]:leading-relaxed",
+                            "[&>div]:my-1 [&>div]:leading-relaxed",
+                            "[&_a]:text-blue-500 [&_a]:underline hover:[&_a]:text-blue-600",
+                            "[&_img]:rounded-2xl [&_img]:shadow-lg [&_img]:max-w-full [&_img]:my-4",
+                            "[&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-slate-600 [&_blockquote]:dark:text-slate-400",
+                            "[&_code]:bg-slate-100 [&_code]:dark:bg-slate-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono",
+                            "[&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc",
+                            "[&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal",
+                            "[&_li]:my-1 [&_li]:leading-relaxed",
+                            "[&_b]:font-bold [&_strong]:font-bold",
+                            "[&_i]:italic [&_em]:italic",
+                            "[&_u]:underline",
+                            "[&_s]:line-through [&_strike]:line-through",
+                            "[&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:h-4 [&_input[type=checkbox]]:rounded [&_input[type=checkbox]]:mr-2 [&_input[type=checkbox]]:accent-green-500",
+                            "focus:outline-none",
+                            "empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
+                        )}
+                        style={{ minHeight: "200px" }}
+                        data-placeholder="Start writing your note..."
+                        suppressContentEditableWarning
+                        onKeyDown={(e) => {
+                            if (e.key === "Tab") {
+                                e.preventDefault();
+                                document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
+                            }
+                        }}
+                        onPaste={(e) => {
+                            // Handle paste to strip HTML formatting if needed
+                            e.preventDefault();
+                            const text = e.clipboardData.getData("text/plain");
+                            document.execCommand("insertText", false, text);
+                        }}
+                        onFocus={() => {
+                            // Ensure default paragraph mode
+                            document.execCommand("defaultParagraphSeparator", false, "div");
+                        }}
+                    />
+                </div>
+
+            </DialogContent>
+        </Dialog>
+
+        {/* Close warning dialog */}
+        <AlertDialog open={showCloseWarning} onOpenChange={setShowCloseWarning}>
+            <AlertDialogContent className="rounded-2xl border-2">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="font-black">Unsaved Changes</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You have unsaved changes. Your draft has been saved and will be restored when you reopen the editor. Do you want to keep the draft or discard it?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2">
+                    <AlertDialogCancel 
+                        onClick={handleDiscardAndClose}
+                        className="rounded-xl font-bold border-2 text-red-500 border-red-200 hover:bg-red-50"
+                    >
+                        Discard Draft
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={handleKeepDraftAndClose}
+                        className="rounded-xl font-bold bg-green-500 hover:bg-green-600 text-white"
+                    >
+                        Keep Draft
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
+    );
+}
+
+function ToolbarButton({ 
+    onClick, 
+    icon, 
+    tooltip, 
+    active = false 
+}: { 
+    onClick: () => void; 
+    icon: React.ReactNode; 
+    tooltip: string; 
+    active?: boolean;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            title={tooltip}
+            className={cn(
+                "p-1.5 md:p-2 rounded-lg transition-colors",
+                active 
+                    ? "bg-slate-200 text-slate-800" 
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+            )}
+        >
+            {icon}
+        </button>
+    );
+}
