@@ -22,7 +22,14 @@ import {
     MoreVertical,
     LogOut,
     Trash2,
-    UserMinus
+    UserMinus,
+    Zap,
+    Droplets,
+    Calendar,
+    Layers,
+    CheckCircle2,
+    Clapperboard,
+    PartyPopper
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +82,7 @@ export function SocialSection({ className }: SocialSectionProps) {
     return (
         <div className={cn("flex flex-col h-full", className)}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 lg:p-6 border-b border-border">
+            <div className="flex items-center justify-between p-4 lg:p-6">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-violet-500/20 border-2 border-violet-500/30 flex items-center justify-center">
                         <Users className="w-5 h-5 text-violet-500" />
@@ -280,6 +287,7 @@ function FriendCard({ friend, onSendCheer, onRemoveFriend }: {
     onRemoveFriend: (userId: Id<"users">) => void;
 }) {
     const [showCheerPicker, setShowCheerPicker] = useState(false);
+    const [showConfirmUnfriend, setShowConfirmUnfriend] = useState(false);
 
     return (
         <motion.div
@@ -314,8 +322,17 @@ function FriendCard({ friend, onSendCheer, onRemoveFriend }: {
                     <span>{friend.totalXP?.toLocaleString() || 0} XP</span>
                 </div>
                 {friend.todayActivity && (
-                    <div className="flex items-center gap-2 text-[10px] font-black text-green-500 mt-1 uppercase tracking-wide">
-                        <span>✓ {friend.todayActivity.tasksCompleted} tasks</span>
+                    <div className="flex flex-col gap-1 mt-1.5">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-green-600 uppercase tracking-wide">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>{friend.todayActivity.tasksCompleted} tasks completed</span>
+                        </div>
+                        {friend.todayActivity.habitsChecked > 0 && (
+                            <div className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase tracking-wide">
+                                <Droplets className="w-3 h-3" />
+                                <span>{friend.todayActivity.habitsChecked} habits checked</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -368,20 +385,49 @@ function FriendCard({ friend, onSendCheer, onRemoveFriend }: {
                             <MoreVertical className="w-4 h-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40 font-bold">
+                    <DropdownMenuContent align="end" className="w-48 p-2 font-bold rounded-2xl border-2 border-b-4">
                         <DropdownMenuItem
-                            className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                            onClick={() => {
-                                if (confirm(`Are you sure you want to remove ${friend.name} from your squad?`)) {
-                                    onRemoveFriend(friend.id);
-                                }
-                            }}
+                            className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-xl"
+                            onSelect={() => setShowConfirmUnfriend(true)}
                         >
                             <UserMinus className="w-4 h-4 mr-2" />
                             Unfriend
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Unfriend Confirmation Dialog */}
+                <Dialog open={showConfirmUnfriend} onOpenChange={setShowConfirmUnfriend}>
+                    <DialogContent className="sm:max-w-[350px] border-2 border-b-4 border-slate-200 rounded-3xl p-6">
+                        <DialogHeader className="space-y-3">
+                            <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-2 border-2 border-red-200 dark:border-red-800">
+                                <UserMinus className="w-8 h-8 text-red-500" />
+                            </div>
+                            <DialogTitle className="text-center text-xl font-black font-headline text-red-600 dark:text-red-400">Remove Friend?</DialogTitle>
+                            <DialogDescription className="text-center font-medium text-balance">
+                                Are you sure you want to remove <span className="font-bold text-foreground">{friend.name}</span> from your accountability squad?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-2 mt-4">
+                            <Button
+                                className="w-full bg-red-500 hover:bg-red-600 text-white font-black rounded-xl border-b-[6px] border-red-700 hover:border-red-800 active:border-b-0 transition-all"
+                                onClick={() => {
+                                    onRemoveFriend(friend.id);
+                                    setShowConfirmUnfriend(false);
+                                }}
+                            >
+                                YES, UNFRIEND
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                className="w-full font-bold rounded-xl hover:bg-slate-100"
+                                onClick={() => setShowConfirmUnfriend(false)}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </motion.div>
     );
@@ -506,10 +552,30 @@ function ChallengesTab({ challenges, friends }: {
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent className="border-2 rounded-xl">
-                                    <SelectItem value="tasks_count">✅ Complete Tasks</SelectItem>
-                                    <SelectItem value="habits_count">💧 Check-in Habits</SelectItem>
-                                    <SelectItem value="streak">🔥 Maintain Streak</SelectItem>
-                                    <SelectItem value="xp_earned">⭐ Earn XP</SelectItem>
+                                    <SelectItem value="tasks_count">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            <span>Complete Tasks</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="habits_count">
+                                        <div className="flex items-center gap-2">
+                                            <Droplets className="w-4 h-4 text-blue-500" />
+                                            <span>Check-in Habits</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="streak">
+                                        <div className="flex items-center gap-2">
+                                            <Flame className="w-4 h-4 text-orange-500" />
+                                            <span>Maintain Streak</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="xp_earned">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="w-4 h-4 text-yellow-500" />
+                                            <span>Earn XP</span>
+                                        </div>
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input
@@ -525,14 +591,34 @@ function ChallengesTab({ challenges, friends }: {
                             value={newChallenge.durationDays.toString()}
                             onValueChange={(value) => setNewChallenge({ ...newChallenge, durationDays: parseInt(value) })}
                         >
-                            <SelectTrigger className="w-full border-2 border-b-4 border-border rounded-xl bg-background font-medium">
+                            <SelectTrigger className="w-full border-2 border-b-4 border-border rounded-xl bg-background font-medium h-12">
                                 <SelectValue placeholder="Select duration" />
                             </SelectTrigger>
                             <SelectContent className="border-2 rounded-xl">
-                                <SelectItem value="3">⚡ 3 Days (Quick Sprint)</SelectItem>
-                                <SelectItem value="7">📅 1 Week</SelectItem>
-                                <SelectItem value="14">🗓️ 2 Weeks</SelectItem>
-                                <SelectItem value="30">📆 1 Month</SelectItem>
+                                <SelectItem value="3">
+                                    <div className="flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-yellow-500" />
+                                        <span>3 Days (Quick Sprint)</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="7">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-violet-500" />
+                                        <span>1 Week</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="14">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-violet-500" />
+                                        <span>2 Weeks</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="30">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-violet-500" />
+                                        <span>1 Month</span>
+                                    </div>
+                                </SelectItem>
                             </SelectContent>
                         </Select>
 
@@ -607,6 +693,8 @@ function ChallengeCard({ challenge, onLeaveChallenge }: {
     challenge: any;
     onLeaveChallenge: (id: Id<"challenges">) => void;
 }) {
+    const [showConfirmLeave, setShowConfirmLeave] = useState(false);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -633,20 +721,49 @@ function ChallengeCard({ challenge, onLeaveChallenge }: {
                                 <MoreVertical className="w-3 h-3" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 font-bold">
+                        <DropdownMenuContent align="end" className="w-48 p-2 font-bold rounded-2xl border-2 border-b-4">
                             <DropdownMenuItem
-                                className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                                onClick={() => {
-                                    if (confirm(`Are you sure you want to leave ${challenge.title}?`)) {
-                                        onLeaveChallenge(challenge.id);
-                                    }
-                                }}
+                                className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-xl"
+                                onSelect={() => setShowConfirmLeave(true)}
                             >
                                 <LogOut className="w-4 h-4 mr-2" />
                                 Leave Challenge
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {/* Leave Challenge Confirmation Dialog */}
+                    <Dialog open={showConfirmLeave} onOpenChange={setShowConfirmLeave}>
+                        <DialogContent className="sm:max-w-[350px] border-2 border-b-4 border-slate-200 rounded-3xl p-6">
+                            <DialogHeader className="space-y-3">
+                                <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2 border-2 border-amber-200 dark:border-amber-800">
+                                    <LogOut className="w-8 h-8 text-amber-600" />
+                                </div>
+                                <DialogTitle className="text-center text-xl font-black font-headline text-amber-600 dark:text-amber-400">Leave Challenge?</DialogTitle>
+                                <DialogDescription className="text-center font-medium text-balance">
+                                    Are you sure you want to leave <span className="font-bold text-foreground">{challenge.title}</span>? Your progress will be reset.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex flex-col gap-2 mt-4">
+                                <Button
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl border-b-[6px] border-amber-700 hover:border-amber-800 active:border-b-0 transition-all"
+                                    onClick={() => {
+                                        onLeaveChallenge(challenge.id);
+                                        setShowConfirmLeave(false);
+                                    }}
+                                >
+                                    YES, LEAVE CHALLENGE
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full font-bold rounded-xl hover:bg-slate-100"
+                                    onClick={() => setShowConfirmLeave(false)}
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -716,22 +833,25 @@ function LeaderboardTab({ leaderboard }: { leaderboard: any[] }) {
             {/* Sort Options */}
             <div className="flex gap-2 overflow-auto pb-2">
                 {[
-                    { id: "xp", label: "XP", icon: "⚡" },
-                    { id: "streak", label: "Streak", icon: "🔥" },
-                    { id: "level", label: "Level", icon: "⭐" },
-                    { id: "tasks", label: "Tasks", icon: "✓" },
+                    { id: "xp", label: "XP", icon: <Zap className="w-3.5 h-3.5" />, color: "text-yellow-500" },
+                    { id: "streak", label: "Streak", icon: <Flame className="w-3.5 h-3.5" />, color: "text-orange-500" },
+                    { id: "level", label: "Level", icon: <Star className="w-3.5 h-3.5" />, color: "text-blue-500" },
+                    { id: "tasks", label: "Tasks", icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: "text-green-500" },
                 ].map((option) => (
                     <button
                         key={option.id}
                         onClick={() => setSortBy(option.id)}
                         className={cn(
-                            "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                            "px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-2 border-2 border-b-4",
                             sortBy === option.id
-                                ? "bg-violet-500 text-white"
-                                : "bg-muted hover:bg-muted/80"
+                                ? "bg-violet-500 text-white border-violet-700"
+                                : "bg-card border-border hover:border-slate-300"
                         )}
                     >
-                        {option.icon} {option.label}
+                        <span className={cn(sortBy === option.id ? "text-white" : option.color)}>
+                            {option.icon}
+                        </span>
+                        {option.label}
                     </button>
                 ))}
             </div>
@@ -831,19 +951,19 @@ function FeedTab({
 
     const getMilestoneIcon = (type: string) => {
         switch (type) {
-            case "tasks_completed": return "✓";
-            case "streak_achieved": return "🔥";
-            case "level_up": return "⭐";
-            case "habit_streak": return "💧";
-            case "weekly_goal": return "🎯";
-            default: return "🎉";
+            case "tasks_completed": return <CheckCircle2 className="w-6 h-6 text-white" />;
+            case "streak_achieved": return <Flame className="w-6 h-6 text-white" />;
+            case "level_up": return <Star className="w-6 h-6 text-white" />;
+            case "habit_streak": return <Droplets className="w-6 h-6 text-white" />;
+            case "weekly_goal": return <Target className="w-6 h-6 text-white" />;
+            default: return <Award className="w-6 h-6 text-white" />;
         }
     };
 
     const getMilestoneMessage = (type: string, value: number) => {
         switch (type) {
             case "tasks_completed": return `Completed ${value} quests!`;
-            case "streak_achieved": return `${value}-day streak! 🔥`;
+            case "streak_achieved": return `${value}-day streak!`;
             case "level_up": return `Reached Level ${value}!`;
             case "habit_streak": return `${value}-day habit streak!`;
             case "weekly_goal": return "Crushed their weekly goal!";
@@ -883,14 +1003,20 @@ function FeedTab({
                                     <span className="font-bold text-sm truncate">{item.friend.name}</span>
                                 </div>
                                 {item.activity ? (
-                                    <div className="text-xs space-y-0.5">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Tasks</span>
-                                            <span className="font-bold text-green-500">✓ {item.activity.tasksCompleted}</span>
+                                    <div className="text-xs space-y-1">
+                                        <div className="flex justify-between items-center bg-green-500/10 p-1.5 rounded-lg border border-green-500/20">
+                                            <div className="flex items-center gap-1.5 text-green-600 font-bold">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                <span>Tasks</span>
+                                            </div>
+                                            <span className="font-black text-green-600">{item.activity.tasksCompleted}</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Habits</span>
-                                            <span className="font-bold text-blue-500">💧 {item.activity.habitsCompleted}</span>
+                                        <div className="flex justify-between items-center bg-blue-500/10 p-1.5 rounded-lg border border-blue-500/20">
+                                            <div className="flex items-center gap-1.5 text-blue-500 font-bold">
+                                                <Droplets className="w-3 h-3" />
+                                                <span>Habits</span>
+                                            </div>
+                                            <span className="font-black text-blue-500">{item.activity.habitsCompleted}</span>
                                         </div>
                                     </div>
                                 ) : (
@@ -985,7 +1111,7 @@ function FeedTab({
                                     size="sm"
                                     variant={milestone.hasCelebrated ? "secondary" : "outline"}
                                     className={cn(
-                                        "relative z-20",
+                                        "relative z-20 gap-2 h-9",
                                         milestone.hasCelebrated
                                             ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                                             : "bg-white hover:bg-gray-50 text-foreground border-2 border-gray-200 hover:border-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:border-zinc-600"
@@ -993,7 +1119,8 @@ function FeedTab({
                                     onClick={() => !milestone.hasCelebrated && handleCelebrate(milestone._id)}
                                     disabled={milestone.hasCelebrated}
                                 >
-                                    {milestone.hasCelebrated ? "🎉 Celebrated" : "🎉 Celebrate"}
+                                    <PartyPopper className={cn("w-4 h-4", milestone.hasCelebrated ? "text-green-500" : "text-violet-500")} />
+                                    {milestone.hasCelebrated ? "Celebrated" : "Celebrate"}
                                 </Button>
                             </div>
                             {milestone.celebratedBy?.length > 0 && (
