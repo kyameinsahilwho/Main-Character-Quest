@@ -24,8 +24,8 @@ Edit `.env.local` with your keys
 
 ## Step 5: Start App (30 sec)
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## Done! 🎉
