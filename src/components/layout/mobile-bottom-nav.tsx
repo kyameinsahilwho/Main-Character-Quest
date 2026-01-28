@@ -28,7 +28,7 @@ export function MobileBottomNav({
         return pathname.startsWith(path);
     };
 
-    const isMoreActive = isActive('/projects') || isActive('/archive');
+    const isMoreActive = isActive('/projects') || isActive('/archive') || isActive('/social');
 
     return (
         <>
@@ -61,6 +61,18 @@ export function MobileBottomNav({
                             >
                                 <span className={`material-symbols-outlined text-xl ${isActive('/projects') ? "[font-variation-settings:'FILL'_1]" : ""}`}>folder_open</span>
                                 <span className="font-bold text-sm">Projects</span>
+                            </Link>
+                            <Link
+                                href="/social"
+                                onClick={() => setShowMoreMenu(false)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${
+                                    isActive('/social')
+                                        ? 'bg-zinc-100 dark:bg-zinc-800 text-purple-600 dark:text-purple-400'
+                                        : 'text-muted-foreground'
+                                }`}
+                            >
+                                <span className={`material-symbols-outlined text-xl ${isActive('/social') ? "[font-variation-settings:'FILL'_1]" : ""}`}>group</span>
+                                <span className="font-bold text-sm">Squad</span>
                             </Link>
                             <Link
                                 href="/archive"
