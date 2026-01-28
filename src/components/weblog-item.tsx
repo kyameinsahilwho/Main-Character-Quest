@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Edit2, Trash2, Pin, MoreVertical, Tag } from "lucide-react";
 import { Weblog } from "@/hooks/use-weblogs";
@@ -11,6 +12,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,6 +33,8 @@ interface WeblogItemProps {
 }
 
 export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItemProps) {
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
     // Strip HTML and markdown for preview
     const previewText = weblog.content
         // Replace block endings and breaks with a space to prevent word concatenation
@@ -97,7 +110,9 @@ export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItem
                                 Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                                onClick={() => onDelete(weblog._id)}
+                                onClick={() => {
+                                    setShowDeleteDialog(true);
+                                }}
                                 className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer text-sm"
                             >
                                 <Trash2 className="w-4 h-4 mr-2" />
@@ -107,6 +122,21 @@ export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItem
                     </DropdownMenu>
                 </div>
             </div>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Note</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this note?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(weblog._id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Content Preview */}
             <div className="flex-1 mb-2">
