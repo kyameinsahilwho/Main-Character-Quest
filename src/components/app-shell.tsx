@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useRef, useEffect } from 'react';
 import Header from '@/components/header';
 import { useTaskQuest } from '@/context/task-quest-context';
 import { QuickAddMenu } from '@/components/quick-add-menu';
@@ -47,6 +47,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   } = useTaskQuest();
 
   const pathname = usePathname();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   const getTitle = () => {
     // Check if we are in a project detail page (if we implement sub-routing for projects later)
@@ -92,7 +99,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 pb-32 md:p-8">
             <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
                 {/* Page Title & Actions */}
                 <div className="flex items-center justify-between">
