@@ -1,13 +1,14 @@
 "use client";
 
 import Image from 'next/image';
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HeroStatsCard } from './hero-stats-card';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface DesktopSidebarProps {
     levelInfo: {
@@ -24,6 +25,14 @@ export function DesktopSidebar({
     completionPercentage
 }: DesktopSidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const pathname = usePathname();
+
+    const isActive = (path: string) => {
+        if (path === '/' || path === '/today') {
+            return pathname === '/' || pathname === '/today';
+        }
+        return pathname.startsWith(path);
+    };
 
     return (
         <motion.aside
@@ -84,50 +93,56 @@ export function DesktopSidebar({
                         </motion.h3>
                     )}
 
-                    <TabsList className={cn("flex flex-col h-auto bg-transparent border-0 p-0 gap-2 w-full", isCollapsed && "items-center")}>
+                    <div className={cn("flex flex-col h-auto bg-transparent border-0 p-0 gap-2 w-full", isCollapsed && "items-center")}>
                         <SidebarItem
-                            value="today"
+                            href="/"
+                            isActive={isActive('/')}
                             icon="swords"
                             label="Quests"
                             color="green"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
-                            value="habits"
+                            href="/habits"
+                            isActive={isActive('/habits')}
                             icon="water_drop"
                             label="Rituals"
                             color="blue"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
-                            value="projects"
+                            href="/projects"
+                            isActive={isActive('/projects')}
                             icon="folder_open"
                             label="Projects"
                             color="orange"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
-                            value="social"
+                            href="/social"
+                            isActive={isActive('/social')}
                             icon="group"
                             label="Squad"
                             color="purple"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
-                            value="weblog"
+                            href="/weblog"
+                            isActive={isActive('/weblog')}
                             icon="menu_book"
                             label="Weblog"
                             color="amber"
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
-                            value="archive"
+                            href="/archive"
+                            isActive={isActive('/archive')}
                             icon="inventory_2"
                             label="Archive"
                             color="slate"
                             isCollapsed={isCollapsed}
                         />
-                    </TabsList>
+                    </div>
                 </div>
 
                 {/* Hero Stats */}
@@ -137,7 +152,6 @@ export function DesktopSidebar({
                             <div className="h-10 w-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center border-2 border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 font-black text-sm">
                                 {levelInfo.level}
                             </div>
-                            {/* Hover Tooltip for stats when collapsed */}
                             <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 bg-background rounded-2xl shadow-xl border-2 border-border p-0 overflow-hidden transform scale-95 group-hover:scale-100 origin-left">
                                 <HeroStatsCard levelInfo={levelInfo} completionPercentage={completionPercentage} />
                             </div>
@@ -158,36 +172,36 @@ export function DesktopSidebar({
 }
 
 interface SidebarItemProps {
-    value: string;
+    href: string;
+    isActive: boolean;
     icon: string;
     label: string;
     color: string;
     isCollapsed: boolean;
 }
 
-function SidebarItem({ value, icon, label, color, isCollapsed }: SidebarItemProps) {
-    // Professional: subtle fill for active, text color accent for identity
+function SidebarItem({ href, isActive, icon, label, color, isCollapsed }: SidebarItemProps) {
     const accentTextColors: Record<string, string> = {
-        green: "data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400",
-        blue: "data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400",
-        orange: "data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-500",
-        amber: "data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400",
-        purple: "data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400",
-        slate: "data-[state=active]:text-slate-700 dark:data-[state=active]:text-slate-300"
+        green: isActive ? "text-green-600 dark:text-green-400" : "",
+        blue: isActive ? "text-blue-600 dark:text-blue-400" : "",
+        orange: isActive ? "text-amber-700 dark:text-amber-500" : "",
+        amber: isActive ? "text-amber-600 dark:text-amber-400" : "",
+        purple: isActive ? "text-purple-600 dark:text-purple-400" : "",
+        slate: isActive ? "text-slate-700 dark:text-slate-300" : ""
     };
 
     return (
-        <TabsTrigger
-            value={value}
+        <Link
+            href={href}
             className={cn(
                 "sidebar-item flex items-center rounded-2xl w-full mb-1 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-muted-foreground border border-transparent transition-all duration-150 group relative overflow-hidden",
-                "data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 data-[state=active]:font-black",
+                isActive ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 font-black" : "",
                 isCollapsed ? "justify-center px-0 py-2.5 w-10 h-10 mx-auto" : "justify-start gap-3 px-3 py-2.5",
                 accentTextColors[color]
             )}
         >
             <div className={cn("z-10 flex items-center justify-center transition-all", isCollapsed ? "" : "")}>
-                <span className="material-symbols-outlined text-2xl group-data-[state=active]:[font-variation-settings:'FILL'_1]">
+                <span className={`material-symbols-outlined text-2xl ${isActive ? "[font-variation-settings:'FILL'_1]" : ""}`}>
                     {icon}
                 </span>
             </div>
@@ -196,6 +210,6 @@ function SidebarItem({ value, icon, label, color, isCollapsed }: SidebarItemProp
                     {label}
                 </span>
             )}
-        </TabsTrigger>
+        </Link>
     );
 }
