@@ -5,6 +5,17 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Check, Trash2, Flame, Trophy, BarChart2, Edit2, ChevronDown, ChevronUp, Plus, CircleDashed, Archive, History } from "lucide-react";
 import { Button } from "./ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isToday, parseISO, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, startOfDay, startOfMonth, endOfMonth, isSameMonth, isSameWeek, subWeeks, subMonths, differenceInCalendarDays, addWeeks } from "date-fns";
 import { EditHabitDialog } from "./edit-habit-dialog";
@@ -417,14 +428,30 @@ export function HabitItem({ habit, currentDate = new Date(), onToggle, onUpdate,
                 <Archive className="w-4 h-4 mr-2" />
                 Archive
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDelete(habit.id)}
-                className="bg-rose-50 border-2 border-b-4 border-rose-100 text-rose-300 font-black uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl hover:bg-rose-100 hover:text-rose-500 active:translate-y-0.5 active:border-b-0 transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-rose-50 border-2 border-b-4 border-rose-100 text-rose-300 font-black uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl hover:bg-rose-100 hover:text-rose-500 active:translate-y-0.5 active:border-b-0 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Habit</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this habit? All history and stats will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onUpdate(habit.id, { archived: true })}>Archive</AlertDialogAction>
+                    <AlertDialogAction onClick={() => onDelete(habit.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </motion.div>
         )}
