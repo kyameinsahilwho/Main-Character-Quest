@@ -3,6 +3,8 @@ import Script from 'next/script';
 import { Toaster } from "@/components/ui/toaster"
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import './globals.css';
+import { TaskQuestProvider } from '@/context/task-quest-context';
+import AppShell from '@/components/app-shell';
 
 export const metadata: Metadata = {
   title: 'Pollytasks',
@@ -45,7 +47,11 @@ export default function RootLayout({
           `}
         </Script>
         <ConvexClientProvider>
-          {children}
+          <TaskQuestProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </TaskQuestProvider>
         </ConvexClientProvider>
         <Toaster />
       </body>

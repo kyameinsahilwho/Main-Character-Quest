@@ -1,16 +1,16 @@
 "use client";
 
 import { useTaskQuest } from '@/context/task-quest-context';
-import { TaskView } from '@/components/task-view';
+import { ArchiveView } from '@/components/archive-view';
 
-export default function HomePage() {
+export default function ArchivePage() {
   const {
+    habits,
     tasks,
-    toggleHabitCompletion,
     updateHabit,
     deleteHabit,
-    handleToggleTask,
     deleteTask,
+    handleToggleTask,
     setTaskToEdit,
     addSubtask,
     toggleSubtaskCompletion,
@@ -18,14 +18,13 @@ export default function HomePage() {
   } = useTaskQuest();
 
   return (
-    <TaskView
-      habits={[]}
+    <ArchiveView
+      habits={habits}
       tasks={tasks}
-      onToggleHabit={toggleHabitCompletion}
-      onUpdateHabit={updateHabit}
+      onUnarchiveHabit={(id) => updateHabit(id, { archived: false })}
       onDeleteHabit={deleteHabit}
-      onToggleTask={handleToggleTask}
       onDeleteTask={deleteTask}
+      onToggleTask={handleToggleTask}
       onEditTask={setTaskToEdit}
       onAddSubtask={addSubtask}
       onToggleSubtask={toggleSubtaskCompletion}

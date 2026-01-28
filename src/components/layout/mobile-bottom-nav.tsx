@@ -3,28 +3,32 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface MobileBottomNavProps {
-    activeTab: string;
+    activeTab?: string; // Optional or ignored
     isQuickAddOpen: boolean;
     onToggleQuickAdd: () => void;
-    onTabChange: (tab: string) => void;
+    onTabChange?: (tab: string) => void; // Optional or ignored
 }
 
 export function MobileBottomNav({
-    activeTab,
     isQuickAddOpen,
-    onToggleQuickAdd,
-    onTabChange
+    onToggleQuickAdd
 }: MobileBottomNavProps) {
+    const pathname = usePathname();
     const [showMoreMenu, setShowMoreMenu] = useState(false);
-    const isMoreActive = activeTab === 'projects' || activeTab === 'archive';
 
-    const handleMoreMenuItemClick = (tab: string) => {
-        onTabChange(tab);
-        setShowMoreMenu(false);
+    // Helper to check active state
+    const isActive = (path: string) => {
+        if (path === '/' || path === '/today') {
+            return pathname === '/' || pathname === '/today';
+        }
+        return pathname.startsWith(path);
     };
+
+    const isMoreActive = isActive('/projects') || isActive('/archive');
 
     return (
         <>
@@ -46,28 +50,30 @@ export function MobileBottomNav({
                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                             className="lg:hidden fixed bottom-24 right-4 z-50 bg-card rounded-2xl border-2 border-border shadow-2xl overflow-hidden min-w-[160px]"
                         >
-                            <button
-                                onClick={() => handleMoreMenuItemClick('projects')}
+                            <Link
+                                href="/projects"
+                                onClick={() => setShowMoreMenu(false)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${
-                                    activeTab === 'projects' 
+                                    isActive('/projects')
                                         ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-500' 
                                         : 'text-muted-foreground'
                                 }`}
                             >
-                                <span className={`material-symbols-outlined text-xl ${activeTab === 'projects' ? "[font-variation-settings:'FILL'_1]" : ""}`}>folder_open</span>
+                                <span className={`material-symbols-outlined text-xl ${isActive('/projects') ? "[font-variation-settings:'FILL'_1]" : ""}`}>folder_open</span>
                                 <span className="font-bold text-sm">Projects</span>
-                            </button>
-                            <button
-                                onClick={() => handleMoreMenuItemClick('archive')}
+                            </Link>
+                            <Link
+                                href="/archive"
+                                onClick={() => setShowMoreMenu(false)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none ${
-                                    activeTab === 'archive' 
+                                    isActive('/archive')
                                         ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400' 
                                         : 'text-muted-foreground'
                                 }`}
                             >
-                                <span className={`material-symbols-outlined text-xl ${activeTab === 'archive' ? "[font-variation-settings:'FILL'_1]" : ""}`}>inventory_2</span>
+                                <span className={`material-symbols-outlined text-xl ${isActive('/archive') ? "[font-variation-settings:'FILL'_1]" : ""}`}>inventory_2</span>
                                 <span className="font-bold text-sm">Archive</span>
-                            </button>
+                            </Link>
                         </motion.div>
                     </>
                 )}
@@ -75,24 +81,28 @@ export function MobileBottomNav({
 
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 bg-card/95 border-t-2 border-border backdrop-blur-md pb-safe">
                 <div className="flex flex-col">
-                    <TabsList className="grid w-full grid-cols-5 p-2 h-auto bg-transparent border-0 rounded-none gap-1 relative">
-                        <TabsTrigger
-                            value="today"
-                            className="relative rounded-xl data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 data-[state=active]:shadow-none transition-all font-bold py-3 h-auto group
-              data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground
-              transform transition-transform duration-75"
+                    <div className="grid w-full grid-cols-5 p-2 h-auto bg-transparent border-0 rounded-none gap-1 relative">
+                        <Link
+                            href="/"
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
+                                isActive('/')
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-green-600 dark:text-green-400 shadow-none'
+                                : 'bg-transparent text-muted-foreground'
+                            }`}
                         >
-                            <span className="material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 group-data-[state=active]:[font-variation-settings:'FILL'_1]">swords</span>
-                        </TabsTrigger>
+                            <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/') ? "[font-variation-settings:'FILL'_1]" : ""}`}>swords</span>
+                        </Link>
 
-                        <TabsTrigger
-                            value="habits"
-                            className="relative rounded-xl data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-none transition-all font-bold py-3 h-auto group
-              data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground
-              transform transition-transform duration-75"
+                        <Link
+                            href="/habits"
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
+                                isActive('/habits')
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-none'
+                                : 'bg-transparent text-muted-foreground'
+                            }`}
                         >
-                            <span className="material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 group-data-[state=active]:[font-variation-settings:'FILL'_1]">water_drop</span>
-                        </TabsTrigger>
+                            <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/habits') ? "[font-variation-settings:'FILL'_1]" : ""}`}>water_drop</span>
+                        </Link>
 
                         {/* Center Quick Add Button */}
                         <div className="flex items-center justify-center relative">
@@ -112,14 +122,16 @@ export function MobileBottomNav({
                             </button>
                         </div>
 
-                        <TabsTrigger
-                            value="weblog"
-                            className="relative rounded-xl data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:shadow-none transition-all font-bold py-3 h-auto group
-              data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground
-              transform transition-transform duration-75"
+                        <Link
+                            href="/weblog"
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
+                                isActive('/weblog')
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-400 shadow-none'
+                                : 'bg-transparent text-muted-foreground'
+                            }`}
                         >
-                            <span className="material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 group-data-[state=active]:[font-variation-settings:'FILL'_1]">menu_book</span>
-                        </TabsTrigger>
+                            <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/weblog') ? "[font-variation-settings:'FILL'_1]" : ""}`}>menu_book</span>
+                        </Link>
 
                         {/* More Menu Button */}
                         <button
@@ -134,7 +146,7 @@ export function MobileBottomNav({
                                 more_horiz
                             </span>
                         </button>
-                    </TabsList>
+                    </div>
                 </div>
             </nav>
         </>
