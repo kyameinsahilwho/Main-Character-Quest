@@ -5,7 +5,7 @@ This guide will help you set up Supabase authentication and database sync for yo
 ## Prerequisites
 
 - A Supabase account (sign up at https://supabase.com)
-- Node.js and npm installed
+- Bun installed
 - This project cloned locally
 
 ## Step 1: Create a Supabase Project
@@ -88,12 +88,12 @@ Email authentication is enabled by default. Users can sign up with email/passwor
 
 1. Install dependencies (if not already done):
    ```bash
-   npm install
+   bun install
    ```
 
 2. Start the development server:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 3. Open http://localhost:3000

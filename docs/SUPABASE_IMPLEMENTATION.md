@@ -64,7 +64,7 @@
 
 1. **Install dependencies:**
    ```bash
-   npm install
+   bun install
    ```
 
 2. **Set up Supabase:**
@@ -75,7 +75,7 @@
 
 3. **Start the app:**
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 4. **Create an account:**
