@@ -1,0 +1,33 @@
+$ next dev --turbopack -p 9002
+   ▲ Next.js 15.5.10 (Turbopack)
+   - Local:        http://localhost:9002
+   - Network:      http://192.168.0.2:9002
+
+ ✓ Starting...
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 741ms
+ ✓ Ready in 2.3s
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 13.9s
+VAPID keys not set. Push notifications will not work.
+ GET /verify-editor 404 in 14976ms
+ ○ Compiling /weblog ...
+ ✓ Compiled /weblog in 2.8s
+ ⨯ Error: Could not find `ConvexProviderWithAuth` (or `ConvexProviderWithClerk` or `ConvexProviderWithAuth0`) as an ancestor component. This component may be missing, or you might have two instances of the `convex/react` module loaded in your project.
+    at useWeblogs (src/hooks/use-weblogs.ts:30:94)
+    at WeblogSection (src/components/weblog-section.tsx:14:94)
+  28 |
+  29 | export function useWeblogs() {
+> 30 |     const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+     |                                                                                              ^
+  31 |     const [forceLocal, setForceLocal] = useState(false);
+  32 |
+  33 |     const isAuthenticated = _realIsAuthenticated && !forceLocal; {
+  digest: '2579605864'
+}
+ GET /weblog 500 in 3495ms
+ ✓ Compiled in 1571ms
+ ✓ Compiled /weblog in 61ms
+VAPID keys not set. Push notifications will not work.
+ GET /weblog 200 in 617ms
+[?25h

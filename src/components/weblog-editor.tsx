@@ -284,7 +284,54 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
     const execCommand = useCallback((command: string, value?: string) => {
         document.execCommand(command, false, value);
         editorRef.current?.focus();
-    }, []);
+        updateActiveFormats();
+    }, [updateActiveFormats]);
+
+    // Floating Toolbar State
+    const [floatingToolbarPos, setFloatingToolbarPos] = useState<{ top: number; left: number } | null>(null);
+
+    useEffect(() => {
+        const updatePosition = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed || !editorRef.current) {
+                setFloatingToolbarPos(null);
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+
+            // Check if selection is inside editor
+            if (!editorRef.current.contains(selection.anchorNode)) {
+                setFloatingToolbarPos(null);
+                return;
+            }
+
+            const container = editorRef.current.parentElement;
+            if (!container) return;
+
+            const rect = range.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            setFloatingToolbarPos({
+                top: rect.top - containerRect.top + container.scrollTop - 50,
+                left: rect.left - containerRect.left + (rect.width / 2)
+            });
+        };
+
+        document.addEventListener('selectionchange', updatePosition);
+        // Also update on scroll
+        const container = editorRef.current?.parentElement;
+        if (container) {
+            container.addEventListener('scroll', updatePosition);
+        }
+
+        return () => {
+            document.removeEventListener('selectionchange', updatePosition);
+            if (container) {
+                container.removeEventListener('scroll', updatePosition);
+            }
+        };
+    }, [editorRef]);
 
     // Check if current selection is inside a specific block type
     const isInsideBlock = useCallback((tagName: string): boolean => {
@@ -1044,7 +1091,62 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
                 </div>
 
                 {/* Rich Text Editor - WYSIWYG */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-white/40 dark:bg-black/20 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-white/40 dark:bg-black/20 custom-scrollbar relative">
+                    {/* Floating Toolbar */}
+                    {floatingToolbarPos && (
+                        <div
+                            className="absolute z-50 flex items-center gap-1 p-1.5 bg-slate-900 text-white rounded-xl shadow-xl -translate-x-1/2 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto"
+                            style={{
+                                top: floatingToolbarPos.top,
+                                left: floatingToolbarPos.left
+                            }}
+                            onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+                        >
+                            <ToolbarButton
+                                onClick={formatBold}
+                                icon={<Bold className="w-4 h-4" />}
+                                tooltip="Bold"
+                                active={activeFormats.bold}
+                                className={activeFormats.bold ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            />
+                            <ToolbarButton
+                                onClick={formatItalic}
+                                icon={<Italic className="w-4 h-4" />}
+                                tooltip="Italic"
+                                active={activeFormats.italic}
+                                className={activeFormats.italic ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            />
+                            <ToolbarButton
+                                onClick={formatUnderline}
+                                icon={<Underline className="w-4 h-4" />}
+                                tooltip="Underline"
+                                active={activeFormats.underline}
+                                className={activeFormats.underline ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            />
+                            <ToolbarButton
+                                onClick={formatStrikethrough}
+                                icon={<Strikethrough className="w-4 h-4" />}
+                                tooltip="Strikethrough"
+                                active={activeFormats.strikethrough}
+                                className={activeFormats.strikethrough ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            />
+                            <div className="w-px h-4 bg-slate-700 mx-1" />
+                            <ToolbarButton
+                                onClick={formatCode}
+                                icon={<Code className="w-4 h-4" />}
+                                tooltip="Code"
+                                active={activeFormats.code}
+                                className={activeFormats.code ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            />
+                            <ToolbarButton
+                                onClick={insertLink}
+                                icon={<LinkIcon className="w-4 h-4" />}
+                                tooltip="Link"
+                                className="text-slate-300 hover:bg-slate-800 hover:text-white"
+                            />
+                        </div>
+                    )}
+
                     <div
                         ref={editorRef}
                         contentEditable
@@ -1133,12 +1235,14 @@ function ToolbarButton({
     onClick, 
     icon, 
     tooltip, 
-    active = false 
+    active = false,
+    className
 }: { 
     onClick: () => void; 
     icon: React.ReactNode; 
     tooltip: string; 
     active?: boolean;
+    className?: string;
 }) {
     return (
         <button
@@ -1148,7 +1252,8 @@ function ToolbarButton({
                 "p-1.5 md:p-2 rounded-lg transition-colors",
                 active 
                     ? "bg-slate-200 text-slate-800" 
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100",
+                className
             )}
         >
             {icon}

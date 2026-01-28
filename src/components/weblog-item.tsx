@@ -24,9 +24,22 @@ interface WeblogItemProps {
 export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItemProps) {
     // Strip HTML and markdown for preview
     const previewText = weblog.content
-        .replace(/<[^>]*>/g, '') // Remove HTML tags
-        .replace(/[#*`_\[\]()]/g, '') // Remove basic markdown chars
-        .slice(0, 100) + (weblog.content.length > 100 ? "..." : "");
+        // Replace block endings and breaks with a space to prevent word concatenation
+        .replace(/<\/(p|div|h\d|li|blockquote)>|<br\s*\/?>/gi, ' ')
+        // Remove all HTML tags
+        .replace(/<[^>]+>/g, '')
+        // Remove basic markdown chars
+        .replace(/[#*`_\[\]()]/g, '')
+        // Decode common entities
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        // Collapse whitespace
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 150) + (weblog.content.length > 150 ? "..." : "");
 
     const stickyNoteStyle = "bg-[#FEF9C3] dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50";
 
