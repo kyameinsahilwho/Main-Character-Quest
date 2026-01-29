@@ -312,9 +312,37 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
             const rect = range.getBoundingClientRect();
             const containerRect = container.getBoundingClientRect();
 
+            // Estimated dimensions of the toolbar
+            const toolbarHeight = 50;
+            const toolbarWidth = 280; // Estimate
+            const halfWidth = toolbarWidth / 2;
+
+            // Calculate horizontal position (centered relative to selection, but clamped)
+            let left = rect.left - containerRect.left + (rect.width / 2);
+
+            // Clamp horizontal position to keep within container
+            if (left < halfWidth) left = halfWidth;
+            if (left > containerRect.width - halfWidth) left = containerRect.width - halfWidth;
+
+            // Calculate vertical position (prefer below)
+            const gap = 10;
+            let top = rect.bottom - containerRect.top + container.scrollTop + gap;
+
+            // Check if it fits below the visible area
+            const visibleBottom = container.scrollTop + container.clientHeight;
+
+            // If the toolbar bottom goes beyond visible bottom, try above
+            if (top + toolbarHeight > visibleBottom) {
+                const topAbove = rect.top - containerRect.top + container.scrollTop - toolbarHeight - gap;
+                // Only use above if it fits within the top boundary
+                if (topAbove >= container.scrollTop) {
+                    top = topAbove;
+                }
+            }
+
             setFloatingToolbarPos({
-                top: rect.top - containerRect.top + container.scrollTop - 50,
-                left: rect.left - containerRect.left + (rect.width / 2)
+                top,
+                left
             });
         };
 
