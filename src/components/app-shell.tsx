@@ -68,9 +68,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return 'Quests';
   };
 
-  if (isInitialLoad || authLoading) {
-    return <LoadingSkeleton />;
-  }
+  // We no longer use an early return for loading state
+  // The layout shell (sidebar, header, nav) always renders immediately
+  // Only the content area shows a loading skeleton when isInitialLoad or authLoading
 
   return (
     <div className="flex h-[100dvh] w-full font-body transition-colors duration-500 bg-background overflow-hidden">
@@ -120,9 +120,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </CalendarDialog>
             </div>
 
-            {/* Page Content */}
+            {/* Page Content - Show skeleton only in content area when loading */}
             <div className="min-h-[400px]">
-              {children}
+              {(isInitialLoad || authLoading) ? (
+                <LoadingSkeleton />
+              ) : (
+                children
+              )}
             </div>
           </div>
         </div>
@@ -143,7 +147,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <MobileBottomNav
         activeTab={pathname === '/' ? 'today' : pathname.replace('/', '')}
         isQuickAddOpen={isQuickAddOpen}
-        onToggleQuickAdd={() => setIsQuickAddOpen(prev => !prev)}
+        onToggleQuickAdd={() => setIsQuickAddOpen(!isQuickAddOpen)}
         onTabChange={() => { }}
       />
 
