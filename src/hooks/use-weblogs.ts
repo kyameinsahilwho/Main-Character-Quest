@@ -26,10 +26,54 @@ type LocalWeblog = Omit<Weblog, '_id' | 'userId'> & {
     userId?: string;
 };
 
+// Cache key for localStorage-first approach
+const CACHE_KEY_WEBLOGS = 'pollytasks_cache_weblogs';
+
+// Cache expiry in milliseconds (10 minutes)
+const CACHE_EXPIRY = 10 * 60 * 1000;
+
+interface CachedData<T> {
+    data: T;
+    timestamp: number;
+}
+
+function getCachedData<T>(key: string): T | null {
+    try {
+        if (typeof window === 'undefined') return null;
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const parsed: CachedData<T> = JSON.parse(cached);
+        const isExpired = Date.now() - parsed.timestamp > CACHE_EXPIRY;
+
+        if (isExpired) {
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        return parsed.data;
+    } catch {
+        return null;
+    }
+}
+
+function setCachedData<T>(key: string, data: T): void {
+    try {
+        if (typeof window === 'undefined') return;
+        const cached: CachedData<T> = {
+            data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(cached));
+    } catch (e) {
+        console.error("Failed to cache weblogs data:", e);
+    }
+}
+
 export function useWeblogs() {
     const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
     const [forceLocal, setForceLocal] = useState(false);
-    
+
     const isAuthenticated = _realIsAuthenticated && !forceLocal;
 
     // Convex queries and mutations - use "skip" to conditionally skip queries
@@ -44,6 +88,9 @@ export function useWeblogs() {
     // Local State (for unauthenticated users)
     const [localWeblogs, setLocalWeblogs] = useState<LocalWeblog[]>([]);
     const [isLocalLoaded, setIsLocalLoaded] = useState(false);
+
+    // Cached data for localStorage-first approach (authenticated users)
+    const [cachedWeblogs] = useState<Weblog[] | null>(() => getCachedData<Weblog[]>(CACHE_KEY_WEBLOGS));
 
     // Load from LocalStorage
     useEffect(() => {
@@ -71,11 +118,22 @@ export function useWeblogs() {
     // Map data to consistent format
     const weblogs: Weblog[] = useMemo(() => {
         if (isAuthenticated) {
-            return rawWeblogs || [];
+            // Use cached data while server data is loading (localStorage-first)
+            if (!rawWeblogs) {
+                return cachedWeblogs ?? [];
+            }
+            return rawWeblogs;
         } else {
             return localWeblogs as Weblog[];
         }
-    }, [rawWeblogs, isAuthenticated, localWeblogs]);
+    }, [rawWeblogs, isAuthenticated, localWeblogs, cachedWeblogs]);
+
+    // Cache fresh weblogs data when received from server
+    useEffect(() => {
+        if (isAuthenticated && rawWeblogs !== undefined && rawWeblogs.length > 0) {
+            setCachedData(CACHE_KEY_WEBLOGS, rawWeblogs);
+        }
+    }, [rawWeblogs, isAuthenticated]);
 
     // Get all unique tags
     const allTags: string[] = useMemo(() => {
@@ -167,6 +225,7 @@ export function useWeblogs() {
         updateWeblog,
         deleteWeblog,
         togglePin,
-        isLoading: isAuthLoading || (isAuthenticated && rawWeblogs === undefined),
+        // isLoading is false if we have cached data (localStorage-first approach)
+        isLoading: isAuthLoading || (isAuthenticated && rawWeblogs === undefined && cachedWeblogs === null),
     };
 }

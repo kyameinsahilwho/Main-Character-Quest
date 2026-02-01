@@ -17,8 +17,8 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function useNotifications(
-  tasks: Task[], 
-  habits: Habit[], 
+  tasks: Task[],
+  habits: Habit[],
   reminders: Reminder[] = [],
   onTriggerReminder?: (id: string) => void
 ) {
@@ -64,7 +64,18 @@ export function useNotifications(
         ),
       });
       setSubscription(sub);
-      await subscribeUser(sub as any);
+
+      // Serialize PushSubscription to a plain object for the server action
+      const subJson = sub.toJSON();
+      const serializedSub = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: subJson.keys?.p256dh ?? '',
+          auth: subJson.keys?.auth ?? '',
+        },
+        expirationTime: sub.expirationTime,
+      };
+      await subscribeUser(serializedSub);
     } catch (error) {
       console.error('Failed to subscribe to push:', error);
     }
@@ -107,24 +118,24 @@ export function useNotifications(
 
     const checkReminders = () => {
       const now = new Date();
-      
+
       // Check tasks
       tasks.forEach(task => {
         if (task.isCompleted) return;
-        
+
         // Check explicit reminder
         if (task.reminderEnabled && task.reminderAt) {
           const reminderTime = parseISO(task.reminderAt);
           const diff = differenceInMinutes(reminderTime, now);
           const notificationKey = `task-reminder-${task.id}-${task.reminderAt}`;
-          
+
           if (diff <= 0 && diff > -5 && !notifiedIds.current.has(notificationKey)) {
-             showNotification(`Quest Reminder: ${task.title}`, {
-               body: `It's time for your quest "${task.title}"!`,
-               icon: '/icon-192x192.png',
-               badge: '/icon-192x192.png'
-             });
-             notifiedIds.current.add(notificationKey);
+            showNotification(`Quest Reminder: ${task.title}`, {
+              body: `It's time for your quest "${task.title}"!`,
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png'
+            });
+            notifiedIds.current.add(notificationKey);
           }
         }
       });
@@ -132,38 +143,38 @@ export function useNotifications(
       // Check habits
       habits.forEach(habit => {
         if (habit.reminderEnabled && habit.reminderTime) {
-           const [hours, minutes] = habit.reminderTime.split(':').map(Number);
-           const reminderTime = new Date(now);
-           reminderTime.setHours(hours, minutes, 0, 0);
-           
-           const diff = differenceInMinutes(reminderTime, now);
-           const notificationKey = `habit-reminder-${habit.id}-${now.toDateString()}`;
-           
-           // Check if habit is already completed today
-           const isCompletedToday = habit.completions.some(c => isSameDay(parseISO(c.completedAt), now));
-           
-           if (!isCompletedToday && diff <= 0 && diff > -5 && !notifiedIds.current.has(notificationKey)) {
-              // Check frequency
-              let isScheduled = false;
-              if (habit.frequency === 'daily') isScheduled = true;
-              else if (habit.frequency === 'specific_days' && habit.customDays?.includes(now.getDay())) isScheduled = true;
-              else if (habit.frequency === 'weekly') isScheduled = true; // Simplify for now, or check if start of week?
-              else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
-                 const interval = parseInt(habit.frequency.split('_')[1]);
-                 const startDate = parseISO(habit.createdAt);
-                 const diffDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                 if (diffDays >= 0 && diffDays % interval === 0) isScheduled = true;
-              }
-              
-              if (isScheduled) {
-                 showNotification(`Ritual Reminder: ${habit.title}`, {
-                   body: `Time for your ritual "${habit.title}"!`,
-                   icon: '/icon-192x192.png',
-                   badge: '/icon-192x192.png'
-                 });
-                 notifiedIds.current.add(notificationKey);
-              }
-           }
+          const [hours, minutes] = habit.reminderTime.split(':').map(Number);
+          const reminderTime = new Date(now);
+          reminderTime.setHours(hours, minutes, 0, 0);
+
+          const diff = differenceInMinutes(reminderTime, now);
+          const notificationKey = `habit-reminder-${habit.id}-${now.toDateString()}`;
+
+          // Check if habit is already completed today
+          const isCompletedToday = habit.completions.some(c => isSameDay(parseISO(c.completedAt), now));
+
+          if (!isCompletedToday && diff <= 0 && diff > -5 && !notifiedIds.current.has(notificationKey)) {
+            // Check frequency
+            let isScheduled = false;
+            if (habit.frequency === 'daily') isScheduled = true;
+            else if (habit.frequency === 'specific_days' && habit.customDays?.includes(now.getDay())) isScheduled = true;
+            else if (habit.frequency === 'weekly') isScheduled = true; // Simplify for now, or check if start of week?
+            else if (['every_2_days', 'every_3_days', 'every_4_days'].includes(habit.frequency)) {
+              const interval = parseInt(habit.frequency.split('_')[1]);
+              const startDate = parseISO(habit.createdAt);
+              const diffDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+              if (diffDays >= 0 && diffDays % interval === 0) isScheduled = true;
+            }
+
+            if (isScheduled) {
+              showNotification(`Ritual Reminder: ${habit.title}`, {
+                body: `Time for your ritual "${habit.title}"!`,
+                icon: '/icon-192x192.png',
+                badge: '/icon-192x192.png'
+              });
+              notifiedIds.current.add(notificationKey);
+            }
+          }
         }
       });
     };
@@ -174,11 +185,11 @@ export function useNotifications(
     return () => clearInterval(interval);
   }, [tasks, habits, reminders, permission]);
 
-  return { 
-    permission, 
-    isSupported, 
-    subscription, 
-    subscribeToPush, 
-    unsubscribeFromPush 
+  return {
+    permission,
+    isSupported,
+    subscription,
+    subscribeToPush,
+    unsubscribeFromPush
   };
 }

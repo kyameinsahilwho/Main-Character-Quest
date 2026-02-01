@@ -63,6 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname?.startsWith('/projects')) return 'Projects';
     if (pathname?.startsWith('/social')) return 'Squad';
     if (pathname?.startsWith('/weblog')) return 'Weblog';
+    if (pathname?.startsWith('/profile')) return 'Profile';
     if (pathname?.startsWith('/archive')) return 'Archive';
     return 'Quests';
   };
@@ -100,30 +101,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Scrollable Content */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 pb-32 md:p-8">
-            <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
-                {/* Page Title & Actions */}
-                <div className="flex items-center justify-between">
-                  <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight">
-                    {getTitle()}
-                  </h1>
-                  <CalendarDialog
-                    tasks={tasks}
-                    habits={habits}
-                    onToggleTask={toggleTaskCompletion}
-                    onToggleHabit={toggleHabitCompletion}
-                  >
-                    <button className="bg-card hover:bg-muted/50 border-2 border-border text-foreground font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl shadow-3d active:shadow-none active:translate-y-1 transition-all flex items-center gap-2">
-                      <span className="material-symbols-outlined text-lg">calendar_month</span>
-                      Calendar
-                    </button>
-                  </CalendarDialog>
-                </div>
-
-                {/* Page Content */}
-                <div className="min-h-[400px]">
-                    {children}
-                </div>
+          <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
+            {/* Page Title & Actions */}
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight">
+                {getTitle()}
+              </h1>
+              <CalendarDialog
+                tasks={tasks}
+                habits={habits}
+                onToggleTask={toggleTaskCompletion}
+                onToggleHabit={toggleHabitCompletion}
+              >
+                <button className="bg-card hover:bg-muted/50 border-2 border-border text-foreground font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl shadow-3d active:shadow-none active:translate-y-1 transition-all flex items-center gap-2">
+                  <span className="material-symbols-outlined text-lg">calendar_month</span>
+                  Calendar
+                </button>
+              </CalendarDialog>
             </div>
+
+            {/* Page Content */}
+            <div className="min-h-[400px]">
+              {children}
+            </div>
+          </div>
         </div>
 
         {/* Quick Add Menu (FAB) */}
@@ -143,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         activeTab={pathname === '/' ? 'today' : pathname.replace('/', '')}
         isQuickAddOpen={isQuickAddOpen}
         onToggleQuickAdd={() => setIsQuickAddOpen(prev => !prev)}
-        onTabChange={() => {}}
+        onTabChange={() => { }}
       />
 
       {/* Dialogs */}
@@ -164,8 +165,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           isOpen={!!reminderToEdit}
           onClose={() => setReminderToEdit(null)}
           onEditReminder={(id, updated) => {
-             updateReminder(id, updated);
-             setReminderToEdit(null);
+            updateReminder(id, updated);
+            setReminderToEdit(null);
           }}
           reminder={reminderToEdit}
         />

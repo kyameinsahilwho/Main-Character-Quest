@@ -3,23 +3,37 @@
 import webpush from 'web-push'
 
 try {
-    if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-        webpush.setVapidDetails(
-        'mailto:admin@pollytasks.com',
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-        process.env.VAPID_PRIVATE_KEY!
-        )
-    } else {
-        console.warn("VAPID keys not set. Push notifications will not work.")
-    }
+  if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      'mailto:admin@pollytasks.com',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!
+    )
+  } else {
+    console.warn("VAPID keys not set. Push notifications will not work.")
+  }
 } catch (e) {
-    console.error("Failed to set VAPID details", e)
+  console.error("Failed to set VAPID details", e)
 }
 
 let subscription: webpush.PushSubscription | null = null
 
-export async function subscribeUser(sub: webpush.PushSubscription) {
-  subscription = sub
+// Serializable subscription data type
+interface SerializedSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  expirationTime?: number | null;
+}
+
+export async function subscribeUser(sub: SerializedSubscription) {
+  // Convert to the format web-push expects
+  subscription = {
+    endpoint: sub.endpoint,
+    keys: sub.keys
+  } as webpush.PushSubscription;
   // In a production environment, you would want to store the subscription in a database
   // For example: await db.subscriptions.create({ data: sub })
   return { success: true }
@@ -38,18 +52,18 @@ export async function sendNotification(message: string) {
 
   try {
     if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-        await webpush.sendNotification(
+      await webpush.sendNotification(
         subscription,
         JSON.stringify({
-            title: 'Task Quest',
-            body: message,
-            icon: '/icon-192x192.png',
+          title: 'Task Quest',
+          body: message,
+          icon: '/icon-192x192.png',
         })
-        )
-        return { success: true }
+      )
+      return { success: true }
     } else {
-        console.warn("Cannot send notification: VAPID keys missing");
-        return { success: false, error: 'VAPID keys missing' }
+      console.warn("Cannot send notification: VAPID keys missing");
+      return { success: false, error: 'VAPID keys missing' }
     }
   } catch (error) {
     console.error('Error sending push notification:', error)

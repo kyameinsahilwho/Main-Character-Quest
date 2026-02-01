@@ -28,7 +28,7 @@ export function MobileBottomNav({
         return pathname.startsWith(path);
     };
 
-    const isMoreActive = isActive('/projects') || isActive('/archive') || isActive('/social');
+    const isMoreActive = isActive('/projects') || isActive('/archive') || isActive('/social') || isActive('/profile');
 
     return (
         <>
@@ -53,11 +53,10 @@ export function MobileBottomNav({
                             <Link
                                 href="/projects"
                                 onClick={() => setShowMoreMenu(false)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${
-                                    isActive('/projects')
-                                        ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-500' 
-                                        : 'text-muted-foreground'
-                                }`}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${isActive('/projects')
+                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-500'
+                                    : 'text-muted-foreground'
+                                    }`}
                             >
                                 <span className={`material-symbols-outlined text-xl ${isActive('/projects') ? "[font-variation-settings:'FILL'_1]" : ""}`}>folder_open</span>
                                 <span className="font-bold text-sm">Projects</span>
@@ -65,23 +64,32 @@ export function MobileBottomNav({
                             <Link
                                 href="/social"
                                 onClick={() => setShowMoreMenu(false)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${
-                                    isActive('/social')
-                                        ? 'bg-zinc-100 dark:bg-zinc-800 text-purple-600 dark:text-purple-400'
-                                        : 'text-muted-foreground'
-                                }`}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${isActive('/social')
+                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-purple-600 dark:text-purple-400'
+                                    : 'text-muted-foreground'
+                                    }`}
                             >
                                 <span className={`material-symbols-outlined text-xl ${isActive('/social') ? "[font-variation-settings:'FILL'_1]" : ""}`}>group</span>
                                 <span className="font-bold text-sm">Squad</span>
                             </Link>
                             <Link
+                                href="/profile"
+                                onClick={() => setShowMoreMenu(false)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none border-b border-border/50 ${isActive('/profile')
+                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-pink-600 dark:text-pink-400'
+                                    : 'text-muted-foreground'
+                                    }`}
+                            >
+                                <span className={`material-symbols-outlined text-xl ${isActive('/profile') ? "[font-variation-settings:'FILL'_1]" : ""}`}>person</span>
+                                <span className="font-bold text-sm">Profile</span>
+                            </Link>
+                            <Link
                                 href="/archive"
                                 onClick={() => setShowMoreMenu(false)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none ${
-                                    isActive('/archive')
-                                        ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400' 
-                                        : 'text-muted-foreground'
-                                }`}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-none ${isActive('/archive')
+                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400'
+                                    : 'text-muted-foreground'
+                                    }`}
                             >
                                 <span className={`material-symbols-outlined text-xl ${isActive('/archive') ? "[font-variation-settings:'FILL'_1]" : ""}`}>inventory_2</span>
                                 <span className="font-bold text-sm">Archive</span>
@@ -96,22 +104,20 @@ export function MobileBottomNav({
                     <div className="grid w-full grid-cols-5 p-2 h-auto bg-transparent border-0 rounded-none gap-1 relative">
                         <Link
                             href="/"
-                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
-                                isActive('/')
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${isActive('/')
                                 ? 'bg-zinc-100 dark:bg-zinc-800 text-green-600 dark:text-green-400 shadow-none'
                                 : 'bg-transparent text-muted-foreground'
-                            }`}
+                                }`}
                         >
                             <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/') ? "[font-variation-settings:'FILL'_1]" : ""}`}>swords</span>
                         </Link>
 
                         <Link
                             href="/habits"
-                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
-                                isActive('/habits')
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${isActive('/habits')
                                 ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-none'
                                 : 'bg-transparent text-muted-foreground'
-                            }`}
+                                }`}
                         >
                             <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/habits') ? "[font-variation-settings:'FILL'_1]" : ""}`}>water_drop</span>
                         </Link>
@@ -136,11 +142,10 @@ export function MobileBottomNav({
 
                         <Link
                             href="/weblog"
-                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${
-                                isActive('/weblog')
+                            className={`relative rounded-xl flex items-center justify-center transition-all font-bold py-3 h-auto group transform transition-transform duration-75 ${isActive('/weblog')
                                 ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-400 shadow-none'
                                 : 'bg-transparent text-muted-foreground'
-                            }`}
+                                }`}
                         >
                             <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isActive('/weblog') ? "[font-variation-settings:'FILL'_1]" : ""}`}>menu_book</span>
                         </Link>
@@ -148,11 +153,10 @@ export function MobileBottomNav({
                         {/* More Menu Button */}
                         <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
-                            className={`relative rounded-xl transition-all font-bold py-3 h-auto group transform transition-transform duration-75 flex items-center justify-center ${
-                                isMoreActive 
-                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-500' 
-                                    : 'text-muted-foreground'
-                            }`}
+                            className={`relative rounded-xl transition-all font-bold py-3 h-auto group transform transition-transform duration-75 flex items-center justify-center ${isMoreActive
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-500'
+                                : 'text-muted-foreground'
+                                }`}
                         >
                             <span className={`material-symbols-outlined text-2xl relative z-10 transition-transform duration-75 group-active:scale-90 ${isMoreActive ? "[font-variation-settings:'FILL'_1]" : ""}`}>
                                 more_horiz

@@ -22,6 +22,50 @@ import { Id } from "../../convex/_generated/dataModel";
 // Optimistic update storage key
 const OPTIMISTIC_HABITS_KEY = 'pollytasks_optimistic_habits';
 
+// Cache key for localStorage-first approach
+const CACHE_KEY_HABITS = 'pollytasks_cache_habits';
+
+// Cache expiry in milliseconds (10 minutes)
+const CACHE_EXPIRY = 10 * 60 * 1000;
+
+interface CachedData<T> {
+  data: T;
+  timestamp: number;
+}
+
+function getCachedData<T>(key: string): T | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+
+    const parsed: CachedData<T> = JSON.parse(cached);
+    const isExpired = Date.now() - parsed.timestamp > CACHE_EXPIRY;
+
+    if (isExpired) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedData<T>(key: string, data: T): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const cached: CachedData<T> = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(key, JSON.stringify(cached));
+  } catch (e) {
+    console.error("Failed to cache habits data:", e);
+  }
+}
+
 const calculateMaxGap = (frequency: Habit['frequency'], customDays?: number[]) => {
   if (frequency === 'every_2_days') return 2;
   if (frequency === 'every_3_days') return 3;
@@ -149,6 +193,9 @@ export const useHabits = () => {
   const [localHabits, setLocalHabits] = useState<Habit[]>([]);
   const [isLocalLoaded, setIsLocalLoaded] = useState(false);
 
+  // Cached data for localStorage-first approach (authenticated users)
+  const [cachedHabits] = useState<Habit[] | null>(() => getCachedData<Habit[]>(CACHE_KEY_HABITS));
+
   // Optimistic updates state - overlay on top of server data
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<Habit>>>({});
 
@@ -218,7 +265,10 @@ export const useHabits = () => {
 
   const habits: Habit[] = useMemo(() => {
     if (isAuthenticated) {
-      if (!rawHabits) return [];
+      // Use cached data while server data is loading (localStorage-first)
+      if (!rawHabits) {
+        return cachedHabits ?? [];
+      }
       return rawHabits.map(h => {
         const completions = (h.completions || []).map((c: any) => ({
           id: c._id,
@@ -260,7 +310,42 @@ export const useHabits = () => {
     } else {
       return localHabits;
     }
-  }, [rawHabits, isAuthenticated, localHabits, optimisticUpdates]);
+  }, [rawHabits, isAuthenticated, localHabits, optimisticUpdates, cachedHabits]);
+
+  // Cache fresh habits data when received from server
+  useEffect(() => {
+    if (isAuthenticated && rawHabits !== undefined && rawHabits.length > 0) {
+      const mappedHabits: Habit[] = rawHabits.map(h => {
+        const completions = (h.completions || []).map((c: any) => ({
+          id: c._id,
+          habitId: c.habitId,
+          completedAt: c.completedAt
+        }));
+        const xp = calculateHabitXP(completions, h.frequency as any, h.customDays);
+        const yearlyStats = calculateYearlyStats(completions, h.frequency as any, h.createdAt, h.customDays);
+        return {
+          id: h._id,
+          title: h.title,
+          description: h.description,
+          frequency: h.frequency as any,
+          currentStreak: h.currentStreak,
+          bestStreak: h.bestStreak,
+          color: h.color,
+          icon: h.icon,
+          createdAt: h.createdAt,
+          customDays: h.customDays,
+          completions,
+          xp,
+          totalCompletions: completions.length,
+          yearlyStats,
+          archived: h.archived,
+          reminderTime: h.reminderTime,
+          reminderEnabled: h.reminderEnabled,
+        };
+      });
+      setCachedData(CACHE_KEY_HABITS, mappedHabits);
+    }
+  }, [rawHabits, isAuthenticated]);
 
   const addHabit = useCallback(async (habitData: Omit<Habit, 'id' | 'currentStreak' | 'bestStreak' | 'createdAt' | 'completions'>) => {
     const createdAt = new Date().toISOString();
@@ -556,6 +641,7 @@ export const useHabits = () => {
     updateHabit,
     deleteHabit,
     toggleHabitCompletion,
-    isInitialLoad: isAuthenticated ? rawHabits === undefined : !isLocalLoaded,
+    // isInitialLoad is false if we have cached data (localStorage-first approach)
+    isInitialLoad: isAuthenticated ? (rawHabits === undefined && cachedHabits === null) : !isLocalLoaded,
   };
 };

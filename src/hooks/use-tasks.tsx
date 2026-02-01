@@ -12,6 +12,53 @@ import { isFirstTimeVisitor, markAsVisited, getTemplateTasks, getTemplateProject
 const OPTIMISTIC_TASKS_KEY = 'pollytasks_optimistic_tasks';
 const OPTIMISTIC_PROJECTS_KEY = 'pollytasks_optimistic_projects';
 
+// Cache keys for localStorage-first approach
+const CACHE_KEYS = {
+    tasks: 'pollytasks_cache_tasks',
+    projects: 'pollytasks_cache_projects',
+};
+
+// Cache expiry in milliseconds (10 minutes)
+const CACHE_EXPIRY = 10 * 60 * 1000;
+
+interface CachedData<T> {
+    data: T;
+    timestamp: number;
+}
+
+function getCachedData<T>(key: string): T | null {
+    try {
+        if (typeof window === 'undefined') return null;
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const parsed: CachedData<T> = JSON.parse(cached);
+        const isExpired = Date.now() - parsed.timestamp > CACHE_EXPIRY;
+
+        if (isExpired) {
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        return parsed.data;
+    } catch {
+        return null;
+    }
+}
+
+function setCachedData<T>(key: string, data: T): void {
+    try {
+        if (typeof window === 'undefined') return;
+        const cached: CachedData<T> = {
+            data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(cached));
+    } catch (e) {
+        console.error("Failed to cache data:", e);
+    }
+}
+
 export const useTasks = () => {
     // Auth state
     const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
@@ -29,6 +76,10 @@ export const useTasks = () => {
     const [localTasks, setLocalTasks] = useState<Task[]>([]);
     const [localProjects, setLocalProjects] = useState<Project[]>([]);
     const [isLocalLoaded, setIsLocalLoaded] = useState(false);
+
+    // Cached data for localStorage-first approach (authenticated users)
+    const [cachedTasks] = useState<Task[] | null>(() => getCachedData<Task[]>(CACHE_KEYS.tasks));
+    const [cachedProjects] = useState<Project[] | null>(() => getCachedData<Project[]>(CACHE_KEYS.projects));
 
     // Optimistic updates state - overlay on top of server data
     const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<Task>>>({});
@@ -112,7 +163,10 @@ export const useTasks = () => {
     // Map Convex data to App types with optimistic updates applied
     const tasks: Task[] = useMemo(() => {
         if (isAuthenticated) {
-            if (!rawTasks) return [];
+            // Use cached data while server data is loading (localStorage-first)
+            if (!rawTasks) {
+                return cachedTasks ?? [];
+            }
             return rawTasks.map(t => {
                 const baseTask: Task = {
                     id: t._id,
@@ -143,11 +197,38 @@ export const useTasks = () => {
         } else {
             return localTasks;
         }
-    }, [rawTasks, isAuthenticated, localTasks, optimisticUpdates]);
+    }, [rawTasks, isAuthenticated, localTasks, optimisticUpdates, cachedTasks]);
+
+    // Cache fresh tasks data when received from server
+    useEffect(() => {
+        if (isAuthenticated && rawTasks !== undefined && rawTasks.length > 0) {
+            const mappedTasks: Task[] = rawTasks.map(t => ({
+                id: t._id,
+                title: t.title,
+                dueDate: t.dueDate || null,
+                isCompleted: t.isCompleted,
+                completedAt: t.completedAt || null,
+                createdAt: t.createdAt,
+                projectId: t.projectId || null,
+                reminderAt: t.reminderAt,
+                reminderEnabled: t.reminderEnabled,
+                xp: t.rewardXp,
+                subtasks: (t.subtasks || []).map((st: any) => ({
+                    id: st._id,
+                    text: st.title,
+                    isCompleted: st.isCompleted
+                }))
+            }));
+            setCachedData(CACHE_KEYS.tasks, mappedTasks);
+        }
+    }, [rawTasks, isAuthenticated]);
 
     const projects: Project[] = useMemo(() => {
         if (isAuthenticated) {
-            if (!rawProjects) return [];
+            // Use cached data while server data is loading (localStorage-first)
+            if (!rawProjects) {
+                return cachedProjects ?? [];
+            }
             return rawProjects.map(p => ({
                 id: p._id,
                 name: p.name,
@@ -159,7 +240,22 @@ export const useTasks = () => {
         } else {
             return localProjects;
         }
-    }, [rawProjects, isAuthenticated, localProjects]);
+    }, [rawProjects, isAuthenticated, localProjects, cachedProjects]);
+
+    // Cache fresh projects data when received from server
+    useEffect(() => {
+        if (isAuthenticated && rawProjects !== undefined && rawProjects.length > 0) {
+            const mappedProjects: Project[] = rawProjects.map(p => ({
+                id: p._id,
+                name: p.name,
+                description: p.description,
+                color: p.color,
+                icon: p.icon,
+                createdAt: p.createdAt
+            }));
+            setCachedData(CACHE_KEYS.projects, mappedProjects);
+        }
+    }, [rawProjects, isAuthenticated]);
 
     // Derived state (Stats & Streaks)
     const stats = useMemo(() => {
@@ -743,7 +839,8 @@ export const useTasks = () => {
         addProject,
         updateProject,
         deleteProject,
-        isInitialLoad: isAuthenticated ? rawTasks === undefined : !isLocalLoaded,
+        // isInitialLoad is false if we have cached data (localStorage-first approach)
+        isInitialLoad: isAuthenticated ? (rawTasks === undefined && cachedTasks === null) : !isLocalLoaded,
         reloadFromSupabase: async () => { },
     };
 };

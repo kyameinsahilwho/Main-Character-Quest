@@ -135,6 +135,14 @@ export function DesktopSidebar({
                             isCollapsed={isCollapsed}
                         />
                         <SidebarItem
+                            href="/profile"
+                            isActive={isActive('/profile')}
+                            icon="person"
+                            label="Profile"
+                            color="pink"
+                            isCollapsed={isCollapsed}
+                        />
+                        <SidebarItem
                             href="/archive"
                             isActive={isActive('/archive')}
                             icon="inventory_2"
@@ -187,6 +195,7 @@ function SidebarItem({ href, isActive, icon, label, color, isCollapsed }: Sideba
         orange: isActive ? "text-amber-700 dark:text-amber-500" : "",
         amber: isActive ? "text-amber-600 dark:text-amber-400" : "",
         purple: isActive ? "text-purple-600 dark:text-purple-400" : "",
+        pink: isActive ? "text-pink-600 dark:text-pink-400" : "",
         slate: isActive ? "text-slate-700 dark:text-slate-300" : ""
     };
 
