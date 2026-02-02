@@ -58,7 +58,7 @@ interface TaskQuestContextType {
   // Actions - Habits
   addHabit: (habit: any) => void;
   updateHabit: (id: string, habit: any) => void;
-  toggleHabitCompletion: (id: string) => void;
+  toggleHabitCompletion: (id: string, date: string) => void;
   deleteHabit: (id: string) => void;
 
   // Actions - Reminders

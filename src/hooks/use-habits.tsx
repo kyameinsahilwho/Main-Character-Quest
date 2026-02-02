@@ -314,7 +314,7 @@ export const useHabits = () => {
 
   // Cache fresh habits data when received from server
   useEffect(() => {
-    if (isAuthenticated && rawHabits !== undefined && rawHabits.length > 0) {
+    if (isAuthenticated && rawHabits !== undefined) {
       const mappedHabits: Habit[] = rawHabits.map(h => {
         const completions = (h.completions || []).map((c: any) => ({
           id: c._id,
@@ -530,9 +530,8 @@ export const useHabits = () => {
             } : h
           ));
         } else {
-          // Rollback to previous state
-          applyOptimisticUpdate(habitId, previousState);
-          setTimeout(() => clearOptimisticUpdate(habitId), 100);
+          // Rollback immediately by clearing the optimistic update
+          clearOptimisticUpdate(habitId);
           throw error;
         }
       }
