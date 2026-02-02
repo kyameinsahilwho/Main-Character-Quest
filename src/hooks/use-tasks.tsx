@@ -201,7 +201,7 @@ export const useTasks = () => {
 
     // Cache fresh tasks data when received from server
     useEffect(() => {
-        if (isAuthenticated && rawTasks !== undefined && rawTasks.length > 0) {
+        if (isAuthenticated && rawTasks !== undefined) {
             const mappedTasks: Task[] = rawTasks.map(t => ({
                 id: t._id,
                 title: t.title,
@@ -244,7 +244,7 @@ export const useTasks = () => {
 
     // Cache fresh projects data when received from server
     useEffect(() => {
-        if (isAuthenticated && rawProjects !== undefined && rawProjects.length > 0) {
+        if (isAuthenticated && rawProjects !== undefined) {
             const mappedProjects: Project[] = rawProjects.map(p => ({
                 id: p._id,
                 name: p.name,
@@ -583,10 +583,8 @@ export const useTasks = () => {
                         return t;
                     }));
                 } else {
-                    // Rollback to previous state
-                    applyOptimisticUpdate(taskId, previousState);
-                    // Clear after a moment so user sees the rollback
-                    setTimeout(() => clearOptimisticUpdate(taskId), 100);
+                    // Rollback immediately by clearing the optimistic update
+                    clearOptimisticUpdate(taskId);
                     throw error;
                 }
             }

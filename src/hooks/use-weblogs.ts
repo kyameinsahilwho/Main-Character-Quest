@@ -130,7 +130,7 @@ export function useWeblogs() {
 
     // Cache fresh weblogs data when received from server
     useEffect(() => {
-        if (isAuthenticated && rawWeblogs !== undefined && rawWeblogs.length > 0) {
+        if (isAuthenticated && rawWeblogs !== undefined) {
             setCachedData(CACHE_KEY_WEBLOGS, rawWeblogs);
         }
     }, [rawWeblogs, isAuthenticated]);
