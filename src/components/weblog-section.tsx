@@ -9,9 +9,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { Doc } from "../../convex/_generated/dataModel";
 
-export function WeblogSection() {
-    const { weblogs, allTags, addWeblog, updateWeblog, deleteWeblog, togglePin } = useWeblogs();
+interface WeblogSectionProps {
+    initialWeblogs?: Doc<"weblogs">[];
+}
+
+export function WeblogSection({ initialWeblogs }: WeblogSectionProps) {
+    const { weblogs, allTags, addWeblog, updateWeblog, deleteWeblog, togglePin } = useWeblogs(initialWeblogs);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);

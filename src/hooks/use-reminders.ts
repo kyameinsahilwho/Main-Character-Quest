@@ -4,11 +4,24 @@ import { useMemo, useCallback } from 'react';
 import { Reminder } from '@/lib/types';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 import { useToast } from './use-toast';
 import { parseISO } from 'date-fns';
 
-export const useReminders = () => {
+const mapReminder = (r: any): Reminder => ({
+  id: r._id,
+  title: r.title,
+  description: r.description,
+  type: r.type as 'one-time' | 'ongoing',
+  intervalUnit: r.intervalUnit as 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | undefined,
+  intervalValue: r.intervalValue,
+  remindAt: r.remindAt,
+  isActive: r.isActive,
+  icon: r.icon,
+  createdAt: "",
+});
+
+export const useReminders = (initialReminders?: Doc<"reminders">[]) => {
   const { toast } = useToast();
   const rawReminders = useQuery(api.reminders.get);
   const addReminderMutation = useMutation(api.reminders.add);
@@ -16,31 +29,11 @@ export const useReminders = () => {
   const deleteReminderMutation = useMutation(api.reminders.remove);
 
   const reminders: Reminder[] = useMemo(() => {
-    if (!rawReminders) return [];
-    return rawReminders.map(r => ({
-      id: r._id,
-      title: r.title,
-      description: r.description,
-      type: r.type as 'one-time' | 'ongoing',
-      intervalUnit: r.intervalUnit as 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | undefined,
-      intervalValue: r.intervalValue,
-      remindAt: r.remindAt,
-      isActive: r.isActive,
-      icon: r.icon,
-      createdAt: "", // Not in schema, but reminder type has it. Supabase didn't store it?
-      // Actually schema I wrote doesn't have createdAt for reminders? 
-      // Let's check schema. I didn't verify createdAt in schema for reminders.
-      // Supabase `reminders` table usually has `created_at`.
-      // My code generated createdAt: new Date().toISOString() in `addReminder` but did Supabase store it?
-      // In `use-reminders.ts` Step 97 line 78: `createdAt` is used in local state.
-      // Line 87 insert: `created_at` NOT inserted?
-      // Wait, line 87 insert arguments do NOT include `created_at`.
-      // So Supabase schema might have default `now()`.
-      // Convex schema I wrote: NO createdAt for reminders.
-      // So I'll just put empty string or current date, or update schema.
-      // For now, empty string is fine as it seems unused for sorting (sort is by `remind_at`).
-    })).sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime());
-  }, [rawReminders]);
+    if (!rawReminders) {
+      return (initialReminders ? initialReminders.map(mapReminder) : []).sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime());
+    }
+    return rawReminders.map(mapReminder).sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime());
+  }, [rawReminders, initialReminders]);
 
   const addReminder = useCallback(async (reminderData: Omit<Reminder, 'id' | 'createdAt' | 'isActive'>) => {
     try {
@@ -148,7 +141,7 @@ export const useReminders = () => {
 
   return {
     reminders,
-    isInitialLoad: rawReminders === undefined,
+    isInitialLoad: rawReminders === undefined && !initialReminders,
     addReminder,
     updateReminder,
     deleteReminder,
