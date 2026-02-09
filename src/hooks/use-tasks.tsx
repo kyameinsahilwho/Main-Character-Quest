@@ -5,8 +5,43 @@ import { Task, Subtask, Streaks, Project } from '@/lib/types';
 import { startOfDay, isToday, isYesterday, differenceInCalendarDays, parseISO } from 'date-fns';
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 import { isFirstTimeVisitor, markAsVisited, getTemplateTasks, getTemplateProjects } from '@/lib/template-data';
+
+const mapTask = (t: any, optimisticUpdates: any = {}): Task => {
+    const baseTask: Task = {
+        id: t._id,
+        title: t.title,
+        dueDate: t.dueDate || null,
+        isCompleted: t.isCompleted,
+        completedAt: t.completedAt || null,
+        createdAt: t.createdAt,
+        projectId: t.projectId || null,
+        reminderAt: t.reminderAt,
+        reminderEnabled: t.reminderEnabled,
+        xp: t.rewardXp,
+        subtasks: (t.subtasks || []).map((st: any) => ({
+            id: st._id,
+            text: st.title,
+            isCompleted: st.isCompleted
+        }))
+    };
+
+    const optimistic = optimisticUpdates[t._id];
+    if (optimistic) {
+        return { ...baseTask, ...optimistic };
+    }
+    return baseTask;
+};
+
+const mapProject = (p: any): Project => ({
+    id: p._id,
+    name: p.name,
+    description: p.description,
+    color: p.color,
+    icon: p.icon,
+    createdAt: p.createdAt
+});
 
 // Optimistic update storage key
 const OPTIMISTIC_TASKS_KEY = 'pollytasks_optimistic_tasks';
@@ -59,7 +94,10 @@ function setCachedData<T>(key: string, data: T): void {
     }
 }
 
-export const useTasks = () => {
+export const useTasks = (
+    initialTasks?: Doc<"tasks">[],
+    initialProjects?: Doc<"projects">[]
+) => {
     // Auth state
     const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
     const [forceLocal, setForceLocal] = useState(false);
@@ -165,60 +203,18 @@ export const useTasks = () => {
         if (isAuthenticated) {
             // Use cached data while server data is loading (localStorage-first)
             if (!rawTasks) {
-                return cachedTasks ?? [];
+                return (initialTasks !== undefined ? initialTasks.map(t => mapTask(t, optimisticUpdates)) : cachedTasks) ?? [];
             }
-            return rawTasks.map(t => {
-                const baseTask: Task = {
-                    id: t._id,
-                    title: t.title,
-                    dueDate: t.dueDate || null,
-                    isCompleted: t.isCompleted,
-                    completedAt: t.completedAt || null,
-                    createdAt: t.createdAt,
-                    projectId: t.projectId || null,
-                    reminderAt: t.reminderAt,
-                    reminderEnabled: t.reminderEnabled,
-                    xp: t.rewardXp,
-                    subtasks: (t.subtasks || []).map((st: any) => ({
-                        id: st._id,
-                        text: st.title,
-                        isCompleted: st.isCompleted
-                    }))
-                };
-
-                // Apply optimistic updates if present
-                const optimistic = optimisticUpdates[t._id];
-                if (optimistic) {
-                    return { ...baseTask, ...optimistic };
-                }
-
-                return baseTask;
-            });
+            return rawTasks.map(t => mapTask(t, optimisticUpdates));
         } else {
             return localTasks;
         }
-    }, [rawTasks, isAuthenticated, localTasks, optimisticUpdates, cachedTasks]);
+    }, [rawTasks, isAuthenticated, localTasks, optimisticUpdates, cachedTasks, initialTasks]);
 
     // Cache fresh tasks data when received from server
     useEffect(() => {
         if (isAuthenticated && rawTasks !== undefined) {
-            const mappedTasks: Task[] = rawTasks.map(t => ({
-                id: t._id,
-                title: t.title,
-                dueDate: t.dueDate || null,
-                isCompleted: t.isCompleted,
-                completedAt: t.completedAt || null,
-                createdAt: t.createdAt,
-                projectId: t.projectId || null,
-                reminderAt: t.reminderAt,
-                reminderEnabled: t.reminderEnabled,
-                xp: t.rewardXp,
-                subtasks: (t.subtasks || []).map((st: any) => ({
-                    id: st._id,
-                    text: st.title,
-                    isCompleted: st.isCompleted
-                }))
-            }));
+            const mappedTasks: Task[] = rawTasks.map(t => mapTask(t, {}));
             setCachedData(CACHE_KEYS.tasks, mappedTasks);
         }
     }, [rawTasks, isAuthenticated]);
@@ -227,32 +223,18 @@ export const useTasks = () => {
         if (isAuthenticated) {
             // Use cached data while server data is loading (localStorage-first)
             if (!rawProjects) {
-                return cachedProjects ?? [];
+                return (initialProjects !== undefined ? initialProjects.map(mapProject) : cachedProjects) ?? [];
             }
-            return rawProjects.map(p => ({
-                id: p._id,
-                name: p.name,
-                description: p.description,
-                color: p.color,
-                icon: p.icon,
-                createdAt: p.createdAt
-            }));
+            return rawProjects.map(mapProject);
         } else {
             return localProjects;
         }
-    }, [rawProjects, isAuthenticated, localProjects, cachedProjects]);
+    }, [rawProjects, isAuthenticated, localProjects, cachedProjects, initialProjects]);
 
     // Cache fresh projects data when received from server
     useEffect(() => {
         if (isAuthenticated && rawProjects !== undefined) {
-            const mappedProjects: Project[] = rawProjects.map(p => ({
-                id: p._id,
-                name: p.name,
-                description: p.description,
-                color: p.color,
-                icon: p.icon,
-                createdAt: p.createdAt
-            }));
+            const mappedProjects: Project[] = rawProjects.map(mapProject);
             setCachedData(CACHE_KEYS.projects, mappedProjects);
         }
     }, [rawProjects, isAuthenticated]);
@@ -838,7 +820,7 @@ export const useTasks = () => {
         updateProject,
         deleteProject,
         // isInitialLoad is false if we have cached data (localStorage-first approach)
-        isInitialLoad: isAuthenticated ? (rawTasks === undefined && cachedTasks === null) : !isLocalLoaded,
+        isInitialLoad: isAuthenticated ? (rawTasks === undefined && cachedTasks === null && !initialTasks) : !isLocalLoaded,
         reloadFromSupabase: async () => { },
     };
 };

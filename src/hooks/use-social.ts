@@ -53,7 +53,10 @@ function setCachedData<T>(key: string, data: T): void {
     }
 }
 
-export function useSocial() {
+export function useSocial(
+    initialFriends?: any[],
+    initialNotifications?: any[]
+) {
     // Cached initial state
     const [cachedFriends] = useState(() => getCachedData<any[]>(SOCIAL_CACHE_KEYS.friends));
     const [cachedNotifications] = useState(() => getCachedData<any[]>(SOCIAL_CACHE_KEYS.notifications));
@@ -71,15 +74,15 @@ export function useSocial() {
         if (friendsQuery !== undefined) {
             return friendsQuery;
         }
-        return cachedFriends ?? [];
-    }, [friendsQuery, cachedFriends]);
+        return (initialFriends !== undefined ? initialFriends : cachedFriends) ?? [];
+    }, [friendsQuery, cachedFriends, initialFriends]);
 
     const notifications = useMemo(() => {
         if (notificationsQuery !== undefined) {
             return notificationsQuery;
         }
-        return cachedNotifications ?? [];
-    }, [notificationsQuery, cachedNotifications]);
+        return (initialNotifications !== undefined ? initialNotifications : cachedNotifications) ?? [];
+    }, [notificationsQuery, cachedNotifications, initialNotifications]);
 
     // Cache fresh data when received
     useEffect(() => {
@@ -208,8 +211,8 @@ export function useSocial() {
         unreadCount: optimisticUnreadCount,
 
         // Loading states
-        isLoadingFriends: friendsQuery === undefined && cachedFriends === null,
-        isLoadingNotifications: notificationsQuery === undefined && cachedNotifications === null,
+        isLoadingFriends: friendsQuery === undefined && cachedFriends === null && !initialFriends,
+        isLoadingNotifications: notificationsQuery === undefined && cachedNotifications === null && !initialNotifications,
 
         // Actions
         sendFriendInvite,
@@ -223,7 +226,11 @@ export function useSocial() {
     };
 }
 
-export function useChallenges() {
+export function useChallenges(
+    initialChallenges?: any[],
+    initialLeaderboard?: any[],
+    initialActivity?: any[]
+) {
     // Cached initial state
     const [cachedChallenges] = useState(() => getCachedData<any[]>(SOCIAL_CACHE_KEYS.challenges));
     const [cachedLeaderboard] = useState(() => getCachedData<any[]>(SOCIAL_CACHE_KEYS.leaderboard));
@@ -239,18 +246,18 @@ export function useChallenges() {
     // Use cached data while loading
     const activeChallenges = useMemo(() => {
         if (challengesQuery !== undefined) return challengesQuery;
-        return cachedChallenges ?? [];
-    }, [challengesQuery, cachedChallenges]);
+        return (initialChallenges !== undefined ? initialChallenges : cachedChallenges) ?? [];
+    }, [challengesQuery, cachedChallenges, initialChallenges]);
 
     const friendsLeaderboard = useMemo(() => {
         if (leaderboardQuery !== undefined) return leaderboardQuery;
-        return cachedLeaderboard ?? [];
-    }, [leaderboardQuery, cachedLeaderboard]);
+        return (initialLeaderboard !== undefined ? initialLeaderboard : cachedLeaderboard) ?? [];
+    }, [leaderboardQuery, cachedLeaderboard, initialLeaderboard]);
 
     const friendsActivity = useMemo(() => {
         if (activityQuery !== undefined) return activityQuery;
-        return cachedActivity ?? [];
-    }, [activityQuery, cachedActivity]);
+        return (initialActivity !== undefined ? initialActivity : cachedActivity) ?? [];
+    }, [activityQuery, cachedActivity, initialActivity]);
 
     // Cache fresh data when received
     useEffect(() => {
@@ -352,8 +359,8 @@ export function useChallenges() {
         friendsActivity,
 
         // Loading states
-        isLoadingChallenges: challengesQuery === undefined && cachedChallenges === null,
-        isLoadingLeaderboard: leaderboardQuery === undefined && cachedLeaderboard === null,
+        isLoadingChallenges: challengesQuery === undefined && cachedChallenges === null && !initialChallenges,
+        isLoadingLeaderboard: leaderboardQuery === undefined && cachedLeaderboard === null && !initialLeaderboard,
 
         // Actions
         createChallenge,

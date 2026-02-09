@@ -12,6 +12,14 @@ import { calculateLevel, XP_PER_TASK } from '@/lib/level-system';
 import { useConvexAuth, useQuery, useMutation } from "convex/react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
+import { Doc } from "../../convex/_generated/dataModel";
+
+export interface InitialData {
+  tasks?: Doc<"tasks">[];
+  projects?: Doc<"projects">[];
+  habits?: Doc<"habits">[];
+  reminders?: Doc<"reminders">[];
+}
 
 interface TaskQuestContextType {
   // Auth & User
@@ -92,7 +100,7 @@ interface TaskQuestContextType {
 
 const TaskQuestContext = createContext<TaskQuestContextType | null>(null);
 
-export function TaskQuestProvider({ children }: { children: React.ReactNode }) {
+export function TaskQuestProvider({ children, initialData }: { children: React.ReactNode, initialData?: InitialData }) {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const { signOut } = useClerk();
@@ -146,7 +154,7 @@ export function TaskQuestProvider({ children }: { children: React.ReactNode }) {
     updateProject,
     deleteProject,
     isInitialLoad,
-  } = useTasks();
+  } = useTasks(initialData?.tasks, initialData?.projects);
 
   const {
     habits,
@@ -154,7 +162,7 @@ export function TaskQuestProvider({ children }: { children: React.ReactNode }) {
     updateHabit,
     toggleHabitCompletion,
     deleteHabit,
-  } = useHabits();
+  } = useHabits(initialData?.habits);
 
   const {
     reminders,
@@ -163,7 +171,7 @@ export function TaskQuestProvider({ children }: { children: React.ReactNode }) {
     deleteReminder,
     toggleReminderActive,
     triggerReminder,
-  } = useReminders();
+  } = useReminders(initialData?.reminders);
 
   const {
     permission,
@@ -276,10 +284,13 @@ export function TaskQuestProvider({ children }: { children: React.ReactNode }) {
     }
   }, [tasks, toggleTaskCompletion, toast]);
 
+  // Derived auth loading state to prevent skeleton if initialData is present
+  const derivedAuthLoading = initialData ? false : authLoading;
+
   return (
     <TaskQuestContext.Provider value={{
       isAuthenticated,
-      authLoading,
+      authLoading: derivedAuthLoading,
       user,
       signOut,
       tasks,

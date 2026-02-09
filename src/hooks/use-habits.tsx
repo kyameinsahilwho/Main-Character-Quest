@@ -17,7 +17,7 @@ import {
 import { XP_PER_RITUAL, STREAK_XP_BONUS, MAX_STREAK_BONUS } from '@/lib/level-system';
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 
 // Optimistic update storage key
 const OPTIMISTIC_HABITS_KEY = 'pollytasks_optimistic_habits';
@@ -173,7 +173,46 @@ const calculateYearlyStats = (
 
 import { isFirstTimeVisitor, getTemplateHabits } from '@/lib/template-data';
 
-export const useHabits = () => {
+const mapHabit = (h: any, optimisticUpdates: any = {}): Habit => {
+  const completions = (h.completions || []).map((c: any) => ({
+    id: c._id,
+    habitId: c.habitId,
+    completedAt: c.completedAt
+  }));
+
+  const xp = calculateHabitXP(completions, h.frequency as any, h.customDays);
+  const yearlyStats = calculateYearlyStats(completions, h.frequency as any, h.createdAt, h.customDays);
+
+  const baseHabit: Habit = {
+    id: h._id,
+    title: h.title,
+    description: h.description,
+    frequency: h.frequency as any,
+    currentStreak: h.currentStreak,
+    bestStreak: h.bestStreak,
+    color: h.color,
+    icon: h.icon,
+    createdAt: h.createdAt,
+    customDays: h.customDays,
+    completions,
+    xp,
+    totalCompletions: completions.length,
+    yearlyStats,
+    archived: h.archived,
+    reminderTime: h.reminderTime,
+    reminderEnabled: h.reminderEnabled,
+  };
+
+  // Apply optimistic updates if present
+  const optimistic = optimisticUpdates[h._id];
+  if (optimistic) {
+    return { ...baseHabit, ...optimistic };
+  }
+
+  return baseHabit;
+};
+
+export const useHabits = (initialHabits?: Doc<"habits">[]) => {
   const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
   const [forceLocal, setForceLocal] = useState(false);
 
@@ -267,46 +306,9 @@ export const useHabits = () => {
     if (isAuthenticated) {
       // Use cached data while server data is loading (localStorage-first)
       if (!rawHabits) {
-        return cachedHabits ?? [];
+        return (initialHabits !== undefined ? initialHabits.map(h => mapHabit(h, optimisticUpdates)) : cachedHabits) ?? [];
       }
-      return rawHabits.map(h => {
-        const completions = (h.completions || []).map((c: any) => ({
-          id: c._id,
-          habitId: c.habitId,
-          completedAt: c.completedAt
-        }));
-
-        const xp = calculateHabitXP(completions, h.frequency as any, h.customDays);
-        const yearlyStats = calculateYearlyStats(completions, h.frequency as any, h.createdAt, h.customDays);
-
-        const baseHabit: Habit = {
-          id: h._id,
-          title: h.title,
-          description: h.description,
-          frequency: h.frequency as any,
-          currentStreak: h.currentStreak,
-          bestStreak: h.bestStreak,
-          color: h.color,
-          icon: h.icon,
-          createdAt: h.createdAt,
-          customDays: h.customDays,
-          completions,
-          xp,
-          totalCompletions: completions.length,
-          yearlyStats,
-          archived: h.archived,
-          reminderTime: h.reminderTime,
-          reminderEnabled: h.reminderEnabled,
-        };
-
-        // Apply optimistic updates if present
-        const optimistic = optimisticUpdates[h._id];
-        if (optimistic) {
-          return { ...baseHabit, ...optimistic };
-        }
-
-        return baseHabit;
-      }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      return rawHabits.map(h => mapHabit(h, optimisticUpdates)).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     } else {
       return localHabits;
     }
@@ -315,34 +317,7 @@ export const useHabits = () => {
   // Cache fresh habits data when received from server
   useEffect(() => {
     if (isAuthenticated && rawHabits !== undefined) {
-      const mappedHabits: Habit[] = rawHabits.map(h => {
-        const completions = (h.completions || []).map((c: any) => ({
-          id: c._id,
-          habitId: c.habitId,
-          completedAt: c.completedAt
-        }));
-        const xp = calculateHabitXP(completions, h.frequency as any, h.customDays);
-        const yearlyStats = calculateYearlyStats(completions, h.frequency as any, h.createdAt, h.customDays);
-        return {
-          id: h._id,
-          title: h.title,
-          description: h.description,
-          frequency: h.frequency as any,
-          currentStreak: h.currentStreak,
-          bestStreak: h.bestStreak,
-          color: h.color,
-          icon: h.icon,
-          createdAt: h.createdAt,
-          customDays: h.customDays,
-          completions,
-          xp,
-          totalCompletions: completions.length,
-          yearlyStats,
-          archived: h.archived,
-          reminderTime: h.reminderTime,
-          reminderEnabled: h.reminderEnabled,
-        };
-      });
+      const mappedHabits: Habit[] = rawHabits.map(h => mapHabit(h, {}));
       setCachedData(CACHE_KEY_HABITS, mappedHabits);
     }
   }, [rawHabits, isAuthenticated]);
@@ -641,6 +616,6 @@ export const useHabits = () => {
     deleteHabit,
     toggleHabitCompletion,
     // isInitialLoad is false if we have cached data (localStorage-first approach)
-    isInitialLoad: isAuthenticated ? (rawHabits === undefined && cachedHabits === null) : !isLocalLoaded,
+    isInitialLoad: isAuthenticated ? (rawHabits === undefined && cachedHabits === null && !initialHabits) : !isLocalLoaded,
   };
 };
