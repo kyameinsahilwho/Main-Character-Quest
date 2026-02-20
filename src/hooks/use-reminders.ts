@@ -4,7 +4,7 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 import { Reminder } from '@/lib/types';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 import { useToast } from './use-toast';
 import { parseISO } from 'date-fns';
 
@@ -49,7 +49,20 @@ function setCachedData<T>(key: string, data: T): void {
   }
 }
 
-export const useReminders = () => {
+const mapReminder = (r: any): Reminder => ({
+  id: r._id,
+  title: r.title,
+  description: r.description,
+  type: r.type as 'one-time' | 'ongoing',
+  intervalUnit: r.intervalUnit as 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | undefined,
+  intervalValue: r.intervalValue,
+  remindAt: r.remindAt,
+  isActive: r.isActive,
+  icon: r.icon,
+  createdAt: "",
+});
+
+export const useReminders = (initialReminders?: Doc<"reminders">[]) => {
   const { toast } = useToast();
   const rawReminders = useQuery(api.reminders.get);
   const [cachedReminders] = useState<Reminder[] | null>(() => getCachedData<Reminder[]>(CACHE_KEY_REMINDERS));
@@ -211,7 +224,7 @@ export const useReminders = () => {
 
   return {
     reminders,
-    isInitialLoad: rawReminders === undefined && cachedReminders === null,
+    isInitialLoad: rawReminders === undefined,
     addReminder,
     updateReminder,
     deleteReminder,

@@ -72,12 +72,24 @@ const CHEER_TYPES = [
 
 interface SocialSectionProps {
     className?: string;
+    initialFriends?: any[];
+    initialNotifications?: any[];
+    initialChallenges?: any[];
+    initialLeaderboard?: any[];
+    initialActivity?: any[];
 }
 
-export function SocialSection({ className }: SocialSectionProps) {
+export function SocialSection({
+    className,
+    initialFriends,
+    initialNotifications,
+    initialChallenges,
+    initialLeaderboard,
+    initialActivity
+}: SocialSectionProps) {
     const [activeTab, setActiveTab] = useState("friends");
-    const social = useSocial();
-    const challenges = useChallenges();
+    const social = useSocial(initialFriends, initialNotifications);
+    const challenges = useChallenges(initialChallenges, initialLeaderboard, initialActivity);
 
     return (
         <div className={cn("flex flex-col h-full", className)}>

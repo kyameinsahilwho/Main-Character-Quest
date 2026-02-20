@@ -35,26 +35,17 @@ interface WeblogItemProps {
 export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItemProps) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-    // Strip HTML and markdown for preview
-    const previewText = weblog.content
-        // Replace block endings and breaks with a space to prevent word concatenation
-        .replace(/<\/(p|div|h\d|li|blockquote)>|<br\s*\/?>/gi, ' ')
-        // Remove all HTML tags
-        .replace(/<[^>]+>/g, '')
-        // Remove basic markdown chars
-        .replace(/[#*`_\[\]()]/g, '')
-        // Decode common entities
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        // Collapse whitespace
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 150) + (weblog.content.length > 150 ? "..." : "");
-
     const stickyNoteStyle = "bg-[#FEF9C3] dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50";
+
+    const sanitizeHtml = (html: string) => {
+        if (!html) return "";
+        return html
+            .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+            .replace(/<iframe\b[^>]*>([\s\S]*?)<\/iframe>/gim, "")
+            .replace(/<object\b[^>]*>([\s\S]*?)<\/object>/gim, "")
+            .replace(/on\w+="[^"]*"/g, "")
+            .replace(/javascript:/gi, "");
+    };
 
     return (
         <motion.div
@@ -139,10 +130,17 @@ export function WeblogItem({ weblog, onEdit, onDelete, onTogglePin }: WeblogItem
             </AlertDialog>
 
             {/* Content Preview */}
-            <div className="flex-1 mb-2">
-                <p className="text-xs md:text-sm font-medium text-slate-700/80 dark:text-slate-300 line-clamp-2 md:line-clamp-3 leading-relaxed">
-                    {previewText || <span className="italic opacity-50">Empty note...</span>}
-                </p>
+            <div className="flex-1 mb-2 overflow-hidden">
+                {weblog.content ? (
+                    <div
+                        className="text-xs md:text-sm font-medium text-slate-700/80 dark:text-slate-300 line-clamp-2 md:line-clamp-3 leading-relaxed [&_h1]:text-sm [&_h1]:font-bold [&_h1]:m-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:m-0 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:m-0 [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-4 [&_ol]:m-0 [&_ol]:pl-4 [&_li]:m-0 [&_blockquote]:m-0 [&_blockquote]:pl-2 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-400/50 [&_img]:hidden"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(weblog.content) }}
+                    />
+                ) : (
+                    <p className="text-xs md:text-sm font-medium text-slate-700/80 dark:text-slate-300 italic opacity-50">
+                        Empty note...
+                    </p>
+                )}
             </div>
 
             {/* Tags */}

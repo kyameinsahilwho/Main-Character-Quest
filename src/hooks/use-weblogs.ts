@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 
 export type Weblog = {
     _id: Id<"weblogs"> | string;
@@ -70,7 +70,7 @@ function setCachedData<T>(key: string, data: T): void {
     }
 }
 
-export function useWeblogs() {
+export function useWeblogs(initialWeblogs?: Doc<"weblogs">[]) {
     const { isAuthenticated: _realIsAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
     const [forceLocal, setForceLocal] = useState(false);
 
@@ -120,17 +120,17 @@ export function useWeblogs() {
         if (isAuthenticated) {
             // Use cached data while server data is loading (localStorage-first)
             if (!rawWeblogs) {
-                return cachedWeblogs ?? [];
+                return (initialWeblogs !== undefined ? initialWeblogs as unknown as Weblog[] : cachedWeblogs) ?? [];
             }
             return rawWeblogs;
         } else {
             return localWeblogs as Weblog[];
         }
-    }, [rawWeblogs, isAuthenticated, localWeblogs, cachedWeblogs]);
+    }, [rawWeblogs, isAuthenticated, localWeblogs, cachedWeblogs, initialWeblogs]);
 
     // Cache fresh weblogs data when received from server
     useEffect(() => {
-        if (isAuthenticated && rawWeblogs !== undefined && rawWeblogs.length > 0) {
+        if (isAuthenticated && rawWeblogs !== undefined) {
             setCachedData(CACHE_KEY_WEBLOGS, rawWeblogs);
         }
     }, [rawWeblogs, isAuthenticated]);
