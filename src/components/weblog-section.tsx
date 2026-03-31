@@ -329,6 +329,7 @@ export function WeblogSection({ initialWeblogs }: WeblogSectionProps) {
                     onSave={handleSave}
                     existingTags={allTags}
                     folders={folders}
+                    initialFolderId={isInsideFolder ? selectedFolderId : null}
                 />
             </div>
         );
@@ -484,6 +485,7 @@ export function WeblogSection({ initialWeblogs }: WeblogSectionProps) {
                 onSave={handleSave}
                 existingTags={allTags}
                 folders={folders}
+                initialFolderId={isInsideFolder ? selectedFolderId : null}
             />
         </div>
     );
