@@ -43,9 +43,10 @@ interface WeblogEditorProps {
     onSave: (data: any) => Promise<void>;
     existingTags?: string[];
     folders: WeblogFolder[];
+    initialFolderId?: string | null;
 }
 
-export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [], folders = [] }: WeblogEditorProps) {
+export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [], folders = [], initialFolderId = null }: WeblogEditorProps) {
     const [title, setTitle] = useState("");
     const [emoji, setEmoji] = useState("📝");
     const [folderId, setFolderId] = useState<string | null>(null);
@@ -190,7 +191,7 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
                 // Load draft for new note
                 setTitle(draft.title || "");
                 setEmoji(draft.emoji || "📝");
-                setFolderId(draft.folderId || null);
+                setFolderId(draft.folderId ?? initialFolderId ?? null);
                 setTags(draft.tags || []);
                 setTimeout(() => {
                     if (editorRef.current) {
@@ -201,7 +202,7 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
                 // Load from weblog or defaults
                 setTitle(weblog?.title || "");
                 setEmoji(weblog?.emoji || "📝");
-                setFolderId(weblog?.folderId || null);
+                setFolderId(weblog ? (weblog.folderId ?? null) : (initialFolderId ?? null));
                 setTags(weblog?.tags || []);
                 setTimeout(() => {
                     if (editorRef.current) {
@@ -210,7 +211,7 @@ export function WeblogEditor({ isOpen, onClose, weblog, onSave, existingTags = [
                 }, 50);
             }
         }
-    }, [isOpen, weblog, loadDraft]);
+    }, [isOpen, weblog, loadDraft, initialFolderId]);
 
     useEffect(() => {
         if (showTagInput && tagInputRef.current) {
