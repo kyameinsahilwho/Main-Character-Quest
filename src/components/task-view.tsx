@@ -266,10 +266,10 @@ export function TaskView({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full px-2 py-1.5 w-full sm:w-auto sm:ml-auto">
+          <div className="flex items-center justify-between gap-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full px-2 py-1.5 w-full sm:w-auto sm:ml-auto">
             <button
               onClick={() => { setDirection(-1); setDateOffset(p => p - 1); }}
-              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#F1F4F9] transition-all active:scale-90"
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#F1F4F9] transition-all active:scale-90"
             >
               <ChevronLeft className="w-3.5 h-3.5 text-[#64748B]" />
             </button>
@@ -280,7 +280,7 @@ export function TaskView({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: direction > 0 ? 6 : -6 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#1E293B] min-w-[100px] sm:min-w-[120px] text-center"
+                className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#1E293B] flex-1 text-center"
               >
                 {dateLabel}
               </motion.span>
@@ -289,7 +289,7 @@ export function TaskView({
               onClick={() => { setDirection(1); setDateOffset(p => p + 1); }}
               disabled={dateOffset >= 0}
               className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90",
+                "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90",
                 dateOffset >= 0 ? "opacity-25 cursor-not-allowed" : "hover:bg-[#F1F4F9]"
               )}
             >
