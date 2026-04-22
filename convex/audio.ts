@@ -44,12 +44,12 @@ export const processAudioNote = action({
       console.log("Calling Gemini Flash Latest API...");
 
       const promptText = `Please listen to the attached audio note.
-1. Provide a direct, exact raw transcription of what was said.
+1. Provide a raw transcription of what was said. Add proper punctuation and divide into paragraphs for readability, but DO NOT alter the spoken words or content.
 2. Provide a clean, structured written version (formatting as markdown, fixing stutters, structuring into paragraphs/bullet points if appropriate).
 3. Provide a relevant emoji for the note.
 Format your response exactly as JSON:
 {
-  "rawTranscript": "the exact spoken text...",
+  "rawTranscript": "the minimally structured, punctuated spoken text...",
   "structuredContent": "the formatted markdown...",
   "title": "A short 2-5 word title for this note",
   "emoji": "a single relevant emoji character (e.g. 📝, 💡, 🏃)"
